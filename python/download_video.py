@@ -86,28 +86,40 @@ def preprocess_tiktok_video(url: str, split_mode: str = 'thorough') -> str:
         return project_id: A unique identifier for the project, which can be used to retrieve the images later.
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Define output path for the downloaded video in temp directory
-        project_id = str(uuid.uuid4())
-        output_path = os.path.join(temp_dir, project_id)
-        gcs_path = f"{project_id}/scenes"
-        os.makedirs(output_path, exist_ok=True)
-
         # Download the TikTok video
-        video_path = os.path.join(output_path, "video.mp4")
+        video_path = os.path.join(temp_dir, "video.mp4")
         download_tiktok_no_watermark(url, video_path)
         
         # Save scene images to temp directory
-        save_scene_images(video_path, output_path, split_mode)
+        save_scene_images(video_path, temp_dir, split_mode)
         
         # Read all generated images into memory
-        image_files = glob.glob(os.path.join(output_path, "*.jpg"))
+        project_id = str(uuid.uuid4())
+        image_files = glob.glob(os.path.join(temp_dir, "*.jpg"))
         for img_path in sorted(image_files):
-            blob = bucket.blob(f"{gcs_path}/{os.path.basename(img_path)}")
+            blob = bucket.blob(f"{project_id}/{os.path.basename(img_path)}")
             blob.upload_from_filename(img_path)
+        
+        # store all the file paths in the bucket in a text file
+        file_list_path = os.path.join(temp_dir, f"{project_id}_files.txt")
+        with open(file_list_path, 'w') as f:
+            for img_path in sorted(image_files):
+                f.write(f"{project_id}/{os.path.basename(img_path)}\n")
+        
+        blob = bucket.blob(f"{project_id}/file_list.txt")
+        blob.upload_from_filename(file_list_path)
+        
+        # Clean up the temporary directory
+        print(f"All images uploaded to Google Cloud Storage at {project_id}/")
+        return project_id
 
 if __name__ == "__main__":
-    # Example usage
-    url = "https://www.tiktok.com/@dog.stories24/video/7504909703697239318"
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python download_video.py <video_url>")
+        sys.exit(1)
+    
+    url = sys.argv[1]
     project_id = preprocess_tiktok_video(url, split_mode='thorough')
     print(f"Project ID: {project_id}")
     print("Video processed and scenes saved to Google Cloud Storage.")

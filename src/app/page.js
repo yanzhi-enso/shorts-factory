@@ -1,95 +1,101 @@
+"use client";
+
+import { useState } from 'react';
 import Image from "next/image";
 import styles from "./page.module.css";
+import ImageGrid from './components/ImageGrid';
 
 export default function Home() {
+  const [videoUrl, setVideoUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [projectId, setProjectId] = useState(null);
+  const [images, setImages] = useState([]);
+
+  const handleProcessVideo = async () => {
+    if (!videoUrl) {
+      setError('Please enter a video URL');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setProjectId(null);
+    setImages([]);
+
+    try {
+      // Call backend API to start processing
+      const response = await fetch('/api/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_url: videoUrl })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process video');
+      }
+
+      const data = await response.json();
+      setProjectId(data.project_id);
+      
+      // Fetch file list via backend proxy to avoid CORS issues
+      const fileListResponse = await fetch(`/api/files/${data.project_id}`);
+      if (!fileListResponse.ok) {
+        throw new Error('Failed to fetch file list');
+      }
+      
+      const fileData = await fileListResponse.json();
+      
+      // Filter to only show first image from each scene group
+      const filteredImages = fileData.files.filter(file => 
+        file.includes('-01.jpg') || file.includes('-01.jpeg')
+      );
+      
+      setImages(filteredImages);
+    } catch (err) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <h1 className={styles.title}>TikTok Video Processor</h1>
+        
+        <div className={styles.inputContainer}>
+          <input
+            type="text"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="Enter TikTok video URL"
+            className={styles.input}
+            disabled={loading}
+          />
+          <button
+            onClick={handleProcessVideo}
+            className={styles.button}
+            disabled={loading}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+            {loading ? 'Processing...' : 'Process Video'}
+          </button>
         </div>
+
+        {error && <p className={styles.error}>{error}</p>}
+
+        {projectId && !loading && !error && (
+          <div className={styles.results}>
+            <h2>Scene Thumbnails</h2>
+            <p className={styles.projectId}>Project ID: {projectId}</p>
+            {images.length > 0 ? (
+              <ImageGrid images={images} />
+            ) : (
+              <p>No images found for this project</p>
+            )}
+          </div>
+        )}
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
