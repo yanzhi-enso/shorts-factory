@@ -1,21 +1,22 @@
 import os
 import glob
 import uuid
+import tempfile
 from yt_dlp import YoutubeDL
 import os, subprocess
+from google.cloud import storage
 
-DIR_NAME = str(uuid.uuid4())
+# No explicit credentials needed - uses service account automatically
+client = storage.Client()
+bucket = client.bucket('shorts-scenes')
 
-def download_tiktok_no_watermark(url: str, output_path: str = VIDEO_DIR+"/shots/tiktok_video.mp4") -> None:
+def download_tiktok_no_watermark(url: str, output_path: str) -> None:
     """
     Download a TikTok video (no watermark) to the specified output path.
 
-    Dependencies:
-      pip install yt-dlp
-
     Args:
-      url:         The full TikTok video URL.
-      output_path: Where to save the MP4 (e.g. "myvideo.mp4").
+    url:         The full TikTok video URL.
+    output_path: Where to save the MP4 (e.g. "myvideo.mp4").
     """
     # yt-dlp options
     ydl_opts = {
@@ -72,3 +73,41 @@ def save_scene_images(mp4_path, output_folder, split_mode='thorough'):
     ]
     subprocess.run(command, check=True)
     print("Analyzing finished!")
+
+def preprocess_tiktok_video(url: str, split_mode: str = 'thorough') -> str:
+    """
+    Download a TikTok video without watermark and save scene images.
+
+    Args:
+        url:         The full TikTok video URL.
+        split_mode:  How to split the video into scenes ('thorough' or 'adaptive').
+
+    Returns:
+        return project_id: A unique identifier for the project, which can be used to retrieve the images later.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Define output path for the downloaded video in temp directory
+        project_id = str(uuid.uuid4())
+        output_path = os.path.join(temp_dir, project_id)
+        gcs_path = f"{project_id}/scenes"
+        os.makedirs(output_path, exist_ok=True)
+
+        # Download the TikTok video
+        video_path = os.path.join(output_path, "video.mp4")
+        download_tiktok_no_watermark(url, video_path)
+        
+        # Save scene images to temp directory
+        save_scene_images(video_path, output_path, split_mode)
+        
+        # Read all generated images into memory
+        image_files = glob.glob(os.path.join(output_path, "*.jpg"))
+        for img_path in sorted(image_files):
+            blob = bucket.blob(f"{gcs_path}/{os.path.basename(img_path)}")
+            blob.upload_from_filename(img_path)
+
+if __name__ == "__main__":
+    # Example usage
+    url = "https://www.tiktok.com/@dog.stories24/video/7504909703697239318"
+    project_id = preprocess_tiktok_video(url, split_mode='thorough')
+    print(f"Project ID: {project_id}")
+    print("Video processed and scenes saved to Google Cloud Storage.")
