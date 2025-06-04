@@ -2,15 +2,31 @@ import React from 'react';
 import styles from './RemakeImageBlock.module.css';
 import Image from 'next/image';
 
-const RemakeImageBlock = ({ imageUrl, title, onClick }) => {
+const RemakeImageBlock = ({ 
+  imageUrl, 
+  title, 
+  onClick, 
+  variant = 'original', // 'original', 'generated', 'empty'
+  isEmpty = false 
+}) => {
   const handleClick = () => {
     if (onClick) {
-      onClick(imageUrl, title);
+      onClick(imageUrl, title, variant);
     }
   };
 
-  return (
-    <div className={styles.imageBlock} onClick={handleClick}>
+  const renderContent = () => {
+    if (isEmpty || !imageUrl) {
+      return (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyText}>
+            {variant === 'generated' ? 'Generate to see result' : 'No image'}
+          </div>
+        </div>
+      );
+    }
+
+    return (
       <Image
         src={`https://storage.googleapis.com/shorts-scenes/${imageUrl}`}
         alt={title}
@@ -18,6 +34,15 @@ const RemakeImageBlock = ({ imageUrl, title, onClick }) => {
         height={300}
         className={styles.image}
       />
+    );
+  };
+
+  return (
+    <div 
+      className={`${styles.imageBlock} ${isEmpty ? styles.empty : ''} ${styles[variant]}`} 
+      onClick={handleClick}
+    >
+      {renderContent()}
     </div>
   );
 };

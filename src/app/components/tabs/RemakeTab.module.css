@@ -53,51 +53,11 @@
   gap: 16px;
 }
 
-.sceneRow {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  width: 100%;
-  min-height: 332px;
-  padding: 16px;
-  border: 2px dashed #dee2e6;
-  border-radius: 12px;
-  background: #f8f9fa;
-  overflow-x: auto;
-  gap: 16px;
-  
-  /* Hide scrollbar */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.sceneRow::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-}
-
-.imageCell {
-  flex-shrink: 0;
-  width: 200px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .rowsContainer {
     padding: 16px;
     gap: 12px;
-  }
-  
-  .sceneRow {
-    min-height: 324px;
-    padding: 12px;
-    gap: 12px;
-  }
-  
-  .imageCell {
-    width: 200px;
   }
   
   .header {

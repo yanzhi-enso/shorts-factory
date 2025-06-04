@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import styles from './RemakeTab.module.css';
-import RemakeImageBlock from '../RemakeImageBlock';
+import SceneRow from '../SceneRow';
 import FullSizeImageModal from '../FullSizeImageModal';
 
 const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext, onError }) => {
@@ -51,12 +51,24 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
 
   }, [images, selectedIndices]);
 
-  const handleImageClick = (imageUrl, title) => {
+  const handleOriginalImageClick = (imageUrl, title) => {
     setModalState({
       isOpen: true,
       imageUrl,
       imageTitle: title
     });
+  };
+
+  const handleGeneratedImageClick = (imageUrl, title, variant) => {
+    // For now, just handle the same as original image click
+    // Later this will be extended for history modal
+    if (imageUrl) {
+      setModalState({
+        isOpen: true,
+        imageUrl,
+        imageTitle: title
+      });
+    }
   };
 
   const closeModal = () => {
@@ -87,15 +99,18 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
       
       <div className={styles.rowsContainer}>
         {originalImages.map((item, index) => (
-          <div key={`${item.sceneId}-${index}`} className={styles.sceneRow}>
-            <div className={styles.imageCell}>
-              <RemakeImageBlock
-                imageUrl={item.imageUrl}
-                title={item.title}
-                onClick={handleImageClick}
-              />
-            </div>
-          </div>
+          <SceneRow
+            key={`${item.sceneId}-${index}`}
+            sceneId={item.sceneId}
+            originalImage={{
+              imageUrl: item.imageUrl,
+              title: item.title
+            }}
+            generatedImage={null} // Will be populated later
+            generationHistory={[]} // Will be populated later
+            onOriginalImageClick={handleOriginalImageClick}
+            onGeneratedImageClick={handleGeneratedImageClick}
+          />
         ))}
       </div>
 

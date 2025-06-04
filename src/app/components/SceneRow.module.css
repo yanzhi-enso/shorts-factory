@@ -1,0 +1,68 @@
+.sceneRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 332px;
+  padding: 16px;
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  background: #f8f9fa;
+  overflow-x: auto;
+  gap: 0;
+  
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.sceneRow::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.imageSection {
+  flex-shrink: 0;
+  width: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.controlSection {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-width: 400px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 1024px) {
+  .sceneRow {
+    flex-direction: column;
+    align-items: center;
+    min-height: auto;
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .imageSection {
+    width: 200px;
+    flex-shrink: 0;
+  }
+  
+  .controlSection {
+    width: 100%;
+    min-width: unset;
+  }
+}
+
+@media (max-width: 768px) {
+  .sceneRow {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .imageSection {
+    width: 180px;
+  }
+}
