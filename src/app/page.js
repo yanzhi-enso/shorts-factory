@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import Image from "next/image";
 import styles from "./page.module.css";
 import ImageGrid from './components/ImageGrid';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function Home() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -11,6 +11,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [projectId, setProjectId] = useState(null);
   const [images, setImages] = useState([]);
+  const [showResults, setShowResults] = useState(false);
 
   const handleProcessVideo = async () => {
     if (!videoUrl) {
@@ -46,12 +47,9 @@ export default function Home() {
       
       const fileData = await fileListResponse.json();
       
-      // Filter to only show first image from each scene group
-      const filteredImages = fileData.files.filter(file => 
-        file.includes('-01.jpg') || file.includes('-01.jpeg')
-      );
-      
-      setImages(filteredImages);
+      // Now we need all images, not just filtered ones, for the new grouping logic
+      setImages(fileData.files);
+      setShowResults(true);
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally {
@@ -59,42 +57,58 @@ export default function Home() {
     }
   };
 
+  const handleDeleteScene = (sceneImages) => {
+    // Remove all images belonging to the deleted scene
+    setImages(prevImages => 
+      prevImages.filter(img => !sceneImages.includes(img))
+    );
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
         <h1 className={styles.title}>TikTok Video Processor</h1>
         
-        <div className={styles.inputContainer}>
-          <input
-            type="text"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="Enter TikTok video URL"
-            className={styles.input}
-            disabled={loading}
-          />
-          <button
-            onClick={handleProcessVideo}
-            className={styles.button}
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : 'Process Video'}
-          </button>
-        </div>
+        {/* Show input form only when not loading and not showing results */}
+        {!loading && !showResults && (
+          <>
+            <div className={styles.inputContainer}>
+              <input
+                type="text"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="Enter TikTok video URL"
+                className={styles.input}
+              />
+              <button
+                onClick={handleProcessVideo}
+                className={styles.button}
+              >
+                Process Video
+              </button>
+            </div>
+            {error && <p className={styles.error}>{error}</p>}
+          </>
+        )}
 
-        {error && <p className={styles.error}>{error}</p>}
+        {/* Show loading spinner when processing */}
+        {loading && <LoadingSpinner />}
 
-        {projectId && !loading && !error && (
+        {/* Show results when processing is complete */}
+        {showResults && !loading && (
           <div className={styles.results}>
             <h2>Scene Thumbnails</h2>
             <p className={styles.projectId}>Project ID: {projectId}</p>
             {images.length > 0 ? (
-              <ImageGrid images={images} />
+              <ImageGrid images={images} onDeleteScene={handleDeleteScene} />
             ) : (
               <p>No images found for this project</p>
             )}
           </div>
         )}
+
+        {/* Show error in results state */}
+        {showResults && error && <p className={styles.error}>{error}</p>}
       </main>
     </div>
   );
