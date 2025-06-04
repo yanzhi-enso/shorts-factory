@@ -4,7 +4,7 @@ import { useState } from 'react';
 import styles from './ScenesTab.module.css';
 import ImageGrid from '../ImageGrid';
 
-const ScenesTab = ({ projectId, images, onBackToStart, onNext, onError }) => {
+const ScenesTab = ({ projectId, images, selectedIndices, setSelectedIndices, onBackToStart, onNext, onError }) => {
   const [currentImages, setCurrentImages] = useState(images);
 
   const handleDeleteScene = (sceneImages) => {
@@ -25,7 +25,7 @@ const ScenesTab = ({ projectId, images, onBackToStart, onNext, onError }) => {
         </button>
         <p className={styles.projectId}>Project ID: {projectId}</p>
         <button 
-          onClick={onNext}
+          onClick={() => onNext(currentImages)}
           className={styles.stepButton}
         >
           Next Step →
@@ -34,7 +34,12 @@ const ScenesTab = ({ projectId, images, onBackToStart, onNext, onError }) => {
       
       <div className={styles.content}>
         {currentImages.length > 0 ? (
-          <ImageGrid images={currentImages} onDeleteScene={handleDeleteScene} />
+          <ImageGrid 
+            images={currentImages} 
+            selectedIndices={selectedIndices}
+            setSelectedIndices={setSelectedIndices}
+            onDeleteScene={handleDeleteScene} 
+          />
         ) : (
           <p className={styles.noImages}>No images found for this project</p>
         )}

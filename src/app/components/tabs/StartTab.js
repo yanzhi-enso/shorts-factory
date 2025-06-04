@@ -74,7 +74,7 @@ const StartTab = ({ onProcessComplete, onError }) => {
           onClick={handleProcessVideo}
           className={styles.button}
         >
-          Process Video
+          Create Project
         </button>
       </div>
       {error && <p className={styles.error}>{error}</p>}

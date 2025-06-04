@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 import TabNavigation, { TABS } from './components/tabs/TabNavigation';
 import StartTab from './components/tabs/StartTab';
 import ScenesTab from './components/tabs/ScenesTab';
+import RemakeTab from './components/tabs/RemakeTab';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -15,8 +16,11 @@ export default function Home() {
   const searchParams = useSearchParams();
   
   const [activeTab, setActiveTab] = useState(TABS.START);
+  const [unlockedTabs, setUnlockedTabs] = useState([TABS.START]);
   const [projectId, setProjectId] = useState(null);
   const [images, setImages] = useState([]);
+  const [remakeImages, setRemakeImages] = useState([]);
+  const [selectedIndices, setSelectedIndices] = useState({});
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -26,7 +30,7 @@ export default function Home() {
       const stage = searchParams.get(STAGE_PARAM);
       const pid = searchParams.get(PROJECT_ID_PARAM);
 
-      if (stage === TABS.SCENES && pid) {
+      if ((stage === TABS.SCENES || stage === TABS.REMAKE) && pid) {
         // Validate project exists by checking file list
         try {
           const response = await fetch(`/api/files/${pid}`);
@@ -34,7 +38,14 @@ export default function Home() {
             const data = await response.json();
             setProjectId(pid);
             setImages(data.files);
-            setActiveTab(TABS.SCENES);
+            setActiveTab(stage);
+            
+            // Set appropriate unlocked tabs based on current stage
+            if (stage === TABS.SCENES) {
+              setUnlockedTabs([TABS.START, TABS.SCENES]);
+            } else if (stage === TABS.REMAKE) {
+              setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
+            }
           } else {
             // Project doesn't exist, redirect to start with error
             setError('Project not found or has expired');
@@ -44,8 +55,8 @@ export default function Home() {
           setError('Failed to validate project');
           updateUrl(TABS.START);
         }
-      } else if (stage === TABS.SCENES && !pid) {
-        // Invalid scenes URL without project ID
+      } else if ((stage === TABS.SCENES || stage === TABS.REMAKE) && !pid) {
+        // Invalid scenes/remake URL without project ID
         setError('Invalid project URL');
         updateUrl(TABS.START);
       } else {
@@ -63,7 +74,7 @@ export default function Home() {
     const params = new URLSearchParams();
     params.set(STAGE_PARAM, tab);
     
-    if (tab === TABS.SCENES && pid) {
+    if ((tab === TABS.SCENES || tab === TABS.REMAKE) && pid) {
       params.set(PROJECT_ID_PARAM, pid);
     }
     
@@ -71,18 +82,19 @@ export default function Home() {
   };
 
   const handleTabChange = (tab) => {
-    if (tab === TABS.SCENES && !projectId) {
-      return; // Can't switch to scenes without project
+    if ((tab === TABS.SCENES || tab === TABS.REMAKE) && !projectId) {
+      return; // Can't switch to scenes/remake without project
     }
     
     setActiveTab(tab);
-    updateUrl(tab, tab === TABS.SCENES ? projectId : null);
+    updateUrl(tab, (tab === TABS.SCENES || tab === TABS.REMAKE) ? projectId : null);
   };
 
   const handleProcessComplete = ({ projectId: newProjectId, images: newImages }) => {
     setProjectId(newProjectId);
     setImages(newImages);
     setActiveTab(TABS.SCENES);
+    setUnlockedTabs([TABS.START, TABS.SCENES]);
     setError(null);
     updateUrl(TABS.SCENES, newProjectId);
   };
@@ -99,6 +111,23 @@ export default function Home() {
 
   const handleError = (errorMessage) => {
     setError(errorMessage);
+  };
+
+  const handleNextToRemake = (filteredImages) => {
+    setRemakeImages(filteredImages);
+    setActiveTab(TABS.REMAKE);
+    setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
+    updateUrl(TABS.REMAKE, projectId);
+  };
+
+  const handleBackToScenes = () => {
+    setActiveTab(TABS.SCENES);
+    updateUrl(TABS.SCENES, projectId);
+  };
+
+  const handleNextFromRemake = () => {
+    // Placeholder for future functionality
+    console.log('Next from Remake - not implemented yet');
   };
 
   // Don't render until initialized to avoid hydration issues
@@ -120,8 +149,7 @@ export default function Home() {
         
         <TabNavigation 
           activeTab={activeTab}
-          onTabChange={handleTabChange}
-          projectId={projectId}
+          unlockedTabs={unlockedTabs}
         />
         
         <div className={styles.tabContent}>
@@ -136,7 +164,21 @@ export default function Home() {
             <ScenesTab 
               projectId={projectId}
               images={images}
+              selectedIndices={selectedIndices}
+              setSelectedIndices={setSelectedIndices}
               onBackToStart={handleBackToStart}
+              onNext={handleNextToRemake}
+              onError={handleError}
+            />
+          )}
+          
+          {activeTab === TABS.REMAKE && projectId && (
+            <RemakeTab 
+              projectId={projectId}
+              images={remakeImages}
+              selectedIndices={selectedIndices}
+              onBackToScenes={handleBackToScenes}
+              onNext={handleNextFromRemake}
               onError={handleError}
             />
           )}

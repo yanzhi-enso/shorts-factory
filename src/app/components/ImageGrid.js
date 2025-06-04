@@ -3,8 +3,7 @@ import styles from './ImageGrid.module.css';
 import ImageSelectionModal from './ImageSelectionModal';
 import SceneImageBlock from './SceneImageBlock';
 
-const ImageGrid = ({ images, onDeleteScene }) => {
-  const [selectedIndices, setSelectedIndices] = useState({});
+const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene }) => {
   const [modalState, setModalState] = useState({
     isOpen: false,
     sceneIndex: null,

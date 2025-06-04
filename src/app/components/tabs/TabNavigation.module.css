@@ -40,6 +40,21 @@
   background: none;
 }
 
+.tab.locked {
+  color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tab.unlocked {
+  cursor: default;
+}
+
+.tab.locked:hover {
+  background: none;
+  color: #adb5bd;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 0.5rem;

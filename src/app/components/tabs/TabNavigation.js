@@ -4,25 +4,28 @@ import styles from './TabNavigation.module.css';
 
 const TABS = {
   START: 'start',
-  SCENES: 'scenes'
+  SCENES: 'scenes',
+  REMAKE: 'remake'
 };
 
-const TabNavigation = ({ activeTab, onTabChange, projectId }) => {
+const TabNavigation = ({ activeTab, unlockedTabs }) => {
   return (
     <div className={styles.container}>
-      <button
-        className={`${styles.tab} ${activeTab === TABS.START ? styles.active : ''}`}
-        onClick={() => onTabChange(TABS.START)}
+      <div
+        className={`${styles.tab} ${activeTab === TABS.START ? styles.active : ''} ${unlockedTabs.includes(TABS.START) ? styles.unlocked : styles.locked}`}
       >
         Start
-      </button>
-      <button
-        className={`${styles.tab} ${activeTab === TABS.SCENES ? styles.active : ''}`}
-        onClick={() => onTabChange(TABS.SCENES)}
-        disabled={!projectId}
+      </div>
+      <div
+        className={`${styles.tab} ${activeTab === TABS.SCENES ? styles.active : ''} ${unlockedTabs.includes(TABS.SCENES) ? styles.unlocked : styles.locked}`}
       >
         Scenes
-      </button>
+      </div>
+      <div
+        className={`${styles.tab} ${activeTab === TABS.REMAKE ? styles.active : ''} ${unlockedTabs.includes(TABS.REMAKE) ? styles.unlocked : styles.locked}`}
+      >
+        Remake
+      </div>
     </div>
   );
 };
