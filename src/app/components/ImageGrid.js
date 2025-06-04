@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import styles from './ImageGrid.module.css';
-import Image from 'next/image';
 import ImageSelectionModal from './ImageSelectionModal';
+import SceneImageBlock from './SceneImageBlock';
 
 const ImageGrid = ({ images, onDeleteScene }) => {
   const [selectedIndices, setSelectedIndices] = useState({});
@@ -95,29 +95,16 @@ const ImageGrid = ({ images, onDeleteScene }) => {
         {groupedScenes.map((scene, sceneIndex) => {
           console.log("scene:", scene, "index:", sceneIndex);
           const selectedImageIndex = selectedIndices[sceneIndex] !== undefined ? selectedIndices[sceneIndex] : 1; // Default to middle image (index 1)
-          const displayImage = scene.images[selectedImageIndex];
           
           return (
-            <div 
-              key={scene.sceneId} 
-              className={`${styles.gridItem} ${selectedImageIndex !== 1 ? styles.customSelected : ''}`}
-              onClick={() => handleImageClick(sceneIndex, scene.images)}
-            >
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => handleDeleteScene(e, sceneIndex, scene)}
-                aria-label="Delete scene"
-              >
-                ×
-              </button>
-              <Image
-                src={`https://storage.googleapis.com/shorts-scenes/${displayImage}`}
-                alt={`Scene ${sceneIndex + 1}`}
-                width={200}
-                height={350}
-                className={styles.image}
-              />
-            </div>
+            <SceneImageBlock
+              key={scene.sceneId}
+              scene={scene}
+              sceneIndex={sceneIndex}
+              selectedImageIndex={selectedImageIndex}
+              onImageClick={handleImageClick}
+              onDeleteScene={handleDeleteScene}
+            />
           );
         })}
       </div>

@@ -1,0 +1,66 @@
+.gridItem {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+.gridItem.customSelected {
+  border: 2px solid white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 0 0 2px white;
+}
+
+.deleteButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #e74c3c;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.deleteButton:hover {
+  background-color: #e74c3c;
+  color: white;
+  transform: scale(1.1);
+}
+
+.deleteButton:active {
+  transform: scale(0.95);
+}
+
+.image {
+  width: 100%;
+  height: 350px; /* Portrait height */
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.gridItem:hover .image {
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .image {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image {
+    height: 200px;
+  }
+}
