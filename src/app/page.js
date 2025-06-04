@@ -1,114 +1,148 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import styles from "./page.module.css";
-import ImageGrid from './components/ImageGrid';
-import LoadingSpinner from './components/LoadingSpinner';
+import TabNavigation, { TABS } from './components/tabs/TabNavigation';
+import StartTab from './components/tabs/StartTab';
+import ScenesTab from './components/tabs/ScenesTab';
+
+const STAGE_PARAM = 'stage';
+const PROJECT_ID_PARAM = 'pid';
 
 export default function Home() {
-  const [videoUrl, setVideoUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [activeTab, setActiveTab] = useState(TABS.START);
   const [projectId, setProjectId] = useState(null);
   const [images, setImages] = useState([]);
-  const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const handleProcessVideo = async () => {
-    if (!videoUrl) {
-      setError('Please enter a video URL');
-      return;
+  // Initialize from URL on mount
+  useEffect(() => {
+    const initializeFromUrl = async () => {
+      const stage = searchParams.get(STAGE_PARAM);
+      const pid = searchParams.get(PROJECT_ID_PARAM);
+
+      if (stage === TABS.SCENES && pid) {
+        // Validate project exists by checking file list
+        try {
+          const response = await fetch(`/api/files/${pid}`);
+          if (response.ok) {
+            const data = await response.json();
+            setProjectId(pid);
+            setImages(data.files);
+            setActiveTab(TABS.SCENES);
+          } else {
+            // Project doesn't exist, redirect to start with error
+            setError('Project not found or has expired');
+            updateUrl(TABS.START);
+          }
+        } catch (err) {
+          setError('Failed to validate project');
+          updateUrl(TABS.START);
+        }
+      } else if (stage === TABS.SCENES && !pid) {
+        // Invalid scenes URL without project ID
+        setError('Invalid project URL');
+        updateUrl(TABS.START);
+      } else {
+        // Default to start tab
+        setActiveTab(TABS.START);
+      }
+      
+      setIsInitialized(true);
+    };
+
+    initializeFromUrl();
+  }, [searchParams]);
+
+  const updateUrl = (tab, pid = null) => {
+    const params = new URLSearchParams();
+    params.set(STAGE_PARAM, tab);
+    
+    if (tab === TABS.SCENES && pid) {
+      params.set(PROJECT_ID_PARAM, pid);
     }
+    
+    router.push(`/?${params.toString()}`, { shallow: true });
+  };
 
-    setLoading(true);
+  const handleTabChange = (tab) => {
+    if (tab === TABS.SCENES && !projectId) {
+      return; // Can't switch to scenes without project
+    }
+    
+    setActiveTab(tab);
+    updateUrl(tab, tab === TABS.SCENES ? projectId : null);
+  };
+
+  const handleProcessComplete = ({ projectId: newProjectId, images: newImages }) => {
+    setProjectId(newProjectId);
+    setImages(newImages);
+    setActiveTab(TABS.SCENES);
     setError(null);
+    updateUrl(TABS.SCENES, newProjectId);
+  };
+
+  const handleBackToStart = () => {
+    setActiveTab(TABS.START);
     setProjectId(null);
-    setImages([]);
-
-    try {
-      // Call backend API to start processing
-      const response = await fetch('/api/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_url: videoUrl })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process video');
-      }
-
-      const data = await response.json();
-      setProjectId(data.project_id);
-      
-      // Fetch file list via backend proxy to avoid CORS issues
-      const fileListResponse = await fetch(`/api/files/${data.project_id}`);
-      if (!fileListResponse.ok) {
-        throw new Error('Failed to fetch file list');
-      }
-      
-      const fileData = await fileListResponse.json();
-      
-      // Now we need all images, not just filtered ones, for the new grouping logic
-      setImages(fileData.files);
-      setShowResults(true);
-    } catch (err) {
-      setError(err.message || 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
+    setError(null);
+    // Use replace instead of push to remove history entry
+    const params = new URLSearchParams();
+    params.set(STAGE_PARAM, TABS.START);
+    router.replace(`/?${params.toString()}`, { shallow: true });
   };
 
-  const handleDeleteScene = (sceneImages) => {
-    // Remove all images belonging to the deleted scene
-    setImages(prevImages => 
-      prevImages.filter(img => !sceneImages.includes(img))
+  const handleError = (errorMessage) => {
+    setError(errorMessage);
+  };
+
+  // Don't render until initialized to avoid hydration issues
+  if (!isInitialized) {
+    return (
+      <div className={styles.page}>
+        <main className={styles.main}>
+          <h1 className={styles.title}>TikTok Video Processor</h1>
+          <div className={styles.loading}>Loading...</div>
+        </main>
+      </div>
     );
-  };
+  }
 
   return (
     <div className={styles.page}>
       <main className={styles.main}>
         <h1 className={styles.title}>TikTok Video Processor</h1>
         
-        {/* Show input form only when not loading and not showing results */}
-        {!loading && !showResults && (
-          <>
-            <div className={styles.inputContainer}>
-              <input
-                type="text"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="Enter TikTok video URL"
-                className={styles.input}
-              />
-              <button
-                onClick={handleProcessVideo}
-                className={styles.button}
-              >
-                Process Video
-              </button>
-            </div>
-            {error && <p className={styles.error}>{error}</p>}
-          </>
-        )}
-
-        {/* Show loading spinner when processing */}
-        {loading && <LoadingSpinner />}
-
-        {/* Show results when processing is complete */}
-        {showResults && !loading && (
-          <div className={styles.results}>
-            <h2>Scene Thumbnails</h2>
-            <p className={styles.projectId}>Project ID: {projectId}</p>
-            {images.length > 0 ? (
-              <ImageGrid images={images} onDeleteScene={handleDeleteScene} />
-            ) : (
-              <p>No images found for this project</p>
-            )}
-          </div>
-        )}
-
-        {/* Show error in results state */}
-        {showResults && error && <p className={styles.error}>{error}</p>}
+        <TabNavigation 
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          projectId={projectId}
+        />
+        
+        <div className={styles.tabContent}>
+          {activeTab === TABS.START && (
+            <StartTab 
+              onProcessComplete={handleProcessComplete}
+              onError={handleError}
+            />
+          )}
+          
+          {activeTab === TABS.SCENES && projectId && (
+            <ScenesTab 
+              projectId={projectId}
+              images={images}
+              onBackToStart={handleBackToStart}
+              onError={handleError}
+            />
+          )}
+        </div>
+        
+        {error && <p className={styles.error}>{error}</p>}
       </main>
     </div>
   );

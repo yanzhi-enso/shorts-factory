@@ -1,0 +1,46 @@
+"use client";
+
+import { useState } from 'react';
+import styles from './ScenesTab.module.css';
+import ImageGrid from '../ImageGrid';
+
+const ScenesTab = ({ projectId, images, onBackToStart, onNext, onError }) => {
+  const [currentImages, setCurrentImages] = useState(images);
+
+  const handleDeleteScene = (sceneImages) => {
+    // Remove all images belonging to the deleted scene
+    setCurrentImages(prevImages => 
+      prevImages.filter(img => !sceneImages.includes(img))
+    );
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <button 
+          onClick={onBackToStart}
+          className={styles.stepButton}
+        >
+          ← Back to Start
+        </button>
+        <p className={styles.projectId}>Project ID: {projectId}</p>
+        <button 
+          onClick={onNext}
+          className={styles.stepButton}
+        >
+          Next Step →
+        </button>
+      </div>
+      
+      <div className={styles.content}>
+        {currentImages.length > 0 ? (
+          <ImageGrid images={currentImages} onDeleteScene={handleDeleteScene} />
+        ) : (
+          <p className={styles.noImages}>No images found for this project</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ScenesTab;
