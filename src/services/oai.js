@@ -74,41 +74,62 @@ function transformError(error) {
   return { error: 'UNKNOWN_ERROR', message: error?.message || 'An unknown error occurred' };
 }
 
-/**
- * Analyze one or multiple images using OpenAI Vision API
- * 
- * @param {string|string[]} images - Single image URL or array of image URLs
- * @param {string} prompt - Text prompt for analysis
- * @param {Object} [options={}] - Optional configuration
- * @param {string} [options.model] - Model override (default: o4-mini)
- * @param {Object} [options.responseFormat] - Response format configuration
- * @param {string} [options.instructions] - System instructions for the model
- * @param {string} [options.detail] - Image detail level (low/high/auto)
- * 
- * @returns {Promise<Object>} Analysis result with success/error status
- * 
-**/
-async function analyzeImageWithOpenAI(imageUrls, user_input, options = {}) {
-  try {
-    const openaiClient = getOpenAIClient();
-    
-    // Add each image as a separate content chunk
-    const content = [
-      { type: "input_text", text: user_input }
-    ];
-    imageUrls.forEach(imageUrl => {
-      content.push({ type: "input_image", image_url: imageUrl });
+class MessagePayload {
+  constructor() {
+    this.content = [];
+  }
+
+  addText(text, role) {
+    this.content.push({
+      role: role || "user",
+      content: text,
     });
+  }
+
+  addTextWithImage(text, imageUrl, role) {
+    this.content.push({
+      role: role || "user",
+      content: [
+        {
+          type: "input_text",
+          text: text,
+        }, {
+          type: "input_image",
+          image_url: imageUrl,
+        }
+      ]
+    })
+  }
+
+  output() {
+    return this.content;
+  }
+}
+
+async function analyzeImageWithOpenAI(model, instructions, userInput, options = {}) {
+  /**
+    Analyzes an image using OpenAI reasoning models
+    @param {string} model - The OpenAI model to use (default: "o4-mini")
+    @param {string} instructions - Optional instructions for the model
+    @param {MessagePayload} userInput - User input text to provide context
+    @param {Object} options - Additional options
+      @param {string} options.responseFormat - Optional response format
+    
+    @returns {Promise<Object>} - a promise of an object with success status and message
+  **/
+  try {
+    // assert message payload is an instance of MessagePayload
+    if (!(userInput instanceof MessagePayload)) {
+      throw new Error("userInput must be an instance of MessagePayload");
+    }
+
+    const openaiClient = getOpenAIClient();
 
     // Build payload with optional instructions
     const payload = {
-      model: options.model,
-      input: [
-        {
-          role: "user",
-          content: content
-        }
-      ]
+      model,
+      instructions,
+      input: userInput,
     };
 
     // Add optional parameters
@@ -116,12 +137,7 @@ async function analyzeImageWithOpenAI(imageUrls, user_input, options = {}) {
       payload.response_format = options.responseFormat;
     }
     
-    if (options.instructions) {
-      payload.instructions = options.instructions;
-    }
-
     const response = await openaiClient.responses.create(payload);
-    console.log("response:", response);
 
     // Simplified response format
     return {
@@ -313,6 +329,9 @@ export const openaiClient = {
   // Helper utilities
   imageUrlToFile,
   transformError,
+
+  // Message payload class
+  MessagePayload,
   
   // Configuration constants
   DEFAULT_ANALYSIS_MODEL,
