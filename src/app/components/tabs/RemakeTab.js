@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import styles from './RemakeTab.module.css';
-import SceneRow from '../SceneRow';
-import FullSizeImageModal from '../FullSizeImageModal';
+import SceneRow from '../remake/SceneRow';
+import FullSizeImageModal from '../common/FullSizeImageModal';
 
 const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext, onError }) => {
   const [modalState, setModalState] = useState({

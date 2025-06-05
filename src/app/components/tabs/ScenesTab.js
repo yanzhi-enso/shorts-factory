@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import styles from './ScenesTab.module.css';
-import ImageGrid from '../ImageGrid';
+import ImageGrid from '../scenes/ImageGrid';
 
 const ScenesTab = ({ projectId, images, selectedIndices, setSelectedIndices, onBackToStart, onNext, onError }) => {
   const [currentImages, setCurrentImages] = useState(images);
