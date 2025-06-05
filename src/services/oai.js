@@ -1,11 +1,27 @@
 // Server-side utilities for interacting with the OpenAI API using the SDK
 
 import OpenAI from "openai";
+import dotenv from "dotenv";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Load environment variables if not already loaded
+if (typeof process !== 'undefined' && !process.env.OPENAI_API_KEY) {
+  dotenv.config();
+}
+
+// Lazy initialization of OpenAI client
+let openai = null;
+
+function getOpenAIClient() {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not set in environment variables.");
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 // Default settings based on requirements
 const DEFAULT_ANALYSIS_MODEL = "o4-mini";
@@ -14,10 +30,6 @@ const DEFAULT_GENERATION_SIZE = "1024x1536"; // Portrait
 const DEFAULT_QUALITY = "high";
 const DEFAULT_DETAIL = "high";
 const DEFAULT_OUTPUT_FORMAT = "png";
-
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OpenAI API key is not set in environment variables.");
-}
 
 // Helper function to transform OpenAI SDK errors to our custom format
 function transformError(error) {
@@ -75,64 +87,22 @@ function transformError(error) {
  * 
  * @returns {Promise<Object>} Analysis result with success/error status
  * 
- * @example
- * // Single image analysis
- * const result = await analyzeImageWithOpenAI(
- *   "https://example.com/image.jpg", 
- *   "Describe this image",
- *   { instructions: "You are an expert photographer" }
- * );
- * 
- * @example  
- * // Multiple image analysis
- * const result = await analyzeImageWithOpenAI(
- *   ["https://example.com/img1.jpg", "https://example.com/img2.jpg"],
- *   "Compare these images and describe the differences",
- *   { instructions: "Focus on differences in style and composition" }
- * );
- * 
- * @example
- * // Structured JSON response
- * const result = await analyzeImageWithOpenAI(
- *   "https://example.com/image.jpg",
- *   "Analyze this image",
- *   {
- *     instructions: "You are an expert art critic",
- *     responseFormat: {
- *       type: "json_schema",
- *       json_schema: {
- *         name: "image_analysis",
- *         schema: {
- *           type: "object",
- *           properties: {
- *             description: { type: "string" },
- *             mood: { type: "string" },
- *             objects: { type: "array", items: { type: "string" } }
- *           }
- *         }
- *       }
- *     }
- *   }
- * );
- */
-async function analyzeImageWithOpenAI(images, prompt, options = {}) {
+**/
+async function analyzeImageWithOpenAI(imageUrls, user_input, options = {}) {
   try {
-    // Normalize input - convert single image to array for consistent processing
-    const imageArray = Array.isArray(images) ? images : [images];
+    const openaiClient = getOpenAIClient();
     
-    // Build content array with text prompt and images
-    const content = [
-      { type: "input_text", text: prompt }
-    ];
-
     // Add each image as a separate content chunk
-    imageArray.forEach(imageUrl => {
+    const content = [
+      { type: "input_text", text: user_input }
+    ];
+    imageUrls.forEach(imageUrl => {
       content.push({ type: "input_image", image_url: imageUrl });
     });
 
     // Build payload with optional instructions
     const payload = {
-      model: options.model || DEFAULT_ANALYSIS_MODEL,
+      model: options.model,
       input: [
         {
           role: "user",
@@ -150,19 +120,13 @@ async function analyzeImageWithOpenAI(images, prompt, options = {}) {
       payload.instructions = options.instructions;
     }
 
-    const response = await openai.responses.create(payload);
+    const response = await openaiClient.responses.create(payload);
+    console.log("response:", response);
 
     // Simplified response format
     return {
       success: true,
-      data: {
-        id: response.id,
-        description: response.output?.[0]?.content || '',
-        analysis: response.output?.[0]?.content || null,
-        usage: response.usage || null,
-        model: response.model,
-        imageCount: imageArray.length
-      }
+      message: response.output?.[0]?.content,
     };
   } catch (error) {
     const transformedError = transformError(error);
@@ -177,7 +141,9 @@ async function analyzeImageWithOpenAI(images, prompt, options = {}) {
 // Server-side utility to generate images using OpenAI GPT-Image-1
 async function generateImageWithOpenAI(prompt, options = {}) {
   try {
-    const result = await openai.images.generate({
+    const openaiClient = getOpenAIClient();
+    
+    const result = await openaiClient.images.generate({
       prompt: prompt,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
@@ -209,6 +175,8 @@ async function generateImageWithOpenAI(prompt, options = {}) {
 // Server-side utility to edit images using OpenAI
 async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
   try {
+    const openaiClient = getOpenAIClient();
+    
     const editOptions = {
       image: imageFile,
       prompt: prompt,
@@ -223,7 +191,7 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
       editOptions.mask = maskFile;
     }
 
-    const result = await openai.images.edit(editOptions);
+    const result = await openaiClient.images.edit(editOptions);
 
     // Simplified response format
     return {
@@ -248,7 +216,9 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
 // Server-side utility to create image variations using OpenAI
 async function createImageVariationWithOpenAI(imageFile, options = {}) {
   try {
-    const result = await openai.images.createVariation({
+    const openaiClient = getOpenAIClient();
+    
+    const result = await openaiClient.images.createVariation({
       image: imageFile,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
