@@ -27,7 +27,7 @@ const ImageSelectionModal = ({ isOpen, onClose, sceneImages, onSelectImage, sele
               onClick={() => handleImageSelect(index)}
             >
               <Image
-                src={`https://storage.googleapis.com/shorts-scenes/${imageUrl}`}
+                src={imageUrl}
                 alt={`Scene option ${index + 1}`}
                 width={150}
                 height={250}

@@ -39,7 +39,7 @@ const FullSizeImageModal = ({ isOpen, imageUrl, imageTitle, onClose }) => {
         </button>
         <div className={styles.imageContainer}>
           <Image
-            src={`https://storage.googleapis.com/shorts-scenes/${imageUrl}`}
+            src={imageUrl}
             alt={imageTitle}
             width={800}
             height={1400}

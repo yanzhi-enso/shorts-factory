@@ -28,7 +28,7 @@ const RemakeImageBlock = ({
 
     return (
       <Image
-        src={`https://storage.googleapis.com/shorts-scenes/${imageUrl}`}
+        src={imageUrl}
         alt={title}
         width={200}
         height={300}

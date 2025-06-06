@@ -24,7 +24,7 @@ const SceneImageBlock = ({
         ×
       </button>
       <Image
-        src={`https://storage.googleapis.com/shorts-scenes/${displayImage}`}
+        src={displayImage}
         alt={`Scene ${sceneIndex + 1}`}
         width={200}
         height={350}
