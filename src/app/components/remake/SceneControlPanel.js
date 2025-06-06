@@ -7,8 +7,8 @@ import Image from 'next/image';
 const SceneControlPanel = ({ 
   prompt = '', 
   onPromptChange, 
-  onGptPolish,
-  isPolishing = false,
+  onPromptAssistant,
+  isPromptAssistantRunning = false,
   referenceImages = [],
   onGenerate,
   isGenerating = false
@@ -19,9 +19,9 @@ const SceneControlPanel = ({
     }
   };
 
-  const handleGptPolishClick = () => {
-    if (onGptPolish && !isPolishing) {
-      onGptPolish();
+  const handlePromptAssistantClick = () => {
+    if (onPromptAssistant && !isPromptAssistantRunning) {
+      onPromptAssistant();
     }
   };
 
@@ -40,7 +40,7 @@ const SceneControlPanel = ({
           placeholder="Describe what happens in this scene (global changes will also be applied)"
           value={prompt}
           onChange={handlePromptChange}
-          disabled={isPolishing}
+          disabled={isPromptAssistantRunning}
           rows={6}
         />
       </div>
@@ -49,11 +49,11 @@ const SceneControlPanel = ({
       <div className={styles.widgetBar}>
         {/* GPT Polish Button */}
         <button
-          className={`${styles.gptPolishButton} ${isPolishing ? styles.polishing : ''}`}
-          onClick={handleGptPolishClick}
-          disabled={isPolishing}
+          className={`${styles.gptPolishButton} ${isPromptAssistantRunning ? styles.polishing : ''}`}
+          onClick={handlePromptAssistantClick}
+          disabled={isPromptAssistantRunning}
         >
-          {isPolishing ? 'Polishing...' : 'GPT Polish'}
+          {isPromptAssistantRunning ? 'Processing...' : 'Prompt Assistant'}
         </button>
 
         {/* Reference Images */}

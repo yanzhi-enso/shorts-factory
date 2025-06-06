@@ -5,50 +5,40 @@ import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import SceneControlPanel from './SceneControlPanel';
 import ImageHistoryModal from './ImageHistoryModal';
-import { analyzeImage } from '../../../services/backend';
 
-const SceneRow = ({ 
+const SceneRow = ({
   sceneId,
   originalImage,
   generatedImage = null,
   generationHistory = [],
   storyConfig = {},
+  prompt = '',
+  isPromptAssistantRunning = false,
+  isGenerating = false,
   onOriginalImageClick,
-  onGeneratedImageClick
+  onGeneratedImageClick,
+  onPromptChange,
+  onPromptAssistant,
+  onGenerate
 }) => {
-  const [prompt, setPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isPolishing, setIsPolishing] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const handlePromptChange = (newPrompt) => {
-    setPrompt(newPrompt);
+    if (onPromptChange) {
+      onPromptChange(sceneId, newPrompt);
+    }
   };
 
-  const handleGptPolish = async () => {
-    if (!originalImage?.imageUrl || isPolishing) return;
-    
-    setIsPolishing(true);
-    try {
-      const result = await analyzeImage(
-        originalImage.imageUrl,
-        storyConfig.storyDescription || null,
-        storyConfig.changeRequest || null,
-        prompt || null,
-      );
-      setPrompt(result);
-    } catch (error) {
-      console.error('Error polishing scene description:', error);
-      // Could add error handling UI here
-    } finally {
-      setIsPolishing(false);
+  const handlePromptAssistant = () => {
+    if (onPromptAssistant) {
+      onPromptAssistant(sceneId);
     }
   };
 
   const handleGenerate = () => {
-    // Empty handler for now - will be implemented later
-    console.log('Generate clicked for scene:', sceneId);
-    console.log('Prompt:', prompt);
+    if (onGenerate) {
+      onGenerate(sceneId);
+    }
   };
 
   const handleOriginalClick = (imageUrl, title) => {
@@ -92,8 +82,8 @@ const SceneRow = ({
           <SceneControlPanel
             prompt={prompt}
             onPromptChange={handlePromptChange}
-            onGptPolish={handleGptPolish}
-            isPolishing={isPolishing}
+            onPromptAssistant={handlePromptAssistant}
+            isPromptAssistantRunning={isPromptAssistantRunning}
             referenceImages={[]} // Will be populated later
             onGenerate={handleGenerate}
             isGenerating={isGenerating}

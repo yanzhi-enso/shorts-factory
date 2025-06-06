@@ -39,8 +39,8 @@
 
 .settingsButton {
   padding: 8px;
-  background: transparent;
-  color: #666;
+  color: #eee;
+  background: #909090;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   font-size: 16px;
@@ -54,9 +54,61 @@
 }
 
 .settingsButton:hover {
-  background: #f8f9fa;
+  background: #b0b0b0;
   border-color: #ccc;
-  color: #333;
+  transform: translateY(-1px);
+}
+
+.centerButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionButton {
+  padding: 8px 16px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.promptButton {
+  background: #007bff;
+}
+
+.promptButton:hover {
+  background: #009bff;
+  transform: translateY(-1px);
+}
+
+.imageGenButton {
+  background: #28a745;
+}
+
+.imageGenButton:hover {
+  background: #48b765;
+  transform: translateY(-1px);
+}
+
+.actionButton:disabled,
+.actionButton.disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.actionButton:disabled:hover,
+.actionButton.disabled:hover {
+  background: #6c757d;
+  transform: none;
 }
 
 .projectId {
@@ -89,9 +141,22 @@
     text-align: center;
   }
   
+  .centerButtons {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
   .stepButton {
     padding: 6px 12px;
     font-size: 12px;
+  }
+  
+  .actionButton {
+    padding: 6px 12px;
+    font-size: 12px;
+    width: 100%;
+    justify-content: center;
   }
   
   .settingsButton {
