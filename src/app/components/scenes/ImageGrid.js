@@ -10,8 +10,6 @@ const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene 
     sceneImages: []
   });
 
-  console.log("total images:", images.length);
-
   // Group images by scene
   const groupedScenes = useMemo(() => {
     const scenes = {};
@@ -28,8 +26,6 @@ const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene 
       }
     });
 
-    console.log("number of scenes:", Object.keys(scenes).length);
-
     // Sort images within each scene
     Object.keys(scenes).forEach(sceneId => {
       scenes[sceneId].sort();
@@ -41,9 +37,7 @@ const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene 
     }));
   }, [images]);
 
-  console.log("grouped scenes:", groupedScenes);
-
-  const handleImageClick = (sceneIndex, sceneImages) => {
+const handleImageClick = (sceneIndex, sceneImages) => {
     setModalState({
       isOpen: true,
       sceneIndex,
@@ -92,7 +86,6 @@ const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene 
     <>
       <div className={styles.grid}>
         {groupedScenes.map((scene, sceneIndex) => {
-          console.log("scene:", scene, "index:", sceneIndex);
           const selectedImageIndex = selectedIndices[sceneIndex] !== undefined ? selectedIndices[sceneIndex] : 1; // Default to middle image (index 1)
           
           return (

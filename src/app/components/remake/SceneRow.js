@@ -33,8 +33,8 @@ const SceneRow = ({
       const result = await analyzeImage(
         originalImage.imageUrl,
         storyConfig.storyDescription || null,
+        storyConfig.changeRequest || null,
         prompt || null,
-        storyConfig.changeRequest || null
       );
       setPrompt(result);
     } catch (error) {
