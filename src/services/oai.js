@@ -64,7 +64,12 @@ function transformError(error) {
   }
 
   if (error instanceof OpenAI.BadRequestError) {
-    return { error: 'INVALID_REQUEST', message: 'Request parameters are invalid' };
+    console.log("BadRequestError:", error.error);
+    if (error.error?.code === 'moderation_blocked') {
+      return { error: 'CONTENT_MODERATION_BLOCKED', message: 'Content blocked by OpenAI moderation' };
+    } else {
+      return { error: 'INVALID_REQUEST', message: 'Request parameters are invalid' };
+    }
   }
 
   if (error instanceof OpenAI.PermissionDeniedError) {
@@ -172,9 +177,9 @@ async function generateImageWithOpenAI(prompt, options = {}) {
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
       quality: options.quality || DEFAULT_QUALITY,
-      response_format: "b64_json", // Always return base64
+      output_format: "png", // Always return base64
       n: options.n || DEFAULT_N,
-      moderation: options.moderation || DEFAULT_MODERATION,
+      moderation: DEFAULT_MODERATION,
       ...(options.output_format && { output_format: options.output_format }),
       ...(options.user && { user: options.user })
     };
@@ -220,7 +225,6 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
       quality: options.quality || DEFAULT_QUALITY,
-      response_format: "b64_json",
       n: options.n || DEFAULT_N,
       moderation: options.moderation || DEFAULT_MODERATION,
       ...(options.output_format && { output_format: options.output_format }),
@@ -272,7 +276,6 @@ async function createImageVariationWithOpenAI(imageFile, options = {}) {
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
       quality: options.quality || DEFAULT_QUALITY,
-      response_format: "b64_json",
       n: options.n || DEFAULT_N,
       moderation: options.moderation || DEFAULT_MODERATION,
       ...(options.prompt && { prompt: options.prompt }),
