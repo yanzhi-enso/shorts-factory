@@ -3,7 +3,7 @@
 export async function analyzeImage(imageUrl, storyContext = null, sceneDescription = null) {
     try {
         const response = await fetch(
-            '/api/workflows/img2text/image_analysis', {
+            '/api/workflows/txt2img/image_analysis', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
