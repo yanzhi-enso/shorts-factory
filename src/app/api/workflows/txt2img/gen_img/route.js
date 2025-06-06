@@ -29,11 +29,18 @@ export async function POST(request) {
 
         return NextResponse.json({ success: true, result });
     } catch (error) {
-        console.error('Error generating image:', error);
-        return NextResponse.json(
-            { error: error.message },
-            { status: 500 }
-        );
+        if (error.message === 'CONTENT_MODERATION_BLOCKED') {
+            return NextResponse.json(
+                { error: 'CONTENT_MODERATION_BLOCKED' },
+                { status: 403 }
+            );
+        } else {
+            console.error('Error generating image:', error);
+            return NextResponse.json(
+                { error: error.message },
+                { status: 500 }
+            );
+        }
     }
 }
 

@@ -56,7 +56,11 @@ async function generateImage(prompt, n = 1) {
     if (response.success) {
         return response.data;
     } else {
-        throw new Error(response.message || 'Image generation failed');
+        if (response?.error !== 'CONTENT_MODERATION_BLOCKED') {
+            throw new Error(response.message || 'Image generation failed');
+        } else {
+            throw new Error('CONTENT_MODERATION_BLOCKED');
+        }
     }
 }
 

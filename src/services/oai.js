@@ -64,7 +64,6 @@ function transformError(error) {
   }
 
   if (error instanceof OpenAI.BadRequestError) {
-    console.log("BadRequestError:", error.error);
     if (error.error?.code === 'moderation_blocked') {
       return { error: 'CONTENT_MODERATION_BLOCKED', message: 'Content blocked by OpenAI moderation' };
     } else {
