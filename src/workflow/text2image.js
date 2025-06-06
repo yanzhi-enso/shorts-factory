@@ -8,7 +8,9 @@ const __dirname = path.dirname(__filename);
 
 const promptPath = path.resolve(__dirname, '../prompts/img2text.txt');
 
-async function analysisImage(imageUrl, storyContext, sceneDescription) {
+async function analysisImage(
+    imageUrl, storyContext, changeRequest, sceneDescription
+) {
     // Read the file content
     const promptContent = fs.readFileSync(promptPath, 'utf8');
 
@@ -16,6 +18,10 @@ async function analysisImage(imageUrl, storyContext, sceneDescription) {
 
     if (storyContext) {
         userInput.addText(storyContext);
+    }
+
+    if (changeRequest) {
+        userInput.addText(changeRequest);
     }
 
     if (sceneDescription) {
