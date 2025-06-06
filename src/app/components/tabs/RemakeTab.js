@@ -88,7 +88,6 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
         >
           ← Back to Scenes
         </button>
-        <p className={styles.projectId}>Project ID: {projectId}</p>
         <button 
           onClick={onNext}
           className={styles.stepButton}
