@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { IoSettingsOutline } from 'react-icons/io5';
 import { FaMagic, FaImages } from 'react-icons/fa';
 import styles from './RemakeTab.module.css';
@@ -21,6 +21,9 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
 
   // Scene-specific state
   const [sceneData, setSceneData] = useState({});
+
+  // Generated images array for next tab (using ref for performance)
+  const generatedImagesRef = useRef([]);
 
   const [storyConfig, setStoryConfig] = useState({
     isModalOpen: true, // Show on first mount
@@ -210,17 +213,32 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
     }));
 
     try {
-      const result = await generateImage(prompt, scene.imageUrl, storyConfig);
+      // Use correct backend API signature: generateImage(prompt, n = 1)
+      const result = await generateImage(prompt, 1);
+      const imageDataUrl = result?.imageBase64 ? `data:image/png;base64,${result.imageBase64}` : null;
       
-      setSceneData(prev => ({
-        ...prev,
-        [sceneId]: {
-          ...prev[sceneId],
-          generatedImage: result?.imageUrl || null
-        }
-      }));
+      if (imageDataUrl) {
+        // Update UI state for immediate display
+        setSceneData(prev => ({
+          ...prev,
+          [sceneId]: {
+            ...prev[sceneId],
+            generatedImage: imageDataUrl,
+            revisedPrompt: result?.revisedPrompt || prompt
+          }
+        }));
+
+        // Add to generated images array for next tab (no re-render)
+        const filtered = generatedImagesRef.current.filter(img => img.sceneId !== sceneId);
+        generatedImagesRef.current = [...filtered, {
+          sceneId,
+          revisedPrompt: result?.revisedPrompt || prompt,
+          image: imageDataUrl
+        }];
+      }
     } catch (error) {
       console.error('Error generating image:', error);
+      alert(`Error generating image for ${sceneId}: ${error.message}`);
       if (onError) onError(`Error generating image for ${sceneId}`);
     } finally {
       setSceneData(prev => ({
@@ -300,7 +318,7 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
           </button>
         </div>
         <button 
-          onClick={onNext}
+          onClick={() => onNext && onNext(generatedImagesRef.current)}
           className={styles.stepButton}
         >
           Next Step →

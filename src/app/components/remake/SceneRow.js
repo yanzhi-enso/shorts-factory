@@ -11,7 +11,6 @@ const SceneRow = ({
   originalImage,
   generatedImage = null,
   generationHistory = [],
-  storyConfig = {},
   prompt = '',
   isPromptAssistantRunning = false,
   isGenerating = false,
