@@ -142,13 +142,13 @@ async function analyzeImageWithOpenAI(model, instructions, userInput, options = 
     if (options.responseFormat) {
       payload.response_format = options.responseFormat;
     }
-    
+
     const response = await openaiClient.responses.create(payload);
 
     // Simplified response format
     return {
       success: true,
-      message: response.output?.[0]?.content,
+      message: response.output?.[1]?.content?.[0]?.text, // [0] is for reasoning
     };
   } catch (error) {
     const transformedError = transformError(error);

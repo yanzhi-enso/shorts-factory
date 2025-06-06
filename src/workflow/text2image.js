@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const promptPath = path.resolve(__dirname, '../prompts/img2text.txt');
 
 async function analysisImage(
-    imageUrl, storyContext, changeRequest, sceneDescription
+    imageUrl, storyContext, globalChangeRequest, sceneDescription
 ) {
     // Read the file content into systemPrompt
     const systemPrompt = fs.readFileSync(promptPath, 'utf8');
@@ -21,15 +21,16 @@ async function analysisImage(
     const userInput = new MessagePayload()
 
     if (storyContext) {
-        userInput.addText(storyContext);
+        userInput.addText("## Story Context:\n" + storyContext);
     }
 
-    if (changeRequest) {
-        userInput.addText(changeRequest);
+    if (globalChangeRequest) {
+        userInput.addText("## Global Change Request:\n" + globalChangeRequest);
     }
 
     if (sceneDescription) {
-        userInput.addTextWithImage(sceneDescription, imageUrl);
+        userInput.addTextWithImage(
+            "## Scene Description:\n" + sceneDescription, imageUrl);
     } else {
         userInput.addTextWithImage("This is the image", imageUrl);
     }

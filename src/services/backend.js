@@ -1,6 +1,11 @@
 // This file store utils for client-side operations that interact with the backend API.
 
-export async function analyzeImage(imageUrl, storyContext = null, sceneDescription = null) {
+export async function analyzeImage(
+    imageUrl,
+    storyContext = null,
+    globalChangeRequest = null,
+    sceneDescription = null
+) {
     try {
         const response = await fetch(
             '/api/workflows/txt2img/img_analysis', {
@@ -11,6 +16,7 @@ export async function analyzeImage(imageUrl, storyContext = null, sceneDescripti
             body: JSON.stringify({
                 imageUrl,
                 storyContext,
+                globalChangeRequest,
                 sceneDescription
             })
         });
