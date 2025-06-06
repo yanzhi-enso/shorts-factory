@@ -23,7 +23,7 @@ const ScenesTab = ({ projectId, images, selectedIndices, setSelectedIndices, onB
         >
           ← Back to Start
         </button>
-        <p className={styles.projectId}>Project ID: {projectId}</p>
+        <p className={styles.projectId}>Pick Scenen and its index image for next step.</p>
         <button 
           onClick={() => onNext(currentImages)}
           className={styles.stepButton}
