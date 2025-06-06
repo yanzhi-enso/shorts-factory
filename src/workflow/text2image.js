@@ -1,4 +1,8 @@
-import openaiClient, { MessagePayload } from '../services/oai.js';
+import {
+    openaiClient,
+    MessagePayload,
+    REASONING_MODELS,
+} from 'services/oai.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,10 +15,10 @@ const promptPath = path.resolve(__dirname, '../prompts/img2text.txt');
 async function analysisImage(
     imageUrl, storyContext, changeRequest, sceneDescription
 ) {
-    // Read the file content
-    const promptContent = fs.readFileSync(promptPath, 'utf8');
+    // Read the file content into systemPrompt
+    const systemPrompt = fs.readFileSync(promptPath, 'utf8');
 
-    const userInput = MessagePayload()
+    const userInput = new MessagePayload()
 
     if (storyContext) {
         userInput.addText(storyContext);
@@ -32,7 +36,7 @@ async function analysisImage(
 
     // Now you can use promptContent in your analysis
     const response = await openaiClient.analyzeImageWithOpenAI(
-        userInput, promptContent, "o4-mini",
+        REASONING_MODELS.O4_MINI, systemPrompt, userInput, 
     );
 
     // Handle both success and error cases

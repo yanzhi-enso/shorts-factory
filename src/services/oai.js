@@ -3,6 +3,12 @@
 import OpenAI from "openai";
 import dotenv from "dotenv";
 
+export const REASONING_MODELS = {
+  O4_MINI: "o4-mini",
+  O3: "o3",
+  O3_MINI: "o3-mini",
+}
+
 // Load environment variables if not already loaded
 if (typeof process !== 'undefined' && !process.env.OPENAI_API_KEY) {
   dotenv.config();
@@ -74,7 +80,7 @@ function transformError(error) {
   return { error: 'UNKNOWN_ERROR', message: error?.message || 'An unknown error occurred' };
 }
 
-class MessagePayload {
+export class MessagePayload {
   constructor() {
     this.content = [];
   }
@@ -129,7 +135,7 @@ async function analyzeImageWithOpenAI(model, instructions, userInput, options = 
     const payload = {
       model,
       instructions,
-      input: userInput,
+      input: userInput.output(),
     };
 
     // Add optional parameters
@@ -329,9 +335,6 @@ export const openaiClient = {
   // Helper utilities
   imageUrlToFile,
   transformError,
-
-  // Message payload class
-  MessagePayload,
   
   // Configuration constants
   DEFAULT_ANALYSIS_MODEL,
