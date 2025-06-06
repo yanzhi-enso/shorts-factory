@@ -48,6 +48,19 @@ async function analysisImage(
     }
 }
 
+async function generateImage(prompt, n = 1) {
+    // Call the OpenAI service to generate images
+    const response = await openaiClient.generateImageWithOpenAI(prompt, { n });
+    
+    // Handle both success and error cases
+    if (response.success) {
+        return response.data;
+    } else {
+        throw new Error(response.message || 'Image generation failed');
+    }
+}
+
 export const workflow = {
-    analysisImage
+    analysisImage,
+    generateImage
 }

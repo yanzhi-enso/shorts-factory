@@ -36,6 +36,8 @@ const DEFAULT_GENERATION_SIZE = "1024x1536"; // Portrait
 const DEFAULT_QUALITY = "high";
 const DEFAULT_DETAIL = "high";
 const DEFAULT_OUTPUT_FORMAT = "png";
+const DEFAULT_MODERATION = "low";
+const DEFAULT_N = 1;
 
 // Helper function to transform OpenAI SDK errors to our custom format
 function transformError(error) {
@@ -165,22 +167,35 @@ async function generateImageWithOpenAI(prompt, options = {}) {
   try {
     const openaiClient = getOpenAIClient();
     
-    const result = await openaiClient.images.generate({
+    const generateOptions = {
       prompt: prompt,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
       quality: options.quality || DEFAULT_QUALITY,
       response_format: "b64_json", // Always return base64
+      n: options.n || DEFAULT_N,
+      moderation: options.moderation || DEFAULT_MODERATION,
+      ...(options.output_format && { output_format: options.output_format }),
       ...(options.user && { user: options.user })
-    });
+    };
+
+    const result = await openaiClient.images.generate(generateOptions);
+
+    // Handle multiple images if n > 1
+    const images = result.data.map(item => ({
+      imageBase64: item.b64_json,
+      revisedPrompt: item.revised_prompt || prompt
+    }));
 
     // Simplified response format
     return {
       success: true,
       data: {
-        imageBase64: result.data[0].b64_json,
-        revisedPrompt: result.data[0].revised_prompt || prompt,
-        format: DEFAULT_OUTPUT_FORMAT,
+        images: images,
+        // For backward compatibility, keep single image format
+        imageBase64: images[0].imageBase64,
+        revisedPrompt: images[0].revisedPrompt,
+        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
         created: result.created
       }
     };
@@ -204,7 +219,11 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
       prompt: prompt,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
+      quality: options.quality || DEFAULT_QUALITY,
       response_format: "b64_json",
+      n: options.n || DEFAULT_N,
+      moderation: options.moderation || DEFAULT_MODERATION,
+      ...(options.output_format && { output_format: options.output_format }),
       ...(options.user && { user: options.user })
     };
 
@@ -215,13 +234,21 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
 
     const result = await openaiClient.images.edit(editOptions);
 
+    // Handle multiple images if n > 1
+    const images = result.data.map(item => ({
+      imageBase64: item.b64_json,
+      revisedPrompt: item.revised_prompt || prompt
+    }));
+
     // Simplified response format
     return {
       success: true,
       data: {
-        imageBase64: result.data[0].b64_json,
-        revisedPrompt: result.data[0].revised_prompt || prompt,
-        format: DEFAULT_OUTPUT_FORMAT,
+        images: images,
+        // For backward compatibility, keep single image format
+        imageBase64: images[0].imageBase64,
+        revisedPrompt: images[0].revisedPrompt,
+        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
         created: result.created
       }
     };
@@ -240,21 +267,36 @@ async function createImageVariationWithOpenAI(imageFile, options = {}) {
   try {
     const openaiClient = getOpenAIClient();
     
-    const result = await openaiClient.images.createVariation({
+    const variationOptions = {
       image: imageFile,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
+      quality: options.quality || DEFAULT_QUALITY,
       response_format: "b64_json",
+      n: options.n || DEFAULT_N,
+      moderation: options.moderation || DEFAULT_MODERATION,
+      ...(options.prompt && { prompt: options.prompt }),
+      ...(options.output_format && { output_format: options.output_format }),
       ...(options.user && { user: options.user })
-    });
+    };
+
+    const result = await openaiClient.images.createVariation(variationOptions);
+
+    // Handle multiple images if n > 1
+    const images = result.data.map(item => ({
+      imageBase64: item.b64_json,
+      revisedPrompt: item.revised_prompt || options.prompt || 'Variation of provided image'
+    }));
 
     // Simplified response format
     return {
       success: true,
       data: {
-        imageBase64: result.data[0].b64_json,
-        revisedPrompt: 'Variation of provided image',
-        format: DEFAULT_OUTPUT_FORMAT,
+        images: images,
+        // For backward compatibility, keep single image format
+        imageBase64: images[0].imageBase64,
+        revisedPrompt: images[0].revisedPrompt,
+        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
         created: result.created
       }
     };
@@ -342,5 +384,7 @@ export const openaiClient = {
   DEFAULT_GENERATION_SIZE,
   DEFAULT_QUALITY,
   DEFAULT_DETAIL,
-  DEFAULT_OUTPUT_FORMAT
+  DEFAULT_OUTPUT_FORMAT,
+  DEFAULT_MODERATION,
+  DEFAULT_N
 };
