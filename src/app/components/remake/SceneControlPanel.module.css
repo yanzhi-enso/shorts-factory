@@ -40,63 +40,59 @@
   border-color: #86b7fe;
 }
 
+.promptInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #e9ecef;
+}
+
 .widgetBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.toggleContainer {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.toggleLabel {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggleInput {
-  display: none;
-}
-
-.toggleSlider {
-  position: relative;
-  width: 44px;
-  height: 24px;
+.gptPolishButton {
   background: #007bff;
-  border-radius: 12px;
-  transition: background 0.3s ease;
-  margin-right: 8px;
-}
-
-.toggleSlider::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-}
-
-.toggleInput:checked + .toggleSlider {
-  background: #28a745;
-}
-
-.toggleInput:checked + .toggleSlider::before {
-  transform: translateX(20px);
-}
-
-.toggleText {
-  color: #495057;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.gptPolishButton:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.gptPolishButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gptPolishButton.polishing {
+  background: #6c757d;
+}
+
+.gptPolishButton.polishing::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 8px;
 }
 
 .referenceImages {
@@ -201,22 +197,11 @@
     justify-content: space-between;
   }
   
-  .toggleSlider {
-    width: 40px;
-    height: 22px;
-  }
-  
-  .toggleSlider::before {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .toggleInput:checked + .toggleSlider::before {
-    transform: translateX(18px);
-  }
-  
-  .toggleText {
+  .gptPolishButton {
+    padding: 10px 16px;
     font-size: 13px;
+    min-width: 100px;
+    margin-right: 8px;
   }
   
   .referenceImage {

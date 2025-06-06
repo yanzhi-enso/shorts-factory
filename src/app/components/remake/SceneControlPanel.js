@@ -7,8 +7,8 @@ import Image from 'next/image';
 const SceneControlPanel = ({ 
   prompt = '', 
   onPromptChange, 
-  gptPolishEnabled = false, 
-  onGptPolishToggle,
+  onGptPolish,
+  isPolishing = false,
   referenceImages = [],
   onGenerate,
   isGenerating = false
@@ -19,9 +19,9 @@ const SceneControlPanel = ({
     }
   };
 
-  const handleToggleChange = () => {
-    if (onGptPolishToggle) {
-      onGptPolishToggle(!gptPolishEnabled);
+  const handleGptPolishClick = () => {
+    if (onGptPolish && !isPolishing) {
+      onGptPolish();
     }
   };
 
@@ -37,28 +37,24 @@ const SceneControlPanel = ({
       <div className={styles.textInputArea}>
         <textarea
           className={styles.promptInput}
-          placeholder="Describe how you want to modify this scene..."
+          placeholder="Describe what happens in this scene (global changes will also be applied)"
           value={prompt}
           onChange={handlePromptChange}
+          disabled={isPolishing}
           rows={6}
         />
       </div>
 
       {/* Widget Bar */}
       <div className={styles.widgetBar}>
-        {/* GPT Polish Toggle */}
-        <div className={styles.toggleContainer}>
-          <label className={styles.toggleLabel}>
-            <input
-              type="checkbox"
-              checked={gptPolishEnabled}
-              onChange={handleToggleChange}
-              className={styles.toggleInput}
-            />
-            <span className={styles.toggleSlider}></span>
-            <span className={styles.toggleText}>GPT Polish</span>
-          </label>
-        </div>
+        {/* GPT Polish Button */}
+        <button
+          className={`${styles.gptPolishButton} ${isPolishing ? styles.polishing : ''}`}
+          onClick={handleGptPolishClick}
+          disabled={isPolishing}
+        >
+          {isPolishing ? 'Polishing...' : 'GPT Polish'}
+        </button>
 
         {/* Reference Images */}
         {referenceImages && referenceImages.length > 0 && (

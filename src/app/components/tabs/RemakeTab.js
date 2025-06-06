@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useMemo } from 'react';
+import { IoSettingsOutline } from 'react-icons/io5';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
+import StoryConfigModal from '../common/StoryConfigModal';
 
 const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext, onError }) => {
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
     imageTitle: null
+  });
+
+  const [storyConfig, setStoryConfig] = useState({
+    isModalOpen: true, // Show on first mount
+    storyDescription: '',
+    changeRequest: '',
+    hasBeenSet: false
   });
 
   // Group images by scene and extract selected images
@@ -79,6 +88,38 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
     });
   };
 
+  const handleStoryConfigSave = (configData) => {
+    setStoryConfig(prev => ({
+      ...prev,
+      isModalOpen: false,
+      storyDescription: configData.storyDescription,
+      changeRequest: configData.changeRequest,
+      hasBeenSet: true
+    }));
+  };
+
+  const handleStoryConfigSkip = () => {
+    setStoryConfig(prev => ({
+      ...prev,
+      isModalOpen: false,
+      hasBeenSet: true
+    }));
+  };
+
+  const handleStoryConfigClose = () => {
+    setStoryConfig(prev => ({
+      ...prev,
+      isModalOpen: false
+    }));
+  };
+
+  const handleSettingsClick = () => {
+    setStoryConfig(prev => ({
+      ...prev,
+      isModalOpen: true
+    }));
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -87,6 +128,13 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
           className={styles.stepButton}
         >
           ← Back to Scenes
+        </button>
+        <button 
+          onClick={handleSettingsClick}
+          className={styles.settingsButton}
+          title="Story Configuration"
+        >
+          <IoSettingsOutline />
         </button>
         <button 
           onClick={onNext}
@@ -107,6 +155,7 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
             }}
             generatedImage={null} // Will be populated later
             generationHistory={[]} // Will be populated later
+            storyConfig={storyConfig}
             onOriginalImageClick={handleOriginalImageClick}
             onGeneratedImageClick={handleGeneratedImageClick}
           />
@@ -118,6 +167,15 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
         imageUrl={modalState.imageUrl}
         imageTitle={modalState.imageTitle}
         onClose={closeModal}
+      />
+
+      <StoryConfigModal
+        isOpen={storyConfig.isModalOpen}
+        storyDescription={storyConfig.storyDescription}
+        changeRequest={storyConfig.changeRequest}
+        onSave={handleStoryConfigSave}
+        onSkip={handleStoryConfigSkip}
+        onClose={handleStoryConfigClose}
       />
     </div>
   );

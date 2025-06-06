@@ -37,6 +37,28 @@
   cursor: not-allowed;
 }
 
+.settingsButton {
+  padding: 8px;
+  background: transparent;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+}
+
+.settingsButton:hover {
+  background: #f8f9fa;
+  border-color: #ccc;
+  color: #333;
+}
+
 .projectId {
   font-size: 14px;
   color: #666;
@@ -70,5 +92,12 @@
   .stepButton {
     padding: 6px 12px;
     font-size: 12px;
+  }
+  
+  .settingsButton {
+    padding: 6px;
+    min-width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
 }

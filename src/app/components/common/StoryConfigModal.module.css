@@ -1,0 +1,218 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  color: #666;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  transition: background 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: #333;
+}
+
+.header {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fieldInfo {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.textarea::placeholder {
+  color: #999;
+}
+
+.footer {
+  padding: 16px 24px 24px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.skipButton {
+  padding: 10px 20px;
+  background: transparent;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skipButton:hover {
+  background: #f8f9fa;
+  border-color: #ccc;
+  color: #333;
+}
+
+.saveButton {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.saveButton:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .overlay {
+    padding: 10px;
+  }
+  
+  .modal {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .header {
+    padding: 20px 20px 12px 20px;
+  }
+  
+  .title {
+    font-size: 18px;
+    padding-right: 40px; /* Account for close button */
+  }
+  
+  .content {
+    padding: 20px;
+    gap: 20px;
+  }
+  
+  .fieldLabel {
+    font-size: 15px;
+  }
+  
+  .fieldInfo {
+    font-size: 13px;
+  }
+  
+  .textarea {
+    min-height: 80px;
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .footer {
+    padding: 12px 20px 20px 20px;
+    flex-direction: column-reverse;
+  }
+  
+  .skipButton,
+  .saveButton {
+    width: 100%;
+    padding: 12px 20px;
+  }
+  
+  .closeButton {
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+  }
+}

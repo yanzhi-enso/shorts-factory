@@ -5,33 +5,50 @@ import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import SceneControlPanel from './SceneControlPanel';
 import ImageHistoryModal from './ImageHistoryModal';
+import { analyzeImage } from '../../../services/backend';
 
 const SceneRow = ({ 
   sceneId,
   originalImage,
   generatedImage = null,
   generationHistory = [],
+  storyConfig = {},
   onOriginalImageClick,
   onGeneratedImageClick
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [gptPolishEnabled, setGptPolishEnabled] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const handlePromptChange = (newPrompt) => {
     setPrompt(newPrompt);
   };
 
-  const handleGptPolishToggle = (enabled) => {
-    setGptPolishEnabled(enabled);
+  const handleGptPolish = async () => {
+    if (!originalImage?.imageUrl || isPolishing) return;
+    
+    setIsPolishing(true);
+    try {
+      const result = await analyzeImage(
+        originalImage.imageUrl,
+        storyConfig.storyDescription || null,
+        prompt || null,
+        storyConfig.changeRequest || null
+      );
+      setPrompt(result);
+    } catch (error) {
+      console.error('Error polishing scene description:', error);
+      // Could add error handling UI here
+    } finally {
+      setIsPolishing(false);
+    }
   };
 
   const handleGenerate = () => {
     // Empty handler for now - will be implemented later
     console.log('Generate clicked for scene:', sceneId);
     console.log('Prompt:', prompt);
-    console.log('GPT Polish:', gptPolishEnabled);
   };
 
   const handleOriginalClick = (imageUrl, title) => {
@@ -75,8 +92,8 @@ const SceneRow = ({
           <SceneControlPanel
             prompt={prompt}
             onPromptChange={handlePromptChange}
-            gptPolishEnabled={gptPolishEnabled}
-            onGptPolishToggle={handleGptPolishToggle}
+            onGptPolish={handleGptPolish}
+            isPolishing={isPolishing}
             referenceImages={[]} // Will be populated later
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
