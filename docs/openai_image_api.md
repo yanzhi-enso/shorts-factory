@@ -1,32 +1,41 @@
-# OpenAI GPT-Image-1 API Reference
+# OpenAI GPT-Image-1 API Reference (JavaScript SDK)
+
+## Setup
+
+```javascript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+```
+
+---
 
 ## 1. Create Image (GPT-Image-1)
 
-**URL:** `https://api.openai.com/v1/images/generations`
+```javascript
+const image = await openai.images.generate({
+  model: "gpt-image-1",
+  prompt: "A cute baby sea otter floating on its back in calm blue water",
+  n: 1,
+  size: "1024x1536",
+  quality: "high",
+  output_format: "png",
+  moderation: "low"
+});
 
-**Method:** `POST`
-
-**Payload:**
-```json
-{
-  "prompt": "A cute baby sea otter floating on its back in calm blue water",
-  "model": "gpt-image-1",
-  "size": "1024x1024",
-  "quality": "auto",
-  "output_format": "png",
-  "moderation": "auto",
-  "user": "user-1234"
-}
+console.log(image.data[0].b64_json);
 ```
 
-**Response Format:**
-```json
+**Response Object:**
+```javascript
 {
-  "created": 1589478378,
-  "data": [
+  created: 1589478378,
+  data: [
     {
-      "b64_json": "iVBORw0KGgoAAAANSUhEUgAAA...",
-      "revised_prompt": "A cute baby sea otter floating on its back in calm blue water, with whiskers and dark eyes visible..."
+      b64_json: "iVBORw0KGgoAAAANSUhEUgAAA...",
+      revised_prompt: "A cute baby sea otter floating on its back in calm blue water, with whiskers and dark eyes visible..."
     }
   ]
 }
@@ -36,31 +45,32 @@
 
 ## 2. Create Image Edit (GPT-Image-1)
 
-**URL:** `https://api.openai.com/v1/images/edits`
+```javascript
+import fs from "fs";
 
-**Method:** `POST`
+const imageEdit = await openai.images.edit({
+  model: "gpt-image-1",
+  image: fs.createReadStream("original.png"),
+  mask: fs.createReadStream("mask.png"),
+  prompt: "Add a sunlit indoor lounge area with a pool",
+  n: 1,
+  size: "1024x1536",
+  quality: "high",
+  output_format: "png",
+  moderation: "low"
+});
 
-**Payload:** (multipart/form-data)
+console.log(imageEdit.data[0].b64_json);
 ```
-image: [file] (required) - Base64 encoded image or file upload
-mask: [file] (optional) - Base64 encoded mask indicating areas to edit
-prompt: "Add a sunlit indoor lounge area with a pool" (required)
-model: "gpt-image-1"
-size: "1024x1024"
-quality: "auto"
-output_format: "png"
-moderation: "auto"
-user: "user-1234"
-```
 
-**Response Format:**
-```json
+**Response Object:**
+```javascript
 {
-  "created": 1589478378,
-  "data": [
+  created: 1589478378,
+  data: [
     {
-      "b64_json": "iVBORw0KGgoAAAANSUhEUgAAA...",
-      "revised_prompt": "Add a sunlit indoor lounge area with a pool to the existing image..."
+      b64_json: "iVBORw0KGgoAAAANSUhEUgAAA...",
+      revised_prompt: "Add a sunlit indoor lounge area with a pool to the existing image..."
     }
   ]
 }
@@ -70,36 +80,81 @@ user: "user-1234"
 
 ## 3. Create Image Variation (GPT-Image-1)
 
-**URL:** `https://api.openai.com/v1/images/variations`
+```javascript
+import fs from "fs";
 
-**Method:** `POST`
+const imageVariation = await openai.images.createVariation({
+  model: "gpt-image-1", 
+  image: fs.createReadStream("original.png"),
+  prompt: "Create variations of this image",
+  n: 1,
+  size: "1024x1536",
+  quality: "high",
+  output_format: "png",
+  moderation: "low"
+});
 
-**Payload:** (multipart/form-data)
+console.log(imageVariation.data[0].b64_json);
 ```
-image: [file] (required) - Base64 encoded image or file upload
-prompt: "Create variations of this image" (optional but recommended)
-model: "gpt-image-1"
-size: "1024x1024"
-quality: "auto"
-output_format: "png"
-moderation: "auto"
-user: "user-1234"
-```
 
-**Response Format:**
-```json
+**Response Object:**
+```javascript
 {
-  "created": 1589478378,
-  "data": [
+  created: 1589478378,
+  data: [
     {
-      "b64_json": "iVBORw0KGgoAAAANSUhEUgAAA...",
-      "revised_prompt": "Variations of the provided image maintaining similar composition and style..."
+      b64_json: "iVBORw0KGgoAAAANSUhEUgAAA...",
+      revised_prompt: "Variations of the provided image maintaining similar composition and style..."
     }
   ]
 }
 ```
 
 ---
+
+## Error Handling
+
+```javascript
+try {
+  const image = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt: "A serene mountain landscape",
+    size: "1024x1536",
+    quality: "high",
+    moderation: "low"
+  });
+  
+  console.log(image.data[0].b64_json);
+} catch (error) {
+  if (error instanceof OpenAI.APIError) {
+    console.error('API Error:', error.status, error.message);
+    console.error('Request ID:', error.request_id);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+---
+
+## Saving Generated Images
+
+```javascript
+import fs from "fs";
+
+const image = await openai.images.generate({
+  model: "gpt-image-1",
+  prompt: "A cute baby sea otter",
+  size: "1024x1536",
+  quality: "high",
+  moderation: "low"
+});
+
+// Save base64 image to file
+const base64Data = image.data[0].b64_json;
+const buffer = Buffer.from(base64Data, 'base64');
+fs.writeFileSync('generated_image.png', buffer);
+```
 
 ## GPT-Image-1 Parameters
 
@@ -123,13 +178,18 @@ user: "user-1234"
   - "jpeg"
   - "webp"
 
-### Safety & Moderation:
+### Advanced Parameters:
+- **n**: Number of images to generate (1-10, default: 1)
 - **moderation**: Content filtering strictness
   - "auto" (default, standard filtering)
   - Custom moderation levels available
-
-### Optional:
 - **user**: Unique identifier for end-user (for monitoring/abuse detection)
+
+### File Upload Parameters (Edit & Variation):
+- **image**: File stream or buffer (required for edit/variation)
+- **mask**: File stream or buffer (optional for edit, indicates areas to regenerate)
+
+---
 
 ## Key Features of GPT-Image-1
 
@@ -140,18 +200,13 @@ user: "user-1234"
 - **Consistent text rendering** within images
 - **Built-in safety features** with content policy compliance
 
-## Authentication
-
-Include in headers:
-```
-Authorization: Bearer YOUR_API_KEY
-```
+---
 
 ## Important Notes
 
 - **Organization verification required**: Must verify your organization with OpenAI to access gpt-image-1
 - **Token-based pricing**: Cost depends on image size and quality (more tokens = higher cost)
 - **Base64 responses**: Images are returned as base64-encoded strings, not URLs
-- **Single image generation**: Unlike DALL-E, gpt-image-1 generates one image per request
+- **Single image generation**: Unlike DALL-E, gpt-image-1 generates one image per request by default
 - **No style parameters**: Unlike DALL-E 3, style is controlled entirely through the prompt
 - **Content filtering**: All prompts and images are filtered against OpenAI's content policy
