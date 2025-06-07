@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from 'react';
-import { IoSettingsOutline } from 'react-icons/io5';
+import { FaBookOpen } from "react-icons/fa";
 import { FaMagic, FaImages } from 'react-icons/fa';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
@@ -314,10 +314,11 @@ const RemakeTab = ({
           </button>
           <button
             onClick={handleSettingsClick}
-            className={styles.settingsButton}
+            className={`${styles.actionButton} ${styles.settingsButton}`}
             title="Story Configuration"
           >
-            <IoSettingsOutline />
+            <FaBookOpen />
+            Story Context
           </button>
         </div>
         <button 

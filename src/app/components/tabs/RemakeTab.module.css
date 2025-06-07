@@ -37,28 +37,6 @@
   cursor: not-allowed;
 }
 
-.settingsButton {
-  padding: 8px;
-  color: #eee;
-  background: #909090;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-}
-
-.settingsButton:hover {
-  background: #b0b0b0;
-  border-color: #ccc;
-  transform: translateY(-1px);
-}
-
 .centerButtons {
   display: flex;
   align-items: center;
@@ -78,6 +56,10 @@
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+.settingsButton {
+  background: #909090;
 }
 
 .promptButton {
@@ -150,19 +132,5 @@
   .stepButton {
     padding: 6px 12px;
     font-size: 12px;
-  }
-  
-  .actionButton {
-    padding: 6px 12px;
-    font-size: 12px;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .settingsButton {
-    padding: 6px;
-    min-width: 36px;
-    height: 36px;
-    font-size: 14px;
   }
 }
