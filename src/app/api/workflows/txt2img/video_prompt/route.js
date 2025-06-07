@@ -7,7 +7,7 @@ export async function POST(request) {
 
         // Extract camelCase parameters from HTTP payload
         const {
-            imageUrl, storyContext, sceneImagePrompt, sceneDescription
+            imageUrl, storyDescription, sceneImagePrompt, sceneDescription
         } = body;
 
         // Validate required parameter
@@ -20,7 +20,7 @@ export async function POST(request) {
 
         // Call the video analysis function
         const result = await workflow.analyzeImageForVideo(
-            imageUrl, sceneImagePrompt, storyContext, sceneDescription
+            imageUrl, sceneImagePrompt, storyDescription, sceneDescription
         );
 
         return NextResponse.json({ success: true, result });

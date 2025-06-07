@@ -9,7 +9,10 @@ import FullSizeImageModal from '../common/FullSizeImageModal';
 import StoryConfigModal from '../common/StoryConfigModal';
 import { analyzeImage, generateImage } from '../../../services/backend';
 
-const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext, onError }) => {
+const RemakeTab = ({
+  projectId, images, selectedIndices,
+  onBackToScenes, onNext, onError
+}) => {
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
@@ -318,7 +321,10 @@ const RemakeTab = ({ projectId, images, selectedIndices, onBackToScenes, onNext,
           </button>
         </div>
         <button 
-          onClick={() => onNext && onNext(generatedImagesRef.current)}
+          onClick={() => onNext && onNext(
+            generatedImagesRef.current,
+            storyConfig,
+          )}
           className={styles.stepButton}
         >
           Next Step →

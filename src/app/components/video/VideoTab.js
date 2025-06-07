@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useMemo, useRef } from 'react';
-import { IoSettingsOutline } from 'react-icons/io5';
 import { FaMagic, FaVideo } from 'react-icons/fa';
 import styles from './VideoTab.module.css';
 import VideoRow from './VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
-import StoryConfigModal from '../common/StoryConfigModal';
 import { analyzeImageForVideo, generateVideo, getVideoTaskStatus } from '../../../services/backend';
 
-const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError }) => {
+const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake, onNext, onError }) => {
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
@@ -24,13 +22,6 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
 
   // Generated videos array for next tab (using ref for performance)
   const generatedVideosRef = useRef([]);
-
-  const [storyConfig, setStoryConfig] = useState({
-    isModalOpen: false,
-    storyDescription: '',
-    changeRequest: '',
-    hasBeenSet: false
-  });
 
   // Process generated images from RemakeTab
   const inputImages = useMemo(() => {
@@ -90,38 +81,6 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
     });
   };
 
-  const handleStoryConfigSave = (configData) => {
-    setStoryConfig(prev => ({
-      ...prev,
-      isModalOpen: false,
-      storyDescription: configData.storyDescription,
-      changeRequest: configData.changeRequest,
-      hasBeenSet: true
-    }));
-  };
-
-  const handleStoryConfigSkip = () => {
-    setStoryConfig(prev => ({
-      ...prev,
-      isModalOpen: false,
-      hasBeenSet: true
-    }));
-  };
-
-  const handleStoryConfigClose = () => {
-    setStoryConfig(prev => ({
-      ...prev,
-      isModalOpen: false
-    }));
-  };
-
-  const handleSettingsClick = () => {
-    setStoryConfig(prev => ({
-      ...prev,
-      isModalOpen: true
-    }));
-  };
-
   const handlePromptChange = (sceneId, newPrompt) => {
     setSceneData(prev => ({
       ...prev,
@@ -148,7 +107,7 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
       const result = await analyzeImageForVideo(
         scene.imageUrl,
         scene.revisedPrompt,
-        storyConfig.storyDescription || null,
+        storyDescription,
         sceneData[sceneId]?.prompt || null
       );
       
@@ -334,13 +293,6 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
           >
             <FaVideo /> {isVideoGenAllRunning ? 'Generating Videos...' : 'VideoGen All'}
           </button>
-          <button
-            onClick={handleSettingsClick}
-            className={styles.settingsButton}
-            title="Story Configuration"
-          >
-            <IoSettingsOutline />
-          </button>
         </div>
         <button 
           onClick={() => onNext && onNext(generatedVideosRef.current)}
@@ -380,15 +332,6 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
         imageUrl={modalState.imageUrl}
         imageTitle={modalState.imageTitle}
         onClose={closeModal}
-      />
-
-      <StoryConfigModal
-        isOpen={storyConfig.isModalOpen}
-        storyDescription={storyConfig.storyDescription}
-        changeRequest={storyConfig.changeRequest}
-        onSave={handleStoryConfigSave}
-        onSkip={handleStoryConfigSkip}
-        onClose={handleStoryConfigClose}
       />
     </div>
   );

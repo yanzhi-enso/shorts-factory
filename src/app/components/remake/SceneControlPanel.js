@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import styles from './SceneControlPanel.module.css';
 import Image from 'next/image';
 

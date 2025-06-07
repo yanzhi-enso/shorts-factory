@@ -37,7 +37,7 @@ export async function analyzeImage(
 export async function analyzeImageForVideo(
     imageUrl,
     sceneImagePrompt,
-    storyContext = null,
+    storyDescription = null,
     sceneDescription = null
 ) {
     try {
@@ -50,7 +50,7 @@ export async function analyzeImageForVideo(
             body: JSON.stringify({
                 imageUrl,
                 sceneImagePrompt,
-                storyContext,
+                storyDescription,
                 sceneDescription
             })
         });

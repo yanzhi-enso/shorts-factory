@@ -22,6 +22,7 @@ export default function Home() {
   const [images, setImages] = useState([]);
   const [remakeImages, setRemakeImages] = useState([]);
   const [generatedImages, setGeneratedImages] = useState([]);
+  const [storyDescription, setStoryDescription] = useState('');
   const [generatedVideos, setGeneratedVideos] = useState([]);
   const [selectedIndices, setSelectedIndices] = useState({});
   const [error, setError] = useState(null);
@@ -130,8 +131,11 @@ export default function Home() {
     updateUrl(TABS.SCENES, projectId);
   };
 
-  const handleNextFromRemake = (generatedImagesData) => {
+  const handleNextFromRemake = (
+    generatedImagesData, storyConfig
+  ) => {
     setGeneratedImages(generatedImagesData);
+    setStoryDescription(storyConfig.storyDescription)
     setActiveTab(TABS.VIDEO);
     setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
     updateUrl(TABS.VIDEO, projectId);
@@ -203,6 +207,7 @@ export default function Home() {
             <VideoTab 
               projectId={projectId}
               generatedImages={generatedImages}
+              storyDescription={storyDescription}
               onBackToRemake={handleBackToRemake}
               onNext={handleNextFromVideo}
               onError={handleError}
