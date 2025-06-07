@@ -174,7 +174,7 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
   };
 
   const pollVideoStatus = async (taskId, sceneId) => {
-    const maxAttempts = 60; // 5 minutes with 5-second intervals
+    const maxAttempts = 20; // 5 minutes with 5-second intervals
     let attempts = 0;
 
     const poll = async () => {
@@ -211,7 +211,7 @@ const VideoTab = ({ projectId, generatedImages, onBackToRemake, onNext, onError 
         }
 
         // Continue polling
-        setTimeout(poll, 5000);
+        setTimeout(poll, 15000);
       } catch (error) {
         console.error('Error polling video status:', error);
         setSceneData(prev => ({
