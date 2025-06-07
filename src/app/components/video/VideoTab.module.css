@@ -39,6 +39,12 @@
   align-items: center;
 }
 
+.rightButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .actionButton {
   display: flex;
   align-items: center;
@@ -68,6 +74,15 @@
 
 .videoGenButton:hover:not(.disabled) {
   background-color: #c82333;
+}
+
+.exportButton {
+  background-color: #6f42c1;
+  color: white;
+}
+
+.exportButton:hover:not(.disabled) {
+  background-color: #5a32a3;
 }
 
 .settingsButton {
@@ -139,6 +154,11 @@
     justify-content: center;
   }
 
+  .rightButtons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   .stepButton,
   .actionButton {
     font-size: 13px;
@@ -148,6 +168,11 @@
 
 @media (max-width: 480px) {
   .centerButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .rightButtons {
     flex-direction: column;
     width: 100%;
   }

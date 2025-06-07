@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useRef } from 'react';
-import { FaBookOpen } from "react-icons/fa";
+import { FaBookOpen, FaDownload } from "react-icons/fa";
 import { FaMagic, FaImages } from 'react-icons/fa';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
@@ -21,6 +23,7 @@ const RemakeTab = ({
 
   const [isPromptGenAllRunning, setIsPromptGenAllRunning] = useState(false);
   const [isImageGenAllRunning, setIsImageGenAllRunning] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Scene-specific state
   const [sceneData, setSceneData] = useState({});
@@ -286,6 +289,50 @@ const RemakeTab = ({
     }
   };
 
+  const handleExport = async () => {
+    if (isExporting) return;
+    
+    // Check if there are any generated images to export
+    const generatedImages = generatedImagesRef.current;
+    if (!generatedImages || generatedImages.length === 0) {
+      alert('No generated images to export. Please generate some images first.');
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      const zip = new JSZip();
+      
+      // Add each generated image to the zip
+      for (const imageData of generatedImages) {
+        try {
+          // Extract base64 data from data URL
+          const base64Data = imageData.image.replace(/^data:image\/[a-z]+;base64,/, '');
+          
+          // Add image to zip with scene-based filename
+          zip.file(`${imageData.sceneId}_generated.png`, base64Data, { base64: true });
+          
+          // Also add a text file with the prompt for reference
+          zip.file(`${imageData.sceneId}_prompt.txt`, imageData.revisedPrompt || 'No prompt available');
+        } catch (error) {
+          console.error(`Error processing image for ${imageData.sceneId}:`, error);
+        }
+      }
+      
+      // Generate and download the zip file
+      const content = await zip.generateAsync({ type: 'blob' });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      saveAs(content, `remake_images_export_${timestamp}.zip`);
+      
+    } catch (error) {
+      console.error('Error creating export:', error);
+      if (onError) onError('Failed to export images. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -321,15 +368,25 @@ const RemakeTab = ({
             Story Context
           </button>
         </div>
-        <button 
-          onClick={() => onNext && onNext(
-            generatedImagesRef.current,
-            storyConfig,
-          )}
-          className={styles.stepButton}
-        >
-          Next Step →
-        </button>
+        <div className={styles.rightButtons}>
+          <button
+            onClick={handleExport}
+            className={`${styles.actionButton} ${styles.exportButton} ${isExporting ? styles.disabled : ''}`}
+            disabled={isExporting}
+            title="Export Generated Images"
+          >
+            <FaDownload /> {isExporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button 
+            onClick={() => onNext && onNext(
+              generatedImagesRef.current,
+              storyConfig,
+            )}
+            className={styles.stepButton}
+          >
+            Next Step →
+          </button>
+        </div>
       </div>
       
       <div className={styles.rowsContainer}>

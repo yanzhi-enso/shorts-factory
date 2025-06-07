@@ -43,6 +43,12 @@
   gap: 12px;
 }
 
+.rightButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .actionButton {
   padding: 8px 16px;
   color: white;
@@ -77,6 +83,15 @@
 
 .imageGenButton:hover {
   background: #48b765;
+  transform: translateY(-1px);
+}
+
+.exportButton {
+  background: #6f42c1;
+}
+
+.exportButton:hover {
+  background: #5a32a3;
   transform: translateY(-1px);
 }
 
@@ -124,6 +139,12 @@
   }
   
   .centerButtons {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .rightButtons {
     flex-direction: column;
     gap: 8px;
     width: 100%;

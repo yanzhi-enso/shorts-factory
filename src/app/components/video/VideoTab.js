@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo, useRef } from 'react';
-import { FaMagic, FaVideo } from 'react-icons/fa';
+import { FaMagic, FaVideo, FaDownload } from 'react-icons/fa';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
 import VideoRow from './VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
@@ -16,6 +18,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
 
   const [isPromptGenAllRunning, setIsPromptGenAllRunning] = useState(false);
   const [isVideoGenAllRunning, setIsVideoGenAllRunning] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Scene-specific state
   const [sceneData, setSceneData] = useState({});
@@ -267,6 +270,56 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     }
   };
 
+  const handleExport = async () => {
+    if (isExporting) return;
+    
+    // Check if there are any generated videos to export
+    const generatedVideos = generatedVideosRef.current;
+    if (!generatedVideos || generatedVideos.length === 0) {
+      alert('No generated videos to export. Please generate some videos first.');
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      const zip = new JSZip();
+      
+      // Add each generated video to the zip
+      for (const videoData of generatedVideos) {
+        try {
+          // Fetch video from URL
+          const response = await fetch(videoData.video);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch video: ${response.statusText}`);
+          }
+          
+          const videoBlob = await response.blob();
+          
+          // Add video to zip with scene-based filename
+          zip.file(`${videoData.sceneId}_generated.mp4`, videoBlob);
+          
+          // Also add a text file with the prompt for reference
+          zip.file(`${videoData.sceneId}_prompt.txt`, videoData.prompt || 'No prompt available');
+        } catch (error) {
+          console.error(`Error processing video for ${videoData.sceneId}:`, error);
+          // Continue with other videos even if one fails
+        }
+      }
+      
+      // Generate and download the zip file
+      const content = await zip.generateAsync({ type: 'blob' });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      saveAs(content, `video_export_${timestamp}.zip`);
+      
+    } catch (error) {
+      console.error('Error creating export:', error);
+      if (onError) onError('Failed to export videos. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -294,12 +347,22 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
             <FaVideo /> {isVideoGenAllRunning ? 'Generating Videos...' : 'VideoGen All'}
           </button>
         </div>
-        <button 
-          onClick={() => onNext && onNext(generatedVideosRef.current)}
-          className={styles.stepButton}
-        >
-          Next Step →
-        </button>
+        <div className={styles.rightButtons}>
+          <button
+            onClick={handleExport}
+            className={`${styles.actionButton} ${styles.exportButton} ${isExporting ? styles.disabled : ''}`}
+            disabled={isExporting}
+            title="Export Generated Videos"
+          >
+            <FaDownload /> {isExporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button 
+            onClick={() => onNext && onNext(generatedVideosRef.current)}
+            className={styles.stepButton}
+          >
+            Next Step →
+          </button>
+        </div>
       </div>
       
       <div className={styles.rowsContainer}>
