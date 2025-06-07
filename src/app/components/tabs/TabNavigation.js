@@ -5,7 +5,8 @@ import styles from './TabNavigation.module.css';
 const TABS = {
   START: 'start',
   SCENES: 'scenes',
-  REMAKE: 'remake'
+  REMAKE: 'remake',
+  VIDEO: 'video'
 };
 
 const TabNavigation = ({ activeTab, unlockedTabs }) => {
@@ -25,6 +26,11 @@ const TabNavigation = ({ activeTab, unlockedTabs }) => {
         className={`${styles.tab} ${activeTab === TABS.REMAKE ? styles.active : ''} ${unlockedTabs.includes(TABS.REMAKE) ? styles.unlocked : styles.locked}`}
       >
         Remake
+      </div>
+      <div
+        className={`${styles.tab} ${activeTab === TABS.VIDEO ? styles.active : ''} ${unlockedTabs.includes(TABS.VIDEO) ? styles.unlocked : styles.locked}`}
+      >
+        Video
       </div>
     </div>
   );

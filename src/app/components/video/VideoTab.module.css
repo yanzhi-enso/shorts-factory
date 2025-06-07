@@ -1,0 +1,159 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+  background-color: #f8f9fa;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stepButton {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.stepButton:hover {
+  background-color: #0056b3;
+}
+
+.centerButtons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.promptButton {
+  background-color: #28a745;
+  color: white;
+}
+
+.promptButton:hover:not(.disabled) {
+  background-color: #218838;
+}
+
+.videoGenButton {
+  background-color: #dc3545;
+  color: white;
+}
+
+.videoGenButton:hover:not(.disabled) {
+  background-color: #c82333;
+}
+
+.settingsButton {
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsButton:hover {
+  background-color: #5a6268;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.disabled:hover {
+  background-color: inherit;
+}
+
+.rowsContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Scrollbar styling */
+.rowsContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rowsContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.rowsContainer::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.rowsContainer::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .centerButtons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stepButton,
+  .actionButton {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .centerButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .actionButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

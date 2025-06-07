@@ -7,6 +7,7 @@ import TabNavigation, { TABS } from './components/tabs/TabNavigation';
 import StartTab from './components/tabs/StartTab';
 import ScenesTab from './components/tabs/ScenesTab';
 import RemakeTab from './components/tabs/RemakeTab';
+import VideoTab from './components/video/VideoTab';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -20,6 +21,8 @@ export default function Home() {
   const [projectId, setProjectId] = useState(null);
   const [images, setImages] = useState([]);
   const [remakeImages, setRemakeImages] = useState([]);
+  const [generatedImages, setGeneratedImages] = useState([]);
+  const [generatedVideos, setGeneratedVideos] = useState([]);
   const [selectedIndices, setSelectedIndices] = useState({});
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -30,7 +33,7 @@ export default function Home() {
       const stage = searchParams.get(STAGE_PARAM);
       const pid = searchParams.get(PROJECT_ID_PARAM);
 
-      if ((stage === TABS.SCENES || stage === TABS.REMAKE) && pid) {
+      if ((stage === TABS.SCENES || stage === TABS.REMAKE || stage === TABS.VIDEO) && pid) {
         // Validate project exists by checking file list
         try {
           const response = await fetch(`/api/files/${pid}`);
@@ -45,6 +48,8 @@ export default function Home() {
               setUnlockedTabs([TABS.START, TABS.SCENES]);
             } else if (stage === TABS.REMAKE) {
               setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
+            } else if (stage === TABS.VIDEO) {
+              setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
             }
           } else {
             // Project doesn't exist, redirect to start with error
@@ -55,7 +60,7 @@ export default function Home() {
           setError('Failed to validate project');
           updateUrl(TABS.START);
         }
-      } else if ((stage === TABS.SCENES || stage === TABS.REMAKE) && !pid) {
+      } else if ((stage === TABS.SCENES || stage === TABS.REMAKE || stage === TABS.VIDEO) && !pid) {
         // Invalid scenes/remake URL without project ID
         setError('Invalid project URL');
         updateUrl(TABS.START);
@@ -74,7 +79,7 @@ export default function Home() {
     const params = new URLSearchParams();
     params.set(STAGE_PARAM, tab);
     
-    if ((tab === TABS.SCENES || tab === TABS.REMAKE) && pid) {
+    if ((tab === TABS.SCENES || tab === TABS.REMAKE || tab === TABS.VIDEO) && pid) {
       params.set(PROJECT_ID_PARAM, pid);
     }
     
@@ -82,12 +87,12 @@ export default function Home() {
   };
 
   const handleTabChange = (tab) => {
-    if ((tab === TABS.SCENES || tab === TABS.REMAKE) && !projectId) {
-      return; // Can't switch to scenes/remake without project
+    if ((tab === TABS.SCENES || tab === TABS.REMAKE || tab === TABS.VIDEO) && !projectId) {
+      return; // Can't switch to scenes/remake/video without project
     }
     
     setActiveTab(tab);
-    updateUrl(tab, (tab === TABS.SCENES || tab === TABS.REMAKE) ? projectId : null);
+    updateUrl(tab, (tab === TABS.SCENES || tab === TABS.REMAKE || tab === TABS.VIDEO) ? projectId : null);
   };
 
   const handleProcessComplete = ({ projectId: newProjectId, images: newImages }) => {
@@ -125,9 +130,22 @@ export default function Home() {
     updateUrl(TABS.SCENES, projectId);
   };
 
-  const handleNextFromRemake = () => {
-    // Placeholder for future functionality
-    console.log('Next from Remake - not implemented yet');
+  const handleNextFromRemake = (generatedImagesData) => {
+    setGeneratedImages(generatedImagesData);
+    setActiveTab(TABS.VIDEO);
+    setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
+    updateUrl(TABS.VIDEO, projectId);
+  };
+
+  const handleBackToRemake = () => {
+    setActiveTab(TABS.REMAKE);
+    updateUrl(TABS.REMAKE, projectId);
+  };
+
+  const handleNextFromVideo = (generatedVideosData) => {
+    setGeneratedVideos(generatedVideosData);
+    // Future: implement next tab functionality
+    console.log('Next from Video - future functionality', generatedVideosData);
   };
 
   // Don't render until initialized to avoid hydration issues
@@ -177,6 +195,16 @@ export default function Home() {
               selectedIndices={selectedIndices}
               onBackToScenes={handleBackToScenes}
               onNext={handleNextFromRemake}
+              onError={handleError}
+            />
+          )}
+          
+          {activeTab === TABS.VIDEO && projectId && (
+            <VideoTab 
+              projectId={projectId}
+              generatedImages={generatedImages}
+              onBackToRemake={handleBackToRemake}
+              onNext={handleNextFromVideo}
               onError={handleError}
             />
           )}
