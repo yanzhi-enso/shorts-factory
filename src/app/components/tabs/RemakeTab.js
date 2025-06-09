@@ -311,12 +311,29 @@ const RemakeTab = ({
     setIsPromptGenAllRunning(true);
     
     try {
-      for (const scene of originalImages) {
-        await handlePromptAssistant(scene.sceneId);
+      // Create promises for all scenes simultaneously
+      const promptPromises = originalImages.map(scene => 
+        handlePromptAssistant(scene.sceneId)
+      );
+      
+      // Execute all in parallel and wait for all to complete/fail
+      const results = await Promise.allSettled(promptPromises);
+      
+      // Handle any failures
+      const failures = results
+        .map((result, index) => ({ result, sceneId: originalImages[index].sceneId }))
+        .filter(({ result }) => result.status === 'rejected');
+      
+      if (failures.length > 0) {
+        console.error("Some prompt generations failed:", failures);
+        if (onError) {
+          const failedScenes = failures.map(f => f.sceneId).join(', ');
+          onError(`Prompt generation failed for scenes: ${failedScenes}`);
+        }
       }
     } catch (error) {
       console.error("Error during PromptGen All:", error);
-      if (onError) onError("An error occurred during Prompt Generation for all scenes.");
+      if (onError) onError("An unexpected error occurred during batch prompt generation.");
     } finally {
       setIsPromptGenAllRunning(false);
     }
@@ -327,12 +344,29 @@ const RemakeTab = ({
     setIsImageGenAllRunning(true);
     
     try {
-      for (const scene of originalImages) {
-        await handleGenerate(scene.sceneId);
+      // Create promises for all scenes simultaneously
+      const imagePromises = originalImages.map(scene => 
+        handleGenerate(scene.sceneId)
+      );
+      
+      // Execute all in parallel and wait for all to complete/fail
+      const results = await Promise.allSettled(imagePromises);
+      
+      // Handle any failures
+      const failures = results
+        .map((result, index) => ({ result, sceneId: originalImages[index].sceneId }))
+        .filter(({ result }) => result.status === 'rejected');
+      
+      if (failures.length > 0) {
+        console.error("Some image generations failed:", failures);
+        if (onError) {
+          const failedScenes = failures.map(f => f.sceneId).join(', ');
+          onError(`Image generation failed for scenes: ${failedScenes}`);
+        }
       }
     } catch (error) {
       console.error("Error during ImageGen All:", error);
-      if (onError) onError("An error occurred during Image Generation for all scenes.");
+      if (onError) onError("An unexpected error occurred during batch image generation.");
     } finally {
       setIsImageGenAllRunning(false);
     }

@@ -243,12 +243,29 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     setIsPromptGenAllRunning(true);
     
     try {
-      for (const scene of inputImages) {
-        await handlePromptAssistant(scene.sceneId);
+      // Create promises for all scenes simultaneously
+      const promptPromises = inputImages.map(scene => 
+        handlePromptAssistant(scene.sceneId)
+      );
+      
+      // Execute all in parallel and wait for all to complete/fail
+      const results = await Promise.allSettled(promptPromises);
+      
+      // Handle any failures
+      const failures = results
+        .map((result, index) => ({ result, sceneId: inputImages[index].sceneId }))
+        .filter(({ result }) => result.status === 'rejected');
+      
+      if (failures.length > 0) {
+        console.error("Some prompt generations failed:", failures);
+        if (onError) {
+          const failedScenes = failures.map(f => f.sceneId).join(', ');
+          onError(`Prompt generation failed for scenes: ${failedScenes}`);
+        }
       }
     } catch (error) {
       console.error("Error during PromptGen All:", error);
-      if (onError) onError("An error occurred during Prompt Generation for all scenes.");
+      if (onError) onError("An unexpected error occurred during batch prompt generation.");
     } finally {
       setIsPromptGenAllRunning(false);
     }
@@ -259,12 +276,26 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     setIsVideoGenAllRunning(true);
     
     try {
+      const failures = [];
+      
       for (const scene of inputImages) {
-        await handleGenerate(scene.sceneId);
+        try {
+          await handleGenerate(scene.sceneId);
+        } catch (error) {
+          console.error(`Video generation failed for ${scene.sceneId}:`, error);
+          failures.push(scene.sceneId);
+          // Continue with next scene instead of stopping entire batch
+        }
+      }
+      
+      // Report any failures at the end
+      if (failures.length > 0) {
+        const failedScenes = failures.join(', ');
+        if (onError) onError(`Video generation failed for scenes: ${failedScenes}`);
       }
     } catch (error) {
       console.error("Error during VideoGen All:", error);
-      if (onError) onError("An error occurred during Video Generation for all scenes.");
+      if (onError) onError("An unexpected error occurred during batch video generation.");
     } finally {
       setIsVideoGenAllRunning(false);
     }
