@@ -85,6 +85,58 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.imageItem.selected {
+  border: 3px solid #007bff;
+  box-shadow: 0 0 0 1px #007bff;
+}
+
+.uploadItem {
+  border: 2px dashed #ccc;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 225px;
+  transition: all 0.2s ease;
+}
+
+.uploadItem:hover {
+  border-color: #007bff;
+  background: #f0f8ff;
+  transform: translateY(-2px);
+}
+
+.uploadContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.uploadIcon {
+  font-size: 32px;
+  color: #666;
+  margin-bottom: 8px;
+  transition: color 0.2s ease;
+}
+
+.uploadItem:hover .uploadIcon {
+  color: #007bff;
+}
+
+.uploadText {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.uploadItem:hover .uploadText {
+  color: #007bff;
+}
+
 .image {
   width: 100%;
   height: 225px;
