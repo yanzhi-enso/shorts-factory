@@ -5,13 +5,9 @@ FROM node:22-slim
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    python3-venv \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    libgthread-2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -27,8 +23,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy Python requirements first for better caching
 COPY python/requirements.txt ./python/
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir --user -r python/requirements.txt
+# Create virtual environment and install Python dependencies
+RUN python3 -m venv /app/venv && \
+    /app/venv/bin/pip install --no-cache-dir -r python/requirements.txt
 
 # Copy the rest of the application code (excluding files in .dockerignore)
 COPY . .
@@ -47,7 +44,7 @@ EXPOSE $PORT
 # Set environment variables optimized for Cloud Run
 ENV NODE_ENV=production
 ENV PYTHONPATH=/app/python
-ENV PATH="/home/appuser/.local/bin:$PATH"
+ENV PATH="/app/venv/bin:$PATH"
 
 # Cloud Run requires listening on 0.0.0.0 and using PORT env variable
 CMD ["sh", "-c", "npm start -- --port=${PORT:-3000} --hostname=0.0.0.0"]
