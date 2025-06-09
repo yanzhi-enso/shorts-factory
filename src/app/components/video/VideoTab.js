@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { FaMagic, FaVideo, FaDownload } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
 import VideoRow from './VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
-import { analyzeImageForVideo, generateVideo, getVideoTaskStatus } from '../../../services/backend';
+import VideoRequestManager from './VideoRequestManager';
+import { analyzeImageForVideo } from '../../../services/backend';
 
-const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake, onNext, onError }) => {
+const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackToRemake, onNext, onError, videoManager, onSceneStateChange, onVideoGenerated }) => {
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
@@ -135,107 +136,48 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     }
   };
 
-  const pollVideoStatus = async (taskId, sceneId) => {
-    const maxAttempts = 20; // 5 minutes with 5-second intervals
-    let attempts = 0;
-
-    const poll = async () => {
-      try {
-        attempts++;
-        const result = await getVideoTaskStatus(taskId);
-        
-        if (result.data?.task_status === 'succeed' && result.data?.task_result?.videos?.[0]) {
-          // Video generation completed successfully
-          const videoUrl = result.data.task_result.videos[0].url || result.data.task_result.videos[0].resource;
-          
-          setSceneData(prev => ({
-            ...prev,
-            [sceneId]: {
-              ...prev[sceneId],
-              generatedVideo: videoUrl,
-              isGenerating: false
-            }
-          }));
-
-          // Add to generated videos array for next tab
-          const filtered = generatedVideosRef.current.filter(vid => vid.sceneId !== sceneId);
-          generatedVideosRef.current = [...filtered, {
-            sceneId,
-            prompt: sceneData[sceneId]?.prompt || '',
-            video: videoUrl
-          }];
-
-          return;
-        } else if (result.data?.task_status === 'failed') {
-          throw new Error('Video generation failed');
-        } else if (attempts >= maxAttempts) {
-          throw new Error('Video generation timed out');
-        }
-
-        // Continue polling
-        setTimeout(poll, 15000);
-      } catch (error) {
-        console.error('Error polling video status:', error);
-        setSceneData(prev => ({
-          ...prev,
-          [sceneId]: {
-            ...prev[sceneId],
-            isGenerating: false
-          }
-        }));
-        if (onError) onError(`Error generating video for ${sceneId}: ${error.message}`);
+  // Handle scene state changes from VideoRequestManager
+  const handleSceneStateChange = (sceneId, updates) => {
+    setSceneData(prev => ({
+      ...prev,
+      [sceneId]: {
+        ...prev[sceneId],
+        ...updates
       }
-    };
-
-    poll();
+    }));
   };
 
-  const handleGenerate = async (sceneId) => {
+  // Handle video generation completion from VideoRequestManager
+  const handleVideoGenerated = (sceneId, videoUrl) => {
+    const filtered = generatedVideosRef.current.filter(vid => vid.sceneId !== sceneId);
+    generatedVideosRef.current = [...filtered, {
+      sceneId,
+      prompt: sceneData[sceneId]?.prompt || '',
+      video: videoUrl
+    }];
+  };
+
+  // Connect VideoRequestManager callbacks to local handlers
+  useEffect(() => {
+    if (onSceneStateChange) {
+      // Replace the manager's callback with our local handler
+      onSceneStateChange.current = handleSceneStateChange;
+    }
+    if (onVideoGenerated) {
+      // Replace the manager's callback with our local handler
+      onVideoGenerated.current = handleVideoGenerated;
+    }
+  }, [onSceneStateChange, onVideoGenerated]);
+
+  // Enhanced generate function using VideoRequestManager
+  const handleGenerate = (sceneId, videoManager) => {
     const scene = inputImages.find(img => img.sceneId === sceneId);
     const prompt = sceneData[sceneId]?.prompt;
     
     if (!scene?.imageUrl || !prompt || sceneData[sceneId]?.isGenerating) return;
 
-    setSceneData(prev => ({
-      ...prev,
-      [sceneId]: {
-        ...prev[sceneId],
-        isGenerating: true
-      }
-    }));
-
-    try {
-      // Extract base64 data from data URL
-      const base64Data = scene.imageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
-      
-      const result = await generateVideo(base64Data, prompt);
-      
-      if (result.data?.task_id) {
-        // Store task ID and start polling
-        setSceneData(prev => ({
-          ...prev,
-          [sceneId]: {
-            ...prev[sceneId],
-            taskId: result.data.task_id
-          }
-        }));
-
-        // Start polling for video completion
-        pollVideoStatus(result.data.task_id, sceneId);
-      } else {
-        throw new Error('No task ID returned from video generation');
-      }
-    } catch (error) {
-      console.error('Error generating video:', error);
-      setSceneData(prev => ({
-        ...prev,
-        [sceneId]: {
-          ...prev[sceneId],
-          isGenerating: false
-        }
-      }));
-      if (onError) onError(`Error generating video for ${sceneId}: ${error.message}`);
-    }
+    // Queue request through VideoRequestManager
+    videoManager.queueRequest(sceneId, scene.imageUrl, prompt);
   };
 
   const handlePromptGenAll = async () => {
@@ -271,28 +213,33 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     }
   };
 
-  const handleVideoGenAll = async () => {
+  // Enhanced VideoGenAll function using VideoRequestManager
+  const handleVideoGenAll = (videoManager) => {
     if (isVideoGenAllRunning) return;
     setIsVideoGenAllRunning(true);
     
     try {
-      const failures = [];
-      
-      for (const scene of inputImages) {
-        try {
-          await handleGenerate(scene.sceneId);
-        } catch (error) {
-          console.error(`Video generation failed for ${scene.sceneId}:`, error);
-          failures.push(scene.sceneId);
-          // Continue with next scene instead of stopping entire batch
-        }
+      // Prepare all requests for batch queuing
+      const requests = inputImages
+        .filter(scene => {
+          const prompt = sceneData[scene.sceneId]?.prompt;
+          return scene.imageUrl && prompt && !sceneData[scene.sceneId]?.isGenerating;
+        })
+        .map(scene => ({
+          sceneId: scene.sceneId,
+          imageBase64: scene.imageUrl,
+          prompt: sceneData[scene.sceneId].prompt
+        }));
+
+      if (requests.length === 0) {
+        if (onError) onError('No scenes ready for video generation. Please ensure all scenes have prompts.');
+        setIsVideoGenAllRunning(false);
+        return;
       }
+
+      // Queue all requests through VideoRequestManager
+      videoManager.queueMultipleRequests(requests);
       
-      // Report any failures at the end
-      if (failures.length > 0) {
-        const failedScenes = failures.join(', ');
-        if (onError) onError(`Video generation failed for scenes: ${failedScenes}`);
-      }
     } catch (error) {
       console.error("Error during VideoGen All:", error);
       if (onError) onError("An unexpected error occurred during batch video generation.");
@@ -370,7 +317,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
             <FaMagic /> {isPromptGenAllRunning ? 'Generating Prompts...' : 'PromptGen All'}
           </button>
           <button
-            onClick={handleVideoGenAll}
+            onClick={() => handleVideoGenAll(videoManager)}
             className={`${styles.actionButton} ${styles.videoGenButton} ${isVideoGenAllRunning ? styles.disabled : ''}`}
             disabled={isVideoGenAllRunning}
             title="Generate Videos for All Scenes"
@@ -415,7 +362,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
               onGeneratedVideoClick={handleGeneratedVideoClick}
               onPromptChange={handlePromptChange}
               onPromptAssistant={handlePromptAssistant}
-              onGenerate={handleGenerate}
+              onGenerate={(sceneId) => handleGenerate(sceneId, videoManager)}
             />
           );
         })}
@@ -428,6 +375,38 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
         onClose={closeModal}
       />
     </div>
+  );
+};
+
+// Wrapper component that integrates VideoRequestManager
+const VideoTab = (props) => {
+  // Create refs for the callback functions that VideoTabContent will set
+  const sceneStateChangeRef = useRef(null);
+  const videoGeneratedRef = useRef(null);
+
+  return (
+    <VideoRequestManager
+      onError={props.onError}
+      onSceneStateChange={(sceneId, updates) => {
+        if (sceneStateChangeRef.current) {
+          sceneStateChangeRef.current(sceneId, updates);
+        }
+      }}
+      onVideoGenerated={(sceneId, videoUrl) => {
+        if (videoGeneratedRef.current) {
+          videoGeneratedRef.current(sceneId, videoUrl);
+        }
+      }}
+    >
+      {(enhancedProps) => (
+        <VideoTabContent
+          {...props}
+          videoManager={enhancedProps.videoManager}
+          onSceneStateChange={sceneStateChangeRef}
+          onVideoGenerated={videoGeneratedRef}
+        />
+      )}
+    </VideoRequestManager>
   );
 };
 
