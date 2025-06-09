@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
+import GeneratedImageBlock from './GeneratedImageBlock';
 import SceneControlPanel from './SceneControlPanel';
-import ImageHistoryModal from './ImageHistoryModal';
 
 const SceneRow = ({
   sceneId,
   originalImage,
-  generatedImage = null,
-  generationHistory = [],
+  selectedImage = null,
+  imageHistory = [],
+  selectedImageIndex = -1,
   prompt = '',
   isPromptAssistantRunning = false,
   isGenerating = false,
@@ -18,7 +19,9 @@ const SceneRow = ({
   onGeneratedImageClick,
   onPromptChange,
   onPromptAssistant,
-  onGenerate
+  onGenerate,
+  onImageUpload,
+  onImageSelect
 }) => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
@@ -46,70 +49,43 @@ const SceneRow = ({
     }
   };
 
-  const handleGeneratedClick = (imageUrl, title, variant) => {
-    if (variant === 'generated' && generationHistory.length > 0) {
-      setHistoryModalOpen(true);
-    } else if (onGeneratedImageClick) {
-      onGeneratedImageClick(imageUrl, title, variant);
-    }
-  };
-
-  const handleHistoryModalClose = () => {
-    setHistoryModalOpen(false);
-  };
-
-  const handleSelectFromHistory = (imageUrl) => {
-    // Empty handler for now - will be implemented later
-    console.log('Selected from history:', imageUrl);
-  };
-
   return (
-    <>
-      <div className={styles.sceneRow}>
-        {/* Original Image */}
-        <div className={styles.imageSection}>
-          <RemakeImageBlock
-            imageUrl={originalImage.imageUrl}
-            title={originalImage.title}
-            variant="original"
-            onClick={handleOriginalClick}
-          />
-        </div>
-
-        {/* Control Panel */}
-        <div className={styles.controlSection}>
-          <SceneControlPanel
-            prompt={prompt}
-            onPromptChange={handlePromptChange}
-            onPromptAssistant={handlePromptAssistant}
-            isPromptAssistantRunning={isPromptAssistantRunning}
-            referenceImages={[]} // Will be populated later
-            onGenerate={handleGenerate}
-            isGenerating={isGenerating}
-          />
-        </div>
-
-        {/* Generated Image */}
-        <div className={styles.imageSection}>
-          <RemakeImageBlock
-            imageUrl={generatedImage}
-            title={generatedImage ? `${sceneId} Generated` : ''}
-            variant="generated"
-            isEmpty={!generatedImage}
-            onClick={handleGeneratedClick}
-          />
-        </div>
+    <div className={styles.sceneRow}>
+      {/* Original Image */}
+      <div className={styles.imageSection}>
+        <RemakeImageBlock
+          imageUrl={originalImage.imageUrl}
+          title={originalImage.title}
+          onClick={handleOriginalClick}
+        />
       </div>
 
-      {/* History Modal */}
-      <ImageHistoryModal
-        isOpen={historyModalOpen}
-        sceneId={sceneId}
-        generationHistory={generationHistory}
-        onClose={handleHistoryModalClose}
-        onSelectImage={handleSelectFromHistory}
-      />
-    </>
+      {/* Control Panel */}
+      <div className={styles.controlSection}>
+        <SceneControlPanel
+          prompt={prompt}
+          onPromptChange={handlePromptChange}
+          onPromptAssistant={handlePromptAssistant}
+          isPromptAssistantRunning={isPromptAssistantRunning}
+          referenceImages={[]} // Will be populated later
+          onGenerate={handleGenerate}
+          isGenerating={isGenerating}
+        />
+      </div>
+
+      {/* Generated Image */}
+      <div className={styles.imageSection}>
+        <GeneratedImageBlock
+          sceneId={sceneId}
+          selectedImage={selectedImage}
+          imageHistory={imageHistory}
+          selectedImageIndex={selectedImageIndex}
+          onImageUpload={onImageUpload}
+          onImageSelect={onImageSelect}
+          onImageClick={onGeneratedImageClick}
+        />
+      </div>
+    </div>
   );
 };
 
