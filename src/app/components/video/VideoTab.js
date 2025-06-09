@@ -38,7 +38,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
         setSceneData(prev => ({
           ...prev,
           [item.sceneId]: {
-            prompt: item.revisedPrompt || '',
+            prompt: '', // Keep blank initially for video prompts
             generatedVideo: null,
             taskId: null,
             isPromptAssistantRunning: false,
@@ -52,7 +52,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
       sceneId: item.sceneId,
       imageUrl: item.image,
       title: `${item.sceneId} Input`,
-      revisedPrompt: item.revisedPrompt
+      imagePrompt: item.revisedPrompt || '' // Store image generation prompt for context
     }));
   }, [generatedImages]);
 
@@ -109,7 +109,7 @@ const VideoTab = ({ projectId, generatedImages, storyDescription, onBackToRemake
     try {
       const result = await analyzeImageForVideo(
         scene.imageUrl,
-        scene.revisedPrompt,
+        scene.imagePrompt,
         storyDescription,
         sceneData[sceneId]?.prompt || null
       );
