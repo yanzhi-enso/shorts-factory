@@ -5,22 +5,20 @@ import Image from 'next/image';
 const RemakeImageBlock = ({ 
   imageUrl, 
   title, 
-  onClick, 
-  variant = 'original', // 'original', 'generated', 'empty'
-  isEmpty = false 
+  onClick
 }) => {
   const handleClick = () => {
     if (onClick) {
-      onClick(imageUrl, title, variant);
+      onClick(imageUrl, title);
     }
   };
 
   const renderContent = () => {
-    if (isEmpty || !imageUrl) {
+    if (!imageUrl) {
       return (
         <div className={styles.emptyState}>
           <div className={styles.emptyText}>
-            {variant === 'generated' ? 'Generate to see result' : 'No image'}
+            No image
           </div>
         </div>
       );
@@ -39,7 +37,7 @@ const RemakeImageBlock = ({
 
   return (
     <div 
-      className={`${styles.imageBlock} ${isEmpty ? styles.empty : ''} ${styles[variant]}`} 
+      className={`${styles.imageBlock} ${!imageUrl ? styles.empty : ''}`} 
       onClick={handleClick}
     >
       {renderContent()}
