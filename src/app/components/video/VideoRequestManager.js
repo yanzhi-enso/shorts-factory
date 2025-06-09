@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { generateVideo, getVideoTaskStatus } from 'services/backend';
+import { generateVideo, getVideoTaskStatus, KlingThrottleError } from 'services/backend';
 
 const VideoRequestManager = ({ children, onError, ...props }) => {
   const [requestQueue, setRequestQueue] = useState([]);
@@ -36,39 +36,6 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
     attempts: 0
   });
 
-  // Detect specific throttle error
-  const isThrottleError = (error) => {
-    try {
-      // Check if error message contains the specific throttle error
-      const errorMessage = error.message || '';
-      const errorString = String(error);
-      
-      // Multiple ways to detect throttle error
-      const throttleIndicators = [
-        'parallel task over resource pack limit',
-        'resource pack limit',
-        'throttle',
-        'rate limit'
-      ];
-      
-      const isThrottle = throttleIndicators.some(indicator => 
-        errorMessage.toLowerCase().includes(indicator.toLowerCase()) ||
-        errorString.toLowerCase().includes(indicator.toLowerCase())
-      );
-      
-      // Also check for 500 status with throttle-related content
-      const is500WithThrottle = error.status === 500 && isThrottle;
-      
-      if (isThrottle || is500WithThrottle) {
-        console.log('🚦 Throttle error detected:', { errorMessage, errorString, status: error.status });
-        return true;
-      }
-      
-      return false;
-    } catch {
-      return false;
-    }
-  };
 
   // Handle expired tasks (>30 minutes)
   const handleExpiredTasks = useCallback((expiredScenes) => {
@@ -176,7 +143,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
     } catch (error) {
       console.error('Error processing video request:', error);
       
-      if (isThrottleError(error)) {
+      if (error instanceof KlingThrottleError) {
         // Throttle error: halt queue but keep request for retry
         console.log('🚦 THROTTLE DETECTED: Halting queue, request remains for retry when queue resumes');
         console.log(`Throttled request for scene ${nextRequest.sceneId} remains at front of queue`);
@@ -213,7 +180,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
       
       processingRef.current = false;
     }
-  }, [isThrottleError, startResumeTimer, props, onError]);
+  }, [startResumeTimer, props, onError]);
 
   // Start polling for video completion
   const startPolling = useCallback((taskId, sceneId) => {

@@ -1,5 +1,24 @@
 // This file store utils for client-side operations that interact with the backend API.
 
+// Custom error classes for Kling API
+class KlingError extends Error {
+    constructor(message, status) {
+        super(message);
+        this.name = 'KlingError';
+        this.status = status;
+    }
+}
+
+class KlingThrottleError extends KlingError {
+    constructor(message) {
+        super(message, 429);
+        this.name = 'KlingThrottleError';
+    }
+}
+
+// Export error classes
+export { KlingError, KlingThrottleError };
+
 export async function analyzeImage(
     imageUrl,
     storyContext = null,
@@ -112,11 +131,27 @@ export async function generateVideo(imageBase64, prompt, options = {}) {
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to generate video');
+            const errorMessage = data.error || 'Failed to generate video';
+            
+            // Check for throttling error (429 status)
+            if (response.status === 429 && errorMessage.includes('parallel task over resource pack limit')) {
+                // Don't log throttling errors as they are expected
+                throw new KlingThrottleError(errorMessage);
+            }
+            
+            // Log other errors normally
+            console.error('Error generating video:', errorMessage);
+            throw new KlingError(errorMessage, response.status);
         }
         
         return data;
     } catch (error) {
+        // Re-throw custom errors without additional logging
+        if (error instanceof KlingError) {
+            throw error;
+        }
+        
+        // Log and wrap unexpected errors
         console.error('Error generating video:', error);
         throw error;
     }

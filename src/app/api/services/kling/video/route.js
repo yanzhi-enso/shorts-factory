@@ -11,8 +11,18 @@ export async function POST(request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating video:', error);
+    
+    // Check if this is a throttling error
+    const errorMessage = error.message || '';
+    if (errorMessage.includes('parallel task over resource pack limit')) {
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 429 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: error.message },
+      { error: errorMessage },
       { status: 500 }
     );
   }
