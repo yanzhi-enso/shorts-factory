@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { klingClient } from '../../../../../service/kling';
+import { klingClient } from 'services/kling';
 
 export async function POST(request, { params }) {
     /** 

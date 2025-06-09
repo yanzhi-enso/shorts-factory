@@ -78,49 +78,44 @@ const StoryConfigModal = ({
 
                 <div className={styles.content}>
                     <div className={styles.fieldGroup}>
-                        <label className={styles.fieldLabel}>
-                            📖 Story Description
-                        </label>
+                        <label className={styles.fieldLabel}>📖 Story Description</label>
                         <p className={styles.fieldInfo}>
-                            Provide a brief description of your story to help the AI model understand the context and recreate images more accurately. This is optional - if left empty, the model will make its best guess, but results may be less precise.
+                            Provide a brief description of your story to help the AI model
+                            understand the context and recreate images more accurately. This is
+                            optional - if left empty, the model will make its best guess, but
+                            results may be less precise.
                         </p>
                         <textarea
                             className={styles.textarea}
                             value={formData.storyDescription}
                             onChange={(e) => handleInputChange('storyDescription', e.target.value)}
-                            placeholder="Describe your story context here..."
+                            placeholder='Describe your story context here...'
                             rows={4}
                         />
                     </div>
 
                     <div className={styles.fieldGroup}>
-                        <label className={styles.fieldLabel}>
-                            🔄 Change Request
-                        </label>
+                        <label className={styles.fieldLabel}>🔄 Change Request</label>
                         <p className={styles.fieldInfo}>
-                            Describe what changes you'd like to apply to all scenes in your story. This could be style changes, mood adjustments, or specific modifications. This field is also optional.
+                            {
+                                "Describe what changes you'd like to apply to all scenes in your story. This could be style changes, mood adjustments, or specific modifications. This field is also optional."
+                            }
                         </p>
                         <textarea
                             className={styles.textarea}
                             value={formData.changeRequest}
                             onChange={(e) => handleInputChange('changeRequest', e.target.value)}
-                            placeholder="Describe the changes you want to apply..."
+                            placeholder='Describe the changes you want to apply...'
                             rows={4}
                         />
                     </div>
                 </div>
 
                 <div className={styles.footer}>
-                    <button
-                        className={styles.skipButton}
-                        onClick={handleSkip}
-                    >
+                    <button className={styles.skipButton} onClick={handleSkip}>
                         Skip
                     </button>
-                    <button
-                        className={styles.saveButton}
-                        onClick={handleSave}
-                    >
+                    <button className={styles.saveButton} onClick={handleSave}>
                         Save & Continue
                     </button>
                 </div>
