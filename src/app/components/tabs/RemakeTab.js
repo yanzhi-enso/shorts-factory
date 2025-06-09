@@ -25,7 +25,7 @@ const RemakeTab = ({
   const [isImageGenAllRunning, setIsImageGenAllRunning] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Scene-specific state
+  // Scene-specific state - now with image history
   const [sceneData, setSceneData] = useState({});
 
   // Generated images array for next tab (using ref for performance)
@@ -82,7 +82,8 @@ const RemakeTab = ({
           ...prev,
           [item.sceneId]: {
             prompt: '',
-            generatedImage: null,
+            imageHistory: [], // Array of {id, imageUrl, type, timestamp, prompt?, revisedPrompt?}
+            selectedImageIndex: -1, // -1 for empty, 0+ for valid indices
             isPromptAssistantRunning: false,
             isGenerating: false
           }
@@ -111,6 +112,44 @@ const RemakeTab = ({
         imageTitle: title
       });
     }
+  };
+
+  // Handle image upload from history modal
+  const handleImageUpload = (sceneId, file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageDataUrl = e.target.result;
+      
+      // Create new image history entry for uploaded image
+      const newImageEntry = {
+        id: `${sceneId}-upload-${Date.now()}`,
+        imageUrl: imageDataUrl,
+        type: 'uploaded',
+        timestamp: new Date()
+      };
+
+      // Update scene data with new uploaded image in history
+      setSceneData(prev => ({
+        ...prev,
+        [sceneId]: {
+          ...prev[sceneId],
+          imageHistory: [...(prev[sceneId]?.imageHistory || []), newImageEntry],
+          selectedImageIndex: (prev[sceneId]?.imageHistory || []).length // Point to the new image (length will be correct after spread)
+        }
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle image selection from history modal
+  const handleImageSelect = (sceneId, selectedIndex) => {
+    setSceneData(prev => ({
+      ...prev,
+      [sceneId]: {
+        ...prev[sceneId],
+        selectedImageIndex: selectedIndex
+      }
+    }));
   };
 
   const closeModal = () => {
@@ -224,13 +263,23 @@ const RemakeTab = ({
       const imageDataUrl = result?.imageBase64 ? `data:image/png;base64,${result.imageBase64}` : null;
       
       if (imageDataUrl) {
-        // Update UI state for immediate display
+        // Create new image history entry
+        const newImageEntry = {
+          id: `${sceneId}-${Date.now()}`,
+          imageUrl: imageDataUrl,
+          type: 'generated',
+          timestamp: new Date(),
+          prompt: prompt,
+          revisedPrompt: result?.revisedPrompt || prompt
+        };
+
+        // Update scene data with new image in history
         setSceneData(prev => ({
           ...prev,
           [sceneId]: {
             ...prev[sceneId],
-            generatedImage: imageDataUrl,
-            revisedPrompt: result?.revisedPrompt || prompt
+            imageHistory: [...(prev[sceneId]?.imageHistory || []), newImageEntry],
+            selectedImageIndex: (prev[sceneId]?.imageHistory || []).length // Point to the new image
           }
         }));
 
@@ -292,10 +341,21 @@ const RemakeTab = ({
   const handleExport = async () => {
     if (isExporting) return;
     
-    // Check if there are any generated images to export
-    const generatedImages = generatedImagesRef.current;
-    if (!generatedImages || generatedImages.length === 0) {
-      alert('No generated images to export. Please generate some images first.');
+    // Collect all selected images from scene data
+    const selectedImages = [];
+    Object.entries(sceneData).forEach(([sceneId, data]) => {
+      const { imageHistory, selectedImageIndex } = data;
+      if (selectedImageIndex >= 0 && selectedImageIndex < imageHistory.length) {
+        const selectedImage = imageHistory[selectedImageIndex];
+        selectedImages.push({
+          sceneId,
+          imageData: selectedImage
+        });
+      }
+    });
+
+    if (selectedImages.length === 0) {
+      alert('No images to export. Please generate or upload some images first.');
       return;
     }
 
@@ -304,19 +364,23 @@ const RemakeTab = ({
     try {
       const zip = new JSZip();
       
-      // Add each generated image to the zip
-      for (const imageData of generatedImages) {
+      // Add each selected image to the zip
+      for (const { sceneId, imageData } of selectedImages) {
         try {
           // Extract base64 data from data URL
-          const base64Data = imageData.image.replace(/^data:image\/[a-z]+;base64,/, '');
+          const base64Data = imageData.imageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
           
           // Add image to zip with scene-based filename
-          zip.file(`${imageData.sceneId}_generated.png`, base64Data, { base64: true });
+          const fileExtension = imageData.type === 'uploaded' ? 'png' : 'png';
+          const filePrefix = imageData.type === 'uploaded' ? 'uploaded' : 'generated';
+          zip.file(`${sceneId}_${filePrefix}.${fileExtension}`, base64Data, { base64: true });
           
-          // Also add a text file with the prompt for reference
-          zip.file(`${imageData.sceneId}_prompt.txt`, imageData.revisedPrompt || 'No prompt available');
+          // Also add a text file with the prompt for generated images
+          if (imageData.type === 'generated' && imageData.revisedPrompt) {
+            zip.file(`${sceneId}_prompt.txt`, imageData.revisedPrompt);
+          }
         } catch (error) {
-          console.error(`Error processing image for ${imageData.sceneId}:`, error);
+          console.error(`Error processing image for ${sceneId}:`, error);
         }
       }
       
@@ -378,10 +442,25 @@ const RemakeTab = ({
             <FaDownload /> {isExporting ? 'Exporting...' : 'Export'}
           </button>
           <button 
-            onClick={() => onNext && onNext(
-              generatedImagesRef.current,
-              storyConfig,
-            )}
+            onClick={() => {
+              // Collect selected images for next step
+              const selectedImages = [];
+              Object.entries(sceneData).forEach(([sceneId, data]) => {
+                const { imageHistory, selectedImageIndex } = data;
+                if (selectedImageIndex >= 0 && selectedImageIndex < imageHistory.length) {
+                  const selectedImage = imageHistory[selectedImageIndex];
+                  selectedImages.push({
+                    sceneId,
+                    revisedPrompt: selectedImage.revisedPrompt || selectedImage.prompt || '',
+                    image: selectedImage.imageUrl
+                  });
+                }
+              });
+              
+              if (onNext) {
+                onNext(selectedImages, storyConfig);
+              }
+            }}
             className={styles.stepButton}
           >
             Next Step →
@@ -392,6 +471,12 @@ const RemakeTab = ({
       <div className={styles.rowsContainer}>
         {originalImages.map((item, index) => {
           const currentSceneData = sceneData[item.sceneId] || {};
+          const imageHistory = currentSceneData.imageHistory || [];
+          const selectedIndex = currentSceneData.selectedImageIndex ?? -1;
+          const selectedImage = selectedIndex >= 0 && selectedIndex < imageHistory.length 
+            ? imageHistory[selectedIndex] 
+            : null;
+
           return (
             <SceneRow
               key={`${item.sceneId}-${index}`}
@@ -400,8 +485,9 @@ const RemakeTab = ({
                 imageUrl: item.imageUrl,
                 title: item.title
               }}
-              generatedImage={currentSceneData.generatedImage}
-              generationHistory={[]} // Will be populated later
+              selectedImage={selectedImage}
+              imageHistory={imageHistory}
+              selectedImageIndex={selectedIndex}
               storyConfig={storyConfig}
               prompt={currentSceneData.prompt || ''}
               isPromptAssistantRunning={currentSceneData.isPromptAssistantRunning || false}
@@ -411,6 +497,8 @@ const RemakeTab = ({
               onPromptChange={handlePromptChange}
               onPromptAssistant={handlePromptAssistant}
               onGenerate={handleGenerate}
+              onImageUpload={handleImageUpload}
+              onImageSelect={handleImageSelect}
             />
           );
         })}
