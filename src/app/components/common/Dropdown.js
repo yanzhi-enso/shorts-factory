@@ -1,15 +1,14 @@
 "use client";
 
-import styles from './ImageCountDropdown.module.css';
+import styles from './Dropdown.module.css';
 
-const ImageCountDropdown = ({ 
-  value = 1, 
+const Dropdown = ({ 
+  value, 
   onChange, 
   disabled = false,
-  label = "Images"
+  options = [],
+  placeholder = "Select..."
 }) => {
-  const options = [1, 2, 3, 4, 5];
-
   const handleChange = (e) => {
     const newValue = parseInt(e.target.value, 10);
     if (onChange) {
@@ -26,8 +25,8 @@ const ImageCountDropdown = ({
         className={styles.select}
       >
         {options.map(option => (
-          <option key={option} value={option}>
-            {option} {option === 1 ? 'Image' : 'Images'}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -35,4 +34,4 @@ const ImageCountDropdown = ({
   );
 };
 
-export default ImageCountDropdown;
+export default Dropdown;

@@ -2,7 +2,7 @@
 
 import styles from './SceneControlPanel.module.css';
 import Image from 'next/image';
-import ImageCountDropdown from '../common/ImageCountDropdown';
+import Dropdown from '../common/Dropdown';
 
 const SceneControlPanel = ({ 
   prompt = '', 
@@ -15,6 +15,15 @@ const SceneControlPanel = ({
   imageCount = 1,
   onImageCountChange
 }) => {
+  // Image count options for dropdown
+  const imageCountOptions = [
+    { value: 1, label: '1 Image' },
+    { value: 2, label: '2 Images' },
+    { value: 3, label: '3 Images' },
+    { value: 4, label: '4 Images' },
+    { value: 5, label: '5 Images' }
+  ];
+
   const handlePromptChange = (e) => {
     if (onPromptChange) {
       onPromptChange(e.target.value);
@@ -89,10 +98,11 @@ const SceneControlPanel = ({
           >
             {isGenerating ? 'Generating...' : 'Generate'}
           </button>
-          <ImageCountDropdown
+          <Dropdown
             value={imageCount}
             onChange={onImageCountChange}
             disabled={isGenerating}
+            options={imageCountOptions}
           />
         </div>
       </div>

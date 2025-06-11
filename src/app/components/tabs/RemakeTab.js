@@ -9,13 +9,22 @@ import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
 import StoryConfigModal from '../common/StoryConfigModal';
-import ImageCountDropdown from '../common/ImageCountDropdown';
+import Dropdown from '../common/Dropdown';
 import { analyzeImage, generateImage } from '../../../services/backend';
 
 const RemakeTab = ({
   projectId, images, selectedIndices,
   onBackToScenes, onNext, onError
 }) => {
+  // Image count options for dropdown
+  const imageCountOptions = [
+    { value: 1, label: '1 Image' },
+    { value: 2, label: '2 Images' },
+    { value: 3, label: '3 Images' },
+    { value: 4, label: '4 Images' },
+    { value: 5, label: '5 Images' }
+  ];
+
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
@@ -523,10 +532,11 @@ const RemakeTab = ({
             >
               <FaImages /> {isImageGenAllRunning ? 'Generating Images...' : 'ImageGen All'}
             </button>
-            <ImageCountDropdown
+            <Dropdown
               value={globalImageCount}
               onChange={handleGlobalImageCountChange}
               disabled={isImageGenAllRunning}
+              options={imageCountOptions}
             />
           </div>
           <button
