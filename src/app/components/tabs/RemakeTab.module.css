@@ -71,15 +71,19 @@
 }
 
 .settingsButton {
-  background: #909090;
+  background: #FC9E4F;
+}
+
+.settingsButton:hover {
+  background: #E38E47;
 }
 
 .promptButton {
-  background: #007bff;
+  background: #555B6E;
 }
 
 .promptButton:hover {
-  background: #009bff;
+  background: #3E4251;
   transform: translateY(-1px);
 }
 
@@ -88,7 +92,7 @@
 }
 
 .imageGenButton:hover {
-  background: #48b765;
+  background: #24963E;
   transform: translateY(-1px);
 }
 

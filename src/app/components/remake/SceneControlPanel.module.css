@@ -53,7 +53,7 @@
 }
 
 .gptPolishButton {
-  background: #007bff;
+  background: #555B6E;
   color: white;
   border: none;
   border-radius: 8px;
@@ -68,9 +68,9 @@
 }
 
 .gptPolishButton:hover:not(:disabled) {
-  background: #0056b3;
+  background: #3E4251;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 8px #353954;
 }
 
 .gptPolishButton:disabled {

@@ -59,21 +59,21 @@
 }
 
 .promptButton {
-  background-color: #28a745;
+  background-color: #555B6E;
   color: white;
 }
 
 .promptButton:hover:not(.disabled) {
-  background-color: #218838;
+  background-color: #3E4251;
 }
 
 .videoGenButton {
-  background-color: #dc3545;
+  background-color: #28a745;
   color: white;
 }
 
 .videoGenButton:hover:not(.disabled) {
-  background-color: #c82333;
+  background-color: #24963E;
 }
 
 .exportButton {
@@ -87,7 +87,7 @@
 
 .settingsButton {
   padding: 10px;
-  background-color: #6c757d;
+  background-color: #FC9E4F;
   color: white;
   border: none;
   border-radius: 6px;
@@ -100,7 +100,7 @@
 }
 
 .settingsButton:hover {
-  background-color: #5a6268;
+  background-color: #E38E47;
 }
 
 .disabled {
