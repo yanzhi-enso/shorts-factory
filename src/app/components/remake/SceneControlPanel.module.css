@@ -132,6 +132,13 @@
   font-weight: 500;
 }
 
+.generateGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .generateButton {
   background: #28a745;
   color: white;

@@ -13,6 +13,7 @@ const SceneRow = ({
   imageHistory = [],
   selectedImageIndex = -1,
   prompt = '',
+  imageCount = 1,
   isPromptAssistantRunning = false,
   isGenerating = false,
   onOriginalImageClick,
@@ -21,7 +22,8 @@ const SceneRow = ({
   onPromptAssistant,
   onGenerate,
   onImageUpload,
-  onImageSelect
+  onImageSelect,
+  onImageCountChange
 }) => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
@@ -70,6 +72,8 @@ const SceneRow = ({
           referenceImages={[]} // Will be populated later
           onGenerate={handleGenerate}
           isGenerating={isGenerating}
+          imageCount={imageCount}
+          onImageCountChange={(newCount) => onImageCountChange && onImageCountChange(sceneId, newCount)}
         />
       </div>
 

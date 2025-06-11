@@ -9,6 +9,7 @@ import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
 import StoryConfigModal from '../common/StoryConfigModal';
+import ImageCountDropdown from '../common/ImageCountDropdown';
 import { analyzeImage, generateImage } from '../../../services/backend';
 
 const RemakeTab = ({
@@ -24,6 +25,9 @@ const RemakeTab = ({
   const [isPromptGenAllRunning, setIsPromptGenAllRunning] = useState(false);
   const [isImageGenAllRunning, setIsImageGenAllRunning] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Global image count state
+  const [globalImageCount, setGlobalImageCount] = useState(1);
 
   // Scene-specific state - now with image history
   const [sceneData, setSceneData] = useState({});
@@ -84,6 +88,7 @@ const RemakeTab = ({
             prompt: '',
             imageHistory: [], // Array of {id, imageUrl, type, timestamp, prompt?, revisedPrompt?}
             selectedImageIndex: -1, // -1 for empty, 0+ for valid indices
+              imageCount: 1, // Number of images to generate for this scene
             isPromptAssistantRunning: false,
             isGenerating: false
           }
@@ -192,6 +197,34 @@ const RemakeTab = ({
     }));
   };
 
+  // Handle global image count change - updates all scenes
+  const handleGlobalImageCountChange = (newCount) => {
+    setGlobalImageCount(newCount);
+    
+    // Update all existing scenes to use the new global count
+    setSceneData(prev => {
+      const updated = {};
+      Object.keys(prev).forEach(sceneId => {
+        updated[sceneId] = {
+          ...prev[sceneId],
+          imageCount: newCount
+        };
+      });
+      return updated;
+    });
+  };
+
+  // Handle individual scene image count change
+  const handleSceneImageCountChange = (sceneId, newCount) => {
+    setSceneData(prev => ({
+      ...prev,
+      [sceneId]: {
+        ...prev[sceneId],
+        imageCount: newCount
+      }
+    }));
+  };
+
   const handlePromptChange = (sceneId, newPrompt) => {
     setSceneData(prev => ({
       ...prev,
@@ -246,6 +279,7 @@ const RemakeTab = ({
   const handleGenerate = async (sceneId) => {
     const scene = originalImages.find(img => img.sceneId === sceneId);
     const prompt = sceneData[sceneId]?.prompt;
+    const imageCount = sceneData[sceneId]?.imageCount || 1;
     
     if (!scene?.imageUrl || !prompt || sceneData[sceneId]?.isGenerating) return;
 
@@ -258,12 +292,43 @@ const RemakeTab = ({
     }));
 
     try {
-      // Use correct backend API signature: generateImage(prompt, n = 1)
-      const result = await generateImage(prompt, 1);
-      const imageDataUrl = result?.imageBase64 ? `data:image/png;base64,${result.imageBase64}` : null;
+      // Use scene-specific image count
+      const result = await generateImage(prompt, imageCount);
       
-      if (imageDataUrl) {
-        // Create new image history entry
+      // Handle multiple images response
+      if (result?.images && Array.isArray(result.images)) {
+        // Multiple images returned
+        const newImageEntries = result.images.map((imgData, index) => ({
+          id: `${sceneId}-${Date.now()}-${index}`,
+          imageUrl: `data:image/png;base64,${imgData.imageBase64}`,
+          type: 'generated',
+          timestamp: new Date(),
+          prompt: prompt,
+          revisedPrompt: imgData.revisedPrompt || result.revisedPrompt || prompt
+        }));
+
+        // Update scene data with all new images in history
+        setSceneData(prev => ({
+          ...prev,
+          [sceneId]: {
+            ...prev[sceneId],
+            imageHistory: [...(prev[sceneId]?.imageHistory || []), ...newImageEntries],
+            selectedImageIndex: (prev[sceneId]?.imageHistory || []).length + newImageEntries.length - 1 // Point to the last new image
+          }
+        }));
+
+        // Add the last generated image to generated images array for next tab
+        const lastImage = newImageEntries[newImageEntries.length - 1];
+        const filtered = generatedImagesRef.current.filter(img => img.sceneId !== sceneId);
+        generatedImagesRef.current = [...filtered, {
+          sceneId,
+          revisedPrompt: lastImage.revisedPrompt,
+          image: lastImage.imageUrl
+        }];
+      } else if (result?.imageBase64) {
+        // Single image returned (backward compatibility)
+        const imageDataUrl = `data:image/png;base64,${result.imageBase64}`;
+        
         const newImageEntry = {
           id: `${sceneId}-${Date.now()}`,
           imageUrl: imageDataUrl,
@@ -449,14 +514,21 @@ const RemakeTab = ({
           >
             <FaMagic /> {isPromptGenAllRunning ? 'Generating Prompts...' : 'PromptGen All'}
           </button>
-          <button
-            onClick={handleImageGenAll}
-            className={`${styles.actionButton} ${styles.imageGenButton} ${isImageGenAllRunning ? styles.disabled : ''}`}
-            disabled={isImageGenAllRunning}
-            title="Generate Images for All Scenes"
-          >
-            <FaImages /> {isImageGenAllRunning ? 'Generating Images...' : 'ImageGen All'}
-          </button>
+          <div className={styles.buttonWithDropdown}>
+            <button
+              onClick={handleImageGenAll}
+              className={`${styles.actionButton} ${styles.imageGenButton} ${isImageGenAllRunning ? styles.disabled : ''}`}
+              disabled={isImageGenAllRunning}
+              title="Generate Images for All Scenes"
+            >
+              <FaImages /> {isImageGenAllRunning ? 'Generating Images...' : 'ImageGen All'}
+            </button>
+            <ImageCountDropdown
+              value={globalImageCount}
+              onChange={handleGlobalImageCountChange}
+              disabled={isImageGenAllRunning}
+            />
+          </div>
           <button
             onClick={handleSettingsClick}
             className={`${styles.actionButton} ${styles.settingsButton}`}
@@ -524,6 +596,7 @@ const RemakeTab = ({
               selectedImageIndex={selectedIndex}
               storyConfig={storyConfig}
               prompt={currentSceneData.prompt || ''}
+              imageCount={currentSceneData.imageCount || 1}
               isPromptAssistantRunning={currentSceneData.isPromptAssistantRunning || false}
               isGenerating={currentSceneData.isGenerating || false}
               onOriginalImageClick={handleOriginalImageClick}
@@ -533,6 +606,7 @@ const RemakeTab = ({
               onGenerate={handleGenerate}
               onImageUpload={handleImageUpload}
               onImageSelect={handleImageSelect}
+              onImageCountChange={handleSceneImageCountChange}
             />
           );
         })}

@@ -39,8 +39,14 @@
 
 .centerButtons {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
+}
+
+.buttonWithDropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .rightButtons {

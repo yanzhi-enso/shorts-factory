@@ -2,6 +2,7 @@
 
 import styles from './SceneControlPanel.module.css';
 import Image from 'next/image';
+import ImageCountDropdown from '../common/ImageCountDropdown';
 
 const SceneControlPanel = ({ 
   prompt = '', 
@@ -10,7 +11,9 @@ const SceneControlPanel = ({
   isPromptAssistantRunning = false,
   referenceImages = [],
   onGenerate,
-  isGenerating = false
+  isGenerating = false,
+  imageCount = 1,
+  onImageCountChange
 }) => {
   const handlePromptChange = (e) => {
     if (onPromptChange) {
@@ -77,14 +80,21 @@ const SceneControlPanel = ({
           </div>
         )}
 
-        {/* Generate Button */}
-        <button
-          className={`${styles.generateButton} ${isGenerating ? styles.generating : ''}`}
-          onClick={handleGenerateClick}
-          disabled={isGenerating}
-        >
-          {isGenerating ? 'Generating...' : 'Generate'}
-        </button>
+        {/* Generate Button with Dropdown */}
+        <div className={styles.generateGroup}>
+          <button
+            className={`${styles.generateButton} ${isGenerating ? styles.generating : ''}`}
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+          >
+            {isGenerating ? 'Generating...' : 'Generate'}
+          </button>
+          <ImageCountDropdown
+            value={imageCount}
+            onChange={onImageCountChange}
+            disabled={isGenerating}
+          />
+        </div>
       </div>
     </div>
   );
