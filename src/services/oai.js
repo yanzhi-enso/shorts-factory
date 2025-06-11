@@ -265,6 +265,62 @@ async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
   }
 }
 
+// Server-side utility to edit multiple images using OpenAI
+// Assumes all images are PNG format File objects
+async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
+  try {
+    const openaiClient = getOpenAIClient();
+    
+    // Handle single image vs multiple images - API expects single file or array
+    const imageInput = images.length === 1 ? images[0] : images;
+    
+    const editOptions = {
+      image: imageInput,
+      prompt: prompt,
+      model: options.model || DEFAULT_GENERATION_MODEL,
+      size: options.size || DEFAULT_GENERATION_SIZE,
+      quality: options.quality || DEFAULT_QUALITY,
+      n: options.n || DEFAULT_N,
+      moderation: options.moderation || DEFAULT_MODERATION,
+      ...(options.output_format && { output_format: options.output_format }),
+      ...(options.user && { user: options.user })
+    };
+
+    // Add mask if provided
+    if (mask) {
+      editOptions.mask = mask;
+    }
+
+    const result = await openaiClient.images.edit(editOptions);
+
+    // Handle multiple images if n > 1
+    const resultImages = result.data.map(item => ({
+      imageBase64: item.b64_json,
+      revisedPrompt: item.revised_prompt || prompt
+    }));
+
+    // Simplified response format
+    return {
+      success: true,
+      data: {
+        images: resultImages,
+        // For backward compatibility, keep single image format
+        imageBase64: resultImages[0].imageBase64,
+        revisedPrompt: resultImages[0].revisedPrompt,
+        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
+        created: result.created
+      }
+    };
+  } catch (error) {
+    const transformedError = transformError(error);
+    return {
+      success: false,
+      error: transformedError.error,
+      message: transformedError.message
+    };
+  }
+}
+
 // Server-side utility to create image variations using OpenAI
 async function createImageVariationWithOpenAI(imageFile, options = {}) {
   try {
@@ -370,6 +426,7 @@ export const openaiClient = {
   analyzeImageWithOpenAI,
   generateImageWithOpenAI,
   editImageWithOpenAI,
+  editImagesWithOpenAI,
   createImageVariationWithOpenAI,
   
   // URL convenience functions

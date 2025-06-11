@@ -178,3 +178,60 @@ export async function getVideoTaskStatus(taskId) {
         throw error;
     }
 }
+
+export async function extendImage(images, prompt, n = 1) {
+    try {
+        const response = await fetch(
+            '/api/workflows/img2img/extend', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                images,
+                prompt,
+                n
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to extend image');
+        }
+        
+        return data.result;
+    } catch (error) {
+        console.error('Error extending image:', error);
+        throw error;
+    }
+}
+
+export async function inpaintingImage(image, mask, prompt, n = 1) {
+    try {
+        const response = await fetch(
+            '/api/workflows/img2img/inpainting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image,
+                mask,
+                prompt,
+                n
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to inpaint image');
+        }
+        
+        return data.result;
+    } catch (error) {
+        console.error('Error inpainting image:', error);
+        throw error;
+    }
+}
