@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { FaUpload } from 'react-icons/fa';
-import styles from './ImageHistoryModal.module.css';
-import Image from 'next/image';
+import { useState, useRef } from "react";
+import { FaUpload } from "react-icons/fa";
+import styles from "./ImageHistoryModal.module.css";
+import Image from "next/image";
 
-const ImageHistoryModal = ({ 
-  isOpen, 
-  sceneId, 
-  imageHistory = [], 
+const ImageHistoryModal = ({
+  isOpen,
+  sceneId,
+  imageHistory = [],
   selectedImageIndex = -1,
-  onClose, 
+  onClose,
   onSelectImage,
-  onImageUpload 
+  onImageUpload,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -29,12 +29,19 @@ const ImageHistoryModal = ({
   };
 
   const handleFileChange = (e) => {
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
     const file = e.target.files?.[0];
     if (file && onImageUpload) {
+      if (!allowedTypes.includes(file.type)) {
+        alert("Please select only PNG or JPEG images");
+        e.target.value = "";
+        return;
+      }
+
       onImageUpload(file);
     }
     // Reset the input so the same file can be selected again
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleOverlayClick = (e) => {
@@ -52,31 +59,38 @@ const ImageHistoryModal = ({
             ×
           </button>
         </div>
-        
+
         <div className={styles.content}>
           <div className={styles.imageGrid}>
             {/* Existing images */}
             {imageHistory.map((imageItem, index) => (
-              <div 
-                key={imageItem.id} 
-                className={`${styles.imageItem} ${selectedImageIndex === index ? styles.selected : ''}`}
+              <div
+                key={imageItem.id}
+                className={`${styles.imageItem} ${
+                  selectedImageIndex === index ? styles.selected : ""
+                }`}
                 onClick={() => handleImageClick(index)}
               >
                 <Image
                   src={imageItem.imageUrl}
-                  alt={`${imageItem.type === 'uploaded' ? 'Uploaded' : 'Generated'} ${index + 1}`}
+                  alt={`${
+                    imageItem.type === "uploaded" ? "Uploaded" : "Generated"
+                  } ${index + 1}`}
                   width={150}
                   height={225}
                   className={styles.image}
                 />
                 <div className={styles.imageLabel}>
-                  {imageItem.type === 'uploaded' ? '📁 Uploaded' : '🎨 Generated'} {index + 1}
+                  {imageItem.type === "uploaded"
+                    ? "📁 Uploaded"
+                    : "🎨 Generated"}{" "}
+                  {index + 1}
                 </div>
               </div>
             ))}
-            
+
             {/* Upload button - always visible as last item */}
-            <div 
+            <div
               className={`${styles.imageItem} ${styles.uploadItem}`}
               onClick={handleUploadClick}
             >
@@ -86,24 +100,26 @@ const ImageHistoryModal = ({
               </div>
             </div>
           </div>
-          
+
           {/* Show empty state only when no images and no upload button would be confusing */}
           {imageHistory.length === 0 && (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>📸</div>
               <p className={styles.emptyText}>No images yet</p>
-              <p className={styles.emptySubtext}>Generate images or upload your own to see them here</p>
+              <p className={styles.emptySubtext}>
+                Generate images or upload your own to see them here
+              </p>
             </div>
           )}
         </div>
-        
+
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/jpg"
           onChange={handleFileChange}
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
         />
       </div>
     </div>
