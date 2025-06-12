@@ -4,7 +4,7 @@ import { useState } from 'react';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
 import RemakeImageBlock from '../remake/RemakeImageBlock';
-import SceneControlPanel from '../remake/SceneControlPanel';
+import VideoControlPanel from './VideoControlPanel';
 
 const VideoRow = ({
   sceneId,
@@ -63,7 +63,7 @@ const VideoRow = ({
 
       {/* Control Panel */}
       <div className={styles.controlSection}>
-        <SceneControlPanel
+        <VideoControlPanel
           prompt={prompt}
           onPromptChange={handlePromptChange}
           onPromptAssistant={handlePromptAssistant}

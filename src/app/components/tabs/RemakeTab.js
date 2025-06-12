@@ -482,11 +482,6 @@ const RemakeTab = ({
           const fileExtension = imageData.type === 'uploaded' ? 'png' : 'png';
           const filePrefix = imageData.type === 'uploaded' ? 'uploaded' : 'generated';
           zip.file(`${sceneId}_${filePrefix}.${fileExtension}`, base64Data, { base64: true });
-          
-          // Also add a text file with the prompt for generated images
-          if (imageData.type === 'generated' && imageData.revisedPrompt) {
-            zip.file(`${sceneId}_prompt.txt`, imageData.revisedPrompt);
-          }
         } catch (error) {
           console.error(`Error processing image for ${sceneId}:`, error);
         }

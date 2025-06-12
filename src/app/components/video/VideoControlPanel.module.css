@@ -1,0 +1,223 @@
+.controlPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 0 16px;
+  min-height: 280px;
+  border: 1px solid #e9ecef;
+}
+
+.textInputArea {
+  flex: 1;
+  margin-bottom: 16px;
+}
+
+.promptInput {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  background: #f1f3f4;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  color: #333;
+  line-height: 1.5;
+}
+
+.promptInput::placeholder {
+  color: #6c757d;
+}
+
+.promptInput:focus {
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+  border-color: #86b7fe;
+}
+
+.promptInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #e9ecef;
+}
+
+.widgetBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gptPolishButton {
+  background: #555B6E;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.gptPolishButton:hover:not(:disabled) {
+  background: #3E4251;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px #353954;
+}
+
+.gptPolishButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gptPolishButton.polishing {
+  background: #6c757d;
+}
+
+.gptPolishButton.polishing::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 8px;
+}
+
+.referenceImages {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.referenceImage {
+  width: 40px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 2px solid #007bff;
+  background: #f5f5f5;
+}
+
+.refImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moreImages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.generateButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.generateButton:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.generateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.generateButton.generating {
+  background: #6c757d;
+}
+
+.generateButton.generating::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .controlPanel {
+    margin: 0 8px;
+    padding: 16px;
+    min-height: 240px;
+  }
+  
+  .promptInput {
+    min-height: 140px;
+    padding: 12px;
+    font-size: 13px;
+  }
+  
+  .widgetBar {
+    justify-content: space-between;
+  }
+  
+  .gptPolishButton {
+    padding: 10px 16px;
+    font-size: 13px;
+    min-width: 100px;
+    margin-right: 8px;
+  }
+  
+  .referenceImage {
+    width: 32px;
+    height: 48px;
+  }
+  
+  .moreImages {
+    width: 32px;
+    height: 48px;
+    font-size: 10px;
+  }
+  
+  .generateButton {
+    padding: 10px 20px;
+    font-size: 13px;
+    min-width: 100px;
+  }
+}

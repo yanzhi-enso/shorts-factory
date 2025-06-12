@@ -276,9 +276,6 @@ const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackT
           
           // Add video to zip with scene-based filename
           zip.file(`${videoData.sceneId}_generated.mp4`, videoBlob);
-          
-          // Also add a text file with the prompt for reference
-          zip.file(`${videoData.sceneId}_prompt.txt`, videoData.prompt || 'No prompt available');
         } catch (error) {
           console.error(`Error processing video for ${videoData.sceneId}:`, error);
           // Continue with other videos even if one fails
