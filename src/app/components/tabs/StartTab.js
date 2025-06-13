@@ -43,7 +43,8 @@ const StartTab = ({ onProcessComplete, onError }) => {
       // Call parent callback with success data
       onProcessComplete({
         projectId: data.project_id,
-        images: fileData.files
+        images: fileData.files,
+        tiktokUrl: videoUrl
       });
     } catch (err) {
       const errorMessage = err.message || 'An error occurred';

@@ -8,6 +8,7 @@ import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './video/VideoTab';
+import projectStorage from '../../services/projectStorage';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -102,7 +103,16 @@ export default function TabManager() {
         );
     };
 
-    const handleProcessComplete = ({ projectId: newProjectId, images: newImages }) => {
+    const handleProcessComplete = async ({ projectId: newProjectId, images: newImages, tiktokUrl }) => {
+        try {
+            // Store project data in IndexedDB
+            await projectStorage.createProjectFromGCS(newProjectId, tiktokUrl, newImages);
+            console.log('Project stored successfully in IndexedDB:', newProjectId);
+        } catch (storageError) {
+            console.error('Failed to store project in IndexedDB:', storageError);
+            // Continue with the flow even if storage fails - don't break the user experience
+        }
+
         setProjectId(newProjectId);
         setImages(newImages);
         setActiveTab(TABS.SCENES);
