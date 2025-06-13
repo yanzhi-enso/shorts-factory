@@ -3,61 +3,34 @@
 import { useState } from 'react';
 import styles from './StartTab.module.css';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { useProjectManager } from '../../hocs/ProjectManager';
 
 const StartTab = ({ onProcessComplete, onError }) => {
   const [videoUrl, setVideoUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { projectState, createProject } = useProjectManager();
 
   const handleProcessVideo = async () => {
     if (!videoUrl) {
-      setError('Please enter a video URL');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Call backend API to start processing
-      const response = await fetch('/api/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_url: videoUrl })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process video');
-      }
-
-      const data = await response.json();
-      
-      // Fetch file list via backend proxy to avoid CORS issues
-      const fileListResponse = await fetch(`/api/files/${data.project_id}`);
-      if (!fileListResponse.ok) {
-        throw new Error('Failed to fetch file list');
-      }
-      
-      const fileData = await fileListResponse.json();
-      
-      // Call parent callback with success data
+    const result = await createProject(videoUrl);
+    
+    if (result.success) {
+      // Call parent callback for backward compatibility with TabManager
+      // This maintains the existing interface while we transition
       onProcessComplete({
-        projectId: data.project_id,
-        images: fileData.files,
-        tiktokUrl: videoUrl
+        projectId: result.projectId
       });
-    } catch (err) {
-      const errorMessage = err.message || 'An error occurred';
-      setError(errorMessage);
+    } else {
       if (onError) {
-        onError(errorMessage);
+        onError(result.error);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (loading) {
+  // Use global loading state from ProjectManager
+  if (projectState.loading) {
     return <LoadingSpinner />;
   }
 
@@ -78,7 +51,8 @@ const StartTab = ({ onProcessComplete, onError }) => {
           Create Project
         </button>
       </div>
-      {error && <p className={styles.error}>{error}</p>}
+      {/* Show global error from ProjectManager */}
+      {projectState.error && <p className={styles.error}>{projectState.error}</p>}
     </div>
   );
 };
