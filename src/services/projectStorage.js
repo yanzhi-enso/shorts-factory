@@ -224,6 +224,33 @@ class ProjectStorage {
     });
   }
 
+  /**
+   * Update scene fields (is_selected, selected_image_id, etc.)
+   */
+  async updateScene(sceneId, updates) {
+    const tx = await this.transaction([STORES.SCENES], 'readwrite');
+    const store = tx.objectStore(STORES.SCENES);
+
+    return new Promise((resolve, reject) => {
+      const getRequest = store.get(sceneId);
+      getRequest.onsuccess = () => {
+        const scene = getRequest.result;
+        if (!scene) {
+          reject(new Error('Scene not found'));
+          return;
+        }
+
+        // Update fields
+        Object.assign(scene, updates);
+
+        const putRequest = store.put(scene);
+        putRequest.onsuccess = () => resolve(scene);
+        putRequest.onerror = () => reject(putRequest.error);
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
   // ==================== SCENE_IMAGES TABLE OPERATIONS ====================
 
   /**
@@ -340,10 +367,10 @@ class ProjectStorage {
       }
     });
 
-    // 3. Create scene records
+    // 3. Create scene records (default all scenes as selected)
     const scenesData = Object.keys(sceneGroups).map(sceneNumber => ({
       scene_order: parseInt(sceneNumber, 10) * 100, // Gap-based ordering
-      is_selected: false,
+      is_selected: true, // Default all scenes as selected
       selected_image_id: null
     }));
 
