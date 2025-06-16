@@ -23,7 +23,9 @@ const PROJECT_ACTIONS = {
     SET_ERROR: 'SET_ERROR',
     CLEAR_ERROR: 'CLEAR_ERROR',
     UPDATE_SCENE_SELECTION: 'UPDATE_SCENE_SELECTION',
-    UPDATE_SCENE_IMAGE_SELECTION: 'UPDATE_SCENE_IMAGE_SELECTION'
+    UPDATE_SCENE_IMAGE_SELECTION: 'UPDATE_SCENE_IMAGE_SELECTION',
+    ADD_GENERATED_IMAGE_SUCCESS: 'ADD_GENERATED_IMAGE_SUCCESS',
+    UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION'
 };
 
 /**
@@ -33,40 +35,54 @@ const PROJECT_ACTIONS = {
  * This hides database schema complexity and provides a more product-logic focused data structure.
  * 
  * Raw DB Structure (from projectStorage):
- * - scenes: Array of scene objects with selected_image_id (foreign key reference)
+ * - scenes: Array of scene objects with selected_image_id and selected_generated_image_id (foreign key references)
  * - sceneImages: Separate array of all scene images across all scenes
+ * - recreatedSceneImages: Separate array of all generated images across all scenes
  * 
  * Enriched Structure (provided by ProjectManager):
  * {
  *   id: number,                    // Scene ID
- *   projectId: string,             // Parent project ID (camelCase)
+ *   projectId: string,             // Parent project ID
  *   sceneOrder: number,            // Ordering for display (gap-based: 100, 200, 300...)
- *   isSelected: boolean,           // Whether user selected this scene for processing (camelCase)
- *   selectedImage: string|null,    // URL of selected image (camelCase, transformed from selected_image_id)
- *   selectedImageId: number|null,  // Selected image ID (camelCase, DB storage reference)
- *   sceneImages: Array[{           // All images belonging to this scene
+ *   isSelected: boolean,           // Whether user selected this scene for processing
+ *   selectedImage: string|null,    // URL of selected original image (transformed from selected_image_id)
+ *   selectedImageId: number|null,  // Selected original image ID (DB storage reference)
+ *   sceneImages: Array[{           // All original images belonging to this scene
  *     id: number,                  // Image ID
- *     sceneId: number,             // Parent scene ID (camelCase)
- *     gcsUrl: string,              // Image URL (camelCase)
- *     imageOrder: number,          // Order within scene (camelCase)
- *     createdAt: string            // Creation timestamp (camelCase)
+ *     sceneId: number,             // Parent scene ID
+ *     gcsUrl: string,              // Image URL
+ *     imageOrder: number,          // Order within scene
+ *     createdAt: string            // Creation timestamp
  *   }],
+ *   generatedImages: Array[{       // All generated images for this scene
+ *     id: number,                  // Generated image ID
+ *     sceneId: number,             // Parent scene ID
+ *     gcsUrl: string,              // Generated image URL
+ *     generationSources: object|null, // Sources used for generation
+ *     createdAt: string            // Creation timestamp
+ *   }],
+ *   selectedGeneratedImage: string|null,    // URL of selected generated image
+ *   selectedGeneratedImageId: number|null,  // Selected generated image ID (DB storage reference)
  *   settings: object,              // Scene-specific configuration
- *   createdAt: string              // Scene creation timestamp (camelCase)
+ *   createdAt: string              // Scene creation timestamp
  * }
  * 
  * Key Transformations:
- * 1. selected_image_id → selectedImage (ID reference → actual URL string, camelCase)
- * 2. Separate sceneImages array → embedded sceneImages per scene
- * 3. All internal JS properties use camelCase, DB persistence still uses snake_case
+ * 1. selected_image_id → selectedImage (ID reference → actual URL string)
+ * 2. selected_generated_image_id → selectedGeneratedImage (ID reference → actual URL string)
+ * 3. Separate sceneImages array → embedded sceneImages per scene
+ * 4. Separate recreatedSceneImages array → embedded generatedImages per scene
+ * 5. All internal JS properties use camelCase, DB persistence still uses snake_case
  */
 
 /**
- * Private helper to enrich raw scenes with embedded scene images and resolved selected image URL
+ * Private helper to enrich raw scenes with embedded scene images, generated images, and resolved selected image URLs
  * Transforms snake_case DB properties to camelCase for internal JavaScript use
  */
-const enrichScenes = (rawScenes, sceneImagesMap) => {
-    return rawScenes.map(scene => {
+const enrichScenes = async (rawScenes, sceneImagesMap) => {
+    const enrichedScenes = [];
+    
+    for (const scene of rawScenes) {
         const rawSceneImages = sceneImagesMap[scene.id] || [];
         const selectedImageId = scene.selected_image_id || rawSceneImages[0]?.id || null;
         const selectedImage = selectedImageId 
@@ -76,25 +92,49 @@ const enrichScenes = (rawScenes, sceneImagesMap) => {
         // Transform scene images to camelCase
         const sceneImages = rawSceneImages.map(img => ({
             id: img.id,
-            sceneId: img.scene_id,  // snake_case → camelCase
-            gcsUrl: img.gcs_url,    // snake_case → camelCase
-            imageOrder: img.image_order,  // snake_case → camelCase
-            createdAt: img.created_at      // snake_case → camelCase
+            sceneId: img.scene_id,
+            gcsUrl: img.gcs_url,
+            imageOrder: img.image_order,
+            createdAt: img.created_at
         }));
         
-        // Transform scene properties to camelCase
-        return {
+        // Load generated images for this scene
+        const rawGeneratedImages = await projectStorage.getRecreatedSceneImages(scene.id);
+        
+        // Transform generated images to camelCase
+        const generatedImages = rawGeneratedImages.map(img => ({
+            id: img.id,
+            sceneId: img.scene_id,
+            gcsUrl: img.gcs_url,
+            generationSources: img.generation_sources,
+            createdAt: img.created_at
+        }));
+        
+        // Determine selected generated image (fallback to most recent if selectedGeneratedImageId is null)
+        const selectedGeneratedImageId = scene.selected_generated_image_id || 
+                                       (generatedImages.length > 0 ? generatedImages[0].id : null);
+        const selectedGeneratedImage = selectedGeneratedImageId 
+            ? generatedImages.find(img => img.id === selectedGeneratedImageId)?.gcsUrl || null
+            : null;
+        
+        // Transform scene properties to camelCase and add generated image fields
+        enrichedScenes.push({
             id: scene.id,
-            projectId: scene.project_id,        // snake_case → camelCase
-            sceneOrder: scene.scene_order,      // snake_case → camelCase
-            isSelected: scene.is_selected,      // snake_case → camelCase
-            selectedImage: selectedImage,       // transformed from selected_image_id
-            selectedImageId: selectedImageId,   // reference for DB operations
+            projectId: scene.project_id,
+            sceneOrder: scene.scene_order,
+            isSelected: scene.is_selected,
+            selectedImage: selectedImage,
+            selectedImageId: selectedImageId,
             sceneImages: sceneImages,
+            generatedImages: generatedImages,
+            selectedGeneratedImage: selectedGeneratedImage,
+            selectedGeneratedImageId: selectedGeneratedImageId,
             settings: scene.settings,
-            createdAt: scene.created_at         // snake_case → camelCase
-        };
-    });
+            createdAt: scene.created_at
+        });
+    }
+    
+    return enrichedScenes;
 };
 
 // Reducer function
@@ -167,6 +207,35 @@ function projectReducer(state, action) {
                 scenes: state.scenes.map(scene => 
                     scene.id === action.payload.sceneId 
                         ? { ...scene, selectedImage: action.payload.imageUrl }
+                        : scene
+                )
+            };
+        
+        case PROJECT_ACTIONS.ADD_GENERATED_IMAGE_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { 
+                            ...scene, 
+                            generatedImages: [action.payload.generatedImage, ...scene.generatedImages],
+                            selectedGeneratedImage: action.payload.generatedImage.gcsUrl,
+                            selectedGeneratedImageId: action.payload.generatedImage.id
+                          }
+                        : scene
+                )
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { 
+                            ...scene, 
+                            selectedGeneratedImage: action.payload.imageUrl,
+                            selectedGeneratedImageId: action.payload.imageId
+                          }
                         : scene
                 )
             };
@@ -245,7 +314,7 @@ export function ProjectProvider({ children }) {
             });
             
             // Enrich scenes with embedded images and selected image URL
-            const enrichedScenes = enrichScenes(projectData.scenes, sceneImagesMap);
+            const enrichedScenes = await enrichScenes(projectData.scenes, sceneImagesMap);
             
             dispatch({ 
                 type: PROJECT_ACTIONS.CREATE_PROJECT_SUCCESS, 
@@ -315,7 +384,7 @@ export function ProjectProvider({ children }) {
             });
 
             // Enrich scenes with embedded images and selected image URL
-            const enrichedScenes = enrichScenes(scenes, sceneImagesMap);
+            const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
@@ -370,7 +439,7 @@ export function ProjectProvider({ children }) {
             });
 
             // Enrich scenes with embedded images and selected image URL
-            const enrichedScenes = enrichScenes(scenes, sceneImagesMap);
+            const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
@@ -455,6 +524,80 @@ export function ProjectProvider({ children }) {
         }
     };
 
+    /**
+     * Add a new generated image to a scene and set it as selected
+     */
+    const addGeneratedImage = async (sceneId, gcsUrl, generationSources) => {
+        try {
+            // Add to persistent storage (returns raw DB object)
+            const rawGeneratedImage = await projectStorage.addRecreatedSceneImage(
+                sceneId, gcsUrl, generationSources
+            );
+            
+            // Update scene to select this new image
+            await projectStorage.updateScene(sceneId, { 
+                selected_generated_image_id: rawGeneratedImage.id 
+            });
+            
+            // Transform to JavaScript format for state
+            const generatedImage = {
+                id: rawGeneratedImage.id,
+                sceneId: rawGeneratedImage.scene_id,
+                gcsUrl: rawGeneratedImage.gcs_url,
+                generationSources: rawGeneratedImage.generation_sources,
+                createdAt: rawGeneratedImage.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.ADD_GENERATED_IMAGE_SUCCESS, 
+                payload: { sceneId, generatedImage } 
+            });
+            
+            return { success: true, generatedImage };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to add generated image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Update selected generated image for a scene with persistent storage
+     */
+    const updateSelectedGeneratedImage = async (sceneId, generatedImageId) => {
+        try {
+            // Find the generated image to get its URL
+            const scene = projectState.scenes.find(s => s.id === sceneId);
+            const generatedImage = scene?.generatedImages.find(img => img.id === generatedImageId);
+            
+            if (!generatedImage) {
+                throw new Error('Generated image not found');
+            }
+            
+            // Update in persistent storage
+            await projectStorage.updateScene(sceneId, { 
+                selected_generated_image_id: generatedImageId 
+            });
+            
+            // Update in local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
+                payload: { 
+                    sceneId, 
+                    imageId: generatedImageId,
+                    imageUrl: generatedImage.gcsUrl 
+                } 
+            });
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update selected generated image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     const value = {
         projectState,
         dispatch,
@@ -466,7 +609,9 @@ export function ProjectProvider({ children }) {
         getAllProjects,
         clearError,
         updateSceneSelection,
-        updateSelectedImage
+        updateSelectedImage,
+        addGeneratedImage,
+        updateSelectedGeneratedImage
     };
     
     return (
