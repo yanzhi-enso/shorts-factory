@@ -67,6 +67,7 @@ const PROJECT_ACTIONS = {
 const enrichScenes = (rawScenes, sceneImagesMap) => {
     return rawScenes.map(scene => {
         const sceneImages = sceneImagesMap[scene.id] || [];
+        scene.selected_image_id = scene.selected_image_id || sceneImages[0]?.id || null;
         const selectedImage = scene.selected_image_id 
             ? sceneImages.find(img => img.id === scene.selected_image_id)?.gcs_url || null
             : null;
