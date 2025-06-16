@@ -23,12 +23,6 @@ const RemakeTab = ({onBackToScenes, onNext, onError}) => {
     { value: 5, label: '5 Images' }
   ];
 
-  const [modalState, setModalState] = useState({
-    isOpen: false,
-    imageUrl: null,
-    imageTitle: null
-  });
-
   const [isPromptGenAllRunning, setIsPromptGenAllRunning] = useState(false);
   const [isImageGenAllRunning, setIsImageGenAllRunning] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -81,14 +75,6 @@ const RemakeTab = ({onBackToScenes, onNext, onError}) => {
     return result;
   }, [projectState.scenes, sceneData]);
 
-  const handleOriginalImageClick = (imageUrl, title) => {
-    setModalState({
-      isOpen: true,
-      imageUrl,
-      imageTitle: title
-    });
-  };
-
   // Handle image upload from history modal
   const handleImageUpload = (sceneId, file) => {
     const reader = new FileReader();
@@ -125,14 +111,6 @@ const RemakeTab = ({onBackToScenes, onNext, onError}) => {
         selectedImageIndex: selectedIndex
       }
     }));
-  };
-
-  const closeModal = () => {
-    setModalState({
-      isOpen: false,
-      imageUrl: null,
-      imageTitle: null
-    });
   };
 
   const handleStoryConfigSave = (configData) => {
@@ -565,7 +543,6 @@ const RemakeTab = ({onBackToScenes, onNext, onError}) => {
               imageCount={currentSceneData.imageCount || 1}
               isPromptAssistantRunning={currentSceneData.isPromptAssistantRunning || false}
               isGenerating={currentSceneData.isGenerating || false}
-              onOriginalImageClick={handleOriginalImageClick}
               onPromptChange={handlePromptChange}
               onPromptAssistant={handlePromptAssistant}
               onGenerate={handleGenerate}
