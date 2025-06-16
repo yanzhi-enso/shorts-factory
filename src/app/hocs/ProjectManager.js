@@ -372,6 +372,20 @@ export function ProjectProvider({ children }) {
     };
 
     /**
+     * Get all stored projects for listing
+     */
+    const getAllProjects = async () => {
+        try {
+            const projects = await projectStorage.getAllProjects();
+            return { success: true, projects };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to load projects';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
      * Clear error state
      */
     const clearError = () => {
@@ -432,6 +446,7 @@ export function ProjectProvider({ children }) {
         initializeFromUrl,
         resetProject,
         loadProject,
+        getAllProjects,
         clearError,
         updateSceneSelection,
         updateSelectedImage
