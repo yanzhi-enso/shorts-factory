@@ -9,7 +9,7 @@ import { useProjectManager } from 'app/hocs/ProjectManager';
 const SceneImageBlock = ({ scene, onImageClick }) => {
   const { updateSceneSelection } = useProjectManager();
 
-  if (!scene || !scene.selectedImage) {
+  if (!scene || !scene.selected_image) {
     return null; // Handle case where scene or image is not available
   }
   
@@ -53,7 +53,7 @@ const SceneImageBlock = ({ scene, onImageClick }) => {
       {!scene.is_selected && <div className={styles.opacityMask} />}
       
       <Image
-        src={scene.selectedImage}
+        src={scene.selected_image}
         alt={`Scene ${scene.scene_order / 100}`}
         width={200}
         height={350}
