@@ -20,6 +20,8 @@ const ScenesTab = ({ onBackToStart, onNext, onError }) => {
         onNext();
     };
 
+    const hasSelectedScenes = scenes.some(scene => scene.is_selected);
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
