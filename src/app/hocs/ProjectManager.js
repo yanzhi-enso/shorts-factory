@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import projectStorage from 'services/projectStorage';
 import { validateProjectExists } from 'utils/projectValidation';
 
@@ -255,7 +255,7 @@ export function ProjectProvider({ children }) {
     /**
      * Initialize project from URL parameters
      */
-    const initializeFromUrl = async (stage, projectId) => {
+    const initializeFromUrl = useCallback(async (stage, projectId) => {
         if (!projectId) {
             return { success: true, shouldRedirect: false };
         }
@@ -324,7 +324,7 @@ export function ProjectProvider({ children }) {
                 shouldRedirect: true 
             };
         }
-    };
+    }, []);
 
     /**
      * Reset project state
