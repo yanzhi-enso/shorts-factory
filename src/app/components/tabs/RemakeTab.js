@@ -7,15 +7,13 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
-import FullSizeImageModal from '../common/FullSizeImageModal';
 import StoryConfigModal from '../common/StoryConfigModal';
 import Dropdown from '../common/Dropdown';
-import { analyzeImage, generateImage } from '../../../services/backend';
+import { analyzeImage, generateImage } from 'services/backend';
+import { useProjectManager } from 'app/hocs/ProjectManager';
 
-const RemakeTab = ({
-  projectId, images, selectedIndices,
-  onBackToScenes, onNext, onError
-}) => {
+const RemakeTab = ({onBackToScenes, onNext, onError}) => {
+  const { projectState } = useProjectManager();
   // Image count options for dropdown
   const imageCountOptions = [
     { value: 1, label: '1 Image' },
@@ -51,42 +49,17 @@ const RemakeTab = ({
     hasBeenSet: false
   });
 
-  // Group images by scene and extract selected images
-  const originalImages = useMemo(() => {
-    const scenes = {};
+  // Get selected scenes from ProjectManager - much simpler than before!
+  const selectedScenes = useMemo(() => {
+    const scenes = projectState.scenes || [];
+    const filteredScenes = scenes.filter(scene => scene.isSelected);
     
-    // Group images by scene
-    images.forEach(imgUrl => {
-      const match = imgUrl.match(/video-Scene-(\d+)-(\d+)\./);
-      if (match) {
-        const sceneId = `Scene-${match[1]}`;
-        if (!scenes[sceneId]) {
-          scenes[sceneId] = [];
-        }
-        scenes[sceneId].push(imgUrl);
-      }
-    });
-
-    // Sort images within each scene
-    Object.keys(scenes).forEach(sceneId => {
-      scenes[sceneId].sort();
-    });
-
-    // Convert to array and extract selected images
-    const groupedScenes = Object.entries(scenes).map(([sceneId, sceneImages]) => ({
-      sceneId,
-      images: sceneImages
+    // Convert ProjectManager scene format to the format expected by RemakeTab
+    const result = filteredScenes.map(scene => ({
+      sceneId: `Scene-${scene.sceneOrder / 100}`, // Convert 100,200,300 back to Scene-1,Scene-2,Scene-3
+      imageUrl: scene.selectedImage,
+      title: `Scene ${scene.sceneOrder / 100} Original`
     }));
-
-    // Extract selected images for each scene
-    const result = groupedScenes.map((scene, index) => {
-      const selectedImageIndex = selectedIndices[index] !== undefined ? selectedIndices[index] : 1;
-      return {
-        sceneId: scene.sceneId,
-        imageUrl: scene.images[selectedImageIndex],
-        title: `${scene.sceneId} Original`
-      };
-    }).filter(item => item.imageUrl); // Filter out any undefined images
 
     // Initialize scene data if not already present
     result.forEach(item => {
@@ -97,7 +70,7 @@ const RemakeTab = ({
             prompt: '',
             imageHistory: [], // Array of {id, imageUrl, type, timestamp, prompt?, revisedPrompt?}
             selectedImageIndex: -1, // -1 for empty, 0+ for valid indices
-              imageCount: 1, // Number of images to generate for this scene
+            imageCount: 1, // Number of images to generate for this scene
             isPromptAssistantRunning: false,
             isGenerating: false
           }
@@ -106,7 +79,7 @@ const RemakeTab = ({
     });
 
     return result;
-  }, [images, selectedIndices]);
+  }, [projectState.scenes, sceneData]);
 
   const handleOriginalImageClick = (imageUrl, title) => {
     setModalState({
@@ -114,18 +87,6 @@ const RemakeTab = ({
       imageUrl,
       imageTitle: title
     });
-  };
-
-  const handleGeneratedImageClick = (imageUrl, title, variant) => {
-    // For now, just handle the same as original image click
-    // Later this will be extended for history modal
-    if (imageUrl) {
-      setModalState({
-        isOpen: true,
-        imageUrl,
-        imageTitle: title
-      });
-    }
   };
 
   // Handle image upload from history modal
@@ -245,7 +206,7 @@ const RemakeTab = ({
   };
 
   const handlePromptAssistant = async (sceneId) => {
-    const scene = originalImages.find(img => img.sceneId === sceneId);
+    const scene = selectedScenes.find(img => img.sceneId === sceneId);
     if (!scene?.imageUrl || sceneData[sceneId]?.isPromptAssistantRunning) return;
     
     setSceneData(prev => ({
@@ -286,7 +247,7 @@ const RemakeTab = ({
   };
 
   const handleGenerate = async (sceneId) => {
-    const scene = originalImages.find(img => img.sceneId === sceneId);
+    const scene = selectedScenes.find(img => img.sceneId === sceneId);
     const prompt = sceneData[sceneId]?.prompt;
     const imageCount = sceneData[sceneId]?.imageCount || 1;
     
@@ -386,7 +347,7 @@ const RemakeTab = ({
     
     try {
       // Create promises for all scenes simultaneously
-      const promptPromises = originalImages.map(scene => 
+      const promptPromises = selectedScenes.map(scene => 
         handlePromptAssistant(scene.sceneId)
       );
       
@@ -395,7 +356,7 @@ const RemakeTab = ({
       
       // Handle any failures
       const failures = results
-        .map((result, index) => ({ result, sceneId: originalImages[index].sceneId }))
+        .map((result, index) => ({ result, sceneId: selectedScenes[index].sceneId }))
         .filter(({ result }) => result.status === 'rejected');
       
       if (failures.length > 0) {
@@ -419,7 +380,7 @@ const RemakeTab = ({
     
     try {
       // Create promises for all scenes simultaneously
-      const imagePromises = originalImages.map(scene => 
+      const imagePromises = selectedScenes.map(scene => 
         handleGenerate(scene.sceneId)
       );
       
@@ -428,7 +389,7 @@ const RemakeTab = ({
       
       // Handle any failures
       const failures = results
-        .map((result, index) => ({ result, sceneId: originalImages[index].sceneId }))
+        .map((result, index) => ({ result, sceneId: selectedScenes[index].sceneId }))
         .filter(({ result }) => result.status === 'rejected');
       
       if (failures.length > 0) {
@@ -580,7 +541,7 @@ const RemakeTab = ({
       </div>
       
       <div className={styles.rowsContainer}>
-        {originalImages.map((item, index) => {
+        {selectedScenes.map((item, index) => {
           const currentSceneData = sceneData[item.sceneId] || {};
           const imageHistory = currentSceneData.imageHistory || [];
           const selectedIndex = currentSceneData.selectedImageIndex ?? -1;
@@ -605,7 +566,6 @@ const RemakeTab = ({
               isPromptAssistantRunning={currentSceneData.isPromptAssistantRunning || false}
               isGenerating={currentSceneData.isGenerating || false}
               onOriginalImageClick={handleOriginalImageClick}
-              onGeneratedImageClick={handleGeneratedImageClick}
               onPromptChange={handlePromptChange}
               onPromptAssistant={handlePromptAssistant}
               onGenerate={handleGenerate}
@@ -616,13 +576,6 @@ const RemakeTab = ({
           );
         })}
       </div>
-
-      <FullSizeImageModal
-        isOpen={modalState.isOpen}
-        imageUrl={modalState.imageUrl}
-        imageTitle={modalState.imageTitle}
-        onClose={closeModal}
-      />
 
       <StoryConfigModal
         isOpen={storyConfig.isModalOpen}

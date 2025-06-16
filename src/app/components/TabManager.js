@@ -17,7 +17,7 @@ const PROJECT_ID_PARAM = 'pid';
 export default function TabManager() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { initializeFromUrl } = useProjectManager();
+    const { initializeFromUrl, projectState } = useProjectManager();
 
     const [activeTab, setActiveTab] = useState(TABS.START);
     const [unlockedTabs, setUnlockedTabs] = useState([TABS.START]);
@@ -105,23 +105,23 @@ export default function TabManager() {
     const handleNextToRemake = () => {
         setActiveTab(TABS.REMAKE);
         setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
-        updateUrl(TABS.REMAKE, projectId);
+        updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
     const handleBackToScenes = () => {
         setActiveTab(TABS.SCENES);
-        updateUrl(TABS.SCENES, projectId);
+        updateUrl(TABS.SCENES, projectState.curProjId);
     };
 
     const handleNextFromRemake = () => {
         setActiveTab(TABS.VIDEO);
         setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
-        updateUrl(TABS.VIDEO, projectId);
+        updateUrl(TABS.VIDEO, projectState.curProjId);
     };
 
     const handleBackToRemake = () => {
         setActiveTab(TABS.REMAKE);
-        updateUrl(TABS.REMAKE, projectId);
+        updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
     // Don't render until initialized to avoid hydration issues
