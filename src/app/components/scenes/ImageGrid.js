@@ -1,115 +1,70 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+
+import { useProjectManager } from 'app/hocs/ProjectManager';
 import styles from './ImageGrid.module.css';
 import ImageSelectionModal from './ImageSelectionModal';
 import SceneImageBlock from './SceneImageBlock';
 
-const ImageGrid = ({ images, selectedIndices, setSelectedIndices, onDeleteScene }) => {
-  const [modalState, setModalState] = useState({
-    isOpen: false,
-    sceneIndex: null,
-    sceneImages: []
-  });
+const ImageGrid = ({ scenes }) => {
+    const { updateSelectedImage } = useProjectManager();
+    const [modalState, setModalState] = useState({
+        isOpen: false,
+        scene: null,
+    });
 
-  // Group images by scene
-  const groupedScenes = useMemo(() => {
-    const scenes = {};
-    
-    images.forEach(imgUrl => {
-      // Extract scene identifier from filename (e.g., "project123/video-Scene-001-01.jpg" -> "Scene-001")
-      const match = imgUrl.match(/video-Scene-(\d+)-(\d+)\./);
-      if (match) {
-        const sceneId = `Scene-${match[1]}`;
-        if (!scenes[sceneId]) {
-          scenes[sceneId] = [];
+    const handleImageClick = (scene) => {
+        setModalState({
+            isOpen: true,
+            scene: scene,
+        });
+    };
+
+    const handleSelectImage = (imageIndex) => {
+        const selectedImage = modalState.scene?.sceneImages[imageIndex];
+
+        if (selectedImage) {
+            updateSelectedImage(
+                modalState.scene.id, selectedImage
+            ).then(result => {
+                if (!result.success) {
+                    // Update the scene's selected image ID
+                    onError(result.error);
+                }
+            });
         }
-        scenes[sceneId].push(imgUrl);
-      }
-    });
 
-    // Sort images within each scene
-    Object.keys(scenes).forEach(sceneId => {
-      scenes[sceneId].sort();
-    });
+        closeModal();
+    };
 
-    return Object.entries(scenes).map(([sceneId, sceneImages]) => ({
-      sceneId,
-      images: sceneImages
-    }));
-  }, [images]);
 
-const handleImageClick = (sceneIndex, sceneImages) => {
-    setModalState({
-      isOpen: true,
-      sceneIndex,
-      sceneImages
-    });
-  };
+    const closeModal = () => {
+        setModalState({
+            isOpen: false,
+            sceneId: null,
+            sceneImages: []
+        });
+    };
 
-  const handleSelectImage = (imageIndex) => {
-    setSelectedIndices(prev => ({
-      ...prev,
-      [modalState.sceneIndex]: imageIndex
-    }));
-  };
+    return (
+        <>
+            <div className={styles.grid}>
+                {scenes.map((scene) => (
+                    <SceneImageBlock
+                        key={scene.id}
+                        scene={scene}
+                        onImageClick={handleImageClick}
+                    />
+                ))}
+            </div>
 
-  const handleDeleteScene = (e, sceneIndex, scene) => {
-    e.stopPropagation(); // Prevent triggering the image click
-    if (onDeleteScene) {
-      onDeleteScene(scene.images);
-    }
-    
-    // Clean up selectedIndices for deleted scene and adjust indices for remaining scenes
-    setSelectedIndices(prev => {
-      const newIndices = {};
-      Object.keys(prev).forEach(key => {
-        const keyIndex = parseInt(key);
-        if (keyIndex < sceneIndex) {
-          newIndices[keyIndex] = prev[keyIndex];
-        } else if (keyIndex > sceneIndex) {
-          newIndices[keyIndex - 1] = prev[keyIndex];
-        }
-        // Skip the deleted scene index
-      });
-      return newIndices;
-    });
-  };
-
-  const closeModal = () => {
-    setModalState({
-      isOpen: false,
-      sceneIndex: null,
-      sceneImages: []
-    });
-  };
-
-  return (
-    <>
-      <div className={styles.grid}>
-        {groupedScenes.map((scene, sceneIndex) => {
-          const selectedImageIndex = selectedIndices[sceneIndex] !== undefined ? selectedIndices[sceneIndex] : 1; // Default to middle image (index 1)
-          
-          return (
-            <SceneImageBlock
-              key={scene.sceneId}
-              scene={scene}
-              sceneIndex={sceneIndex}
-              selectedImageIndex={selectedImageIndex}
-              onImageClick={handleImageClick}
-              onDeleteScene={handleDeleteScene}
+            <ImageSelectionModal
+                isOpen={modalState.isOpen}
+                onClose={closeModal}
+                scene={modalState.scene}
+                onSelectImage={handleSelectImage}
             />
-          );
-        })}
-      </div>
-
-      <ImageSelectionModal
-        isOpen={modalState.isOpen}
-        onClose={closeModal}
-        sceneImages={modalState.sceneImages}
-        onSelectImage={handleSelectImage}
-        selectedIndex={selectedIndices[modalState.sceneIndex] !== undefined ? selectedIndices[modalState.sceneIndex] : 1}
-      />
-    </>
-  );
+        </>
+    );
 };
 
 export default ImageGrid;

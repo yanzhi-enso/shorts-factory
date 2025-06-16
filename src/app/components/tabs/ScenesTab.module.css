@@ -29,6 +29,16 @@
   background-color: #5a6268;
 }
 
+.stepButton.disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.stepButton.disabled:hover {
+  background-color: #adb5bd;
+}
+
 
 .projectId {
   margin: 0;
