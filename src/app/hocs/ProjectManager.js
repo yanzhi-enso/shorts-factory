@@ -39,44 +39,60 @@ const PROJECT_ACTIONS = {
  * Enriched Structure (provided by ProjectManager):
  * {
  *   id: number,                    // Scene ID
- *   project_id: string,            // Parent project ID
- *   scene_order: number,           // Ordering for display (gap-based: 100, 200, 300...)
- *   is_selected: boolean,          // Whether user selected this scene for processing
- *   selected_image: string|null,   // URL of selected image (transformed from selected_image_id)
- *   selected_image_id: number|null // Selected image ID (DB storage, not used in UI)
+ *   projectId: string,             // Parent project ID (camelCase)
+ *   sceneOrder: number,            // Ordering for display (gap-based: 100, 200, 300...)
+ *   isSelected: boolean,           // Whether user selected this scene for processing (camelCase)
+ *   selectedImage: string|null,    // URL of selected image (camelCase, transformed from selected_image_id)
+ *   selectedImageId: number|null,  // Selected image ID (camelCase, DB storage reference)
  *   sceneImages: Array[{           // All images belonging to this scene
  *     id: number,                  // Image ID
- *     scene_id: number,            // Parent scene ID
- *     gcs_url: string,             // Image URL
- *     image_order: number,         // Order within scene
- *     created_at: string           // Creation timestamp
+ *     sceneId: number,             // Parent scene ID (camelCase)
+ *     gcsUrl: string,              // Image URL (camelCase)
+ *     imageOrder: number,          // Order within scene (camelCase)
+ *     createdAt: string            // Creation timestamp (camelCase)
  *   }],
  *   settings: object,              // Scene-specific configuration
- *   created_at: string             // Scene creation timestamp
+ *   createdAt: string              // Scene creation timestamp (camelCase)
  * }
  * 
  * Key Transformations:
- * 1. selected_image_id → selected_image (ID reference → actual URL string)
+ * 1. selected_image_id → selectedImage (ID reference → actual URL string, camelCase)
  * 2. Separate sceneImages array → embedded sceneImages per scene
- * 3. DB persistence still uses selected_image_id internally
+ * 3. All internal JS properties use camelCase, DB persistence still uses snake_case
  */
 
 /**
  * Private helper to enrich raw scenes with embedded scene images and resolved selected image URL
+ * Transforms snake_case DB properties to camelCase for internal JavaScript use
  */
 const enrichScenes = (rawScenes, sceneImagesMap) => {
     return rawScenes.map(scene => {
-        const sceneImages = sceneImagesMap[scene.id] || [];
-        scene.selected_image_id = scene.selected_image_id || sceneImages[0]?.id || null;
-        const selectedImage = scene.selected_image_id 
-            ? sceneImages.find(img => img.id === scene.selected_image_id)?.gcs_url || null
+        const rawSceneImages = sceneImagesMap[scene.id] || [];
+        const selectedImageId = scene.selected_image_id || rawSceneImages[0]?.id || null;
+        const selectedImage = selectedImageId 
+            ? rawSceneImages.find(img => img.id === selectedImageId)?.gcs_url || null
             : null;
         
+        // Transform scene images to camelCase
+        const sceneImages = rawSceneImages.map(img => ({
+            id: img.id,
+            sceneId: img.scene_id,  // snake_case → camelCase
+            gcsUrl: img.gcs_url,    // snake_case → camelCase
+            imageOrder: img.image_order,  // snake_case → camelCase
+            createdAt: img.created_at      // snake_case → camelCase
+        }));
+        
+        // Transform scene properties to camelCase
         return {
-            ...scene,
-            sceneImages,
-            // note, in db, we store selected_image_id, 
-            selected_image: selectedImage,
+            id: scene.id,
+            projectId: scene.project_id,        // snake_case → camelCase
+            sceneOrder: scene.scene_order,      // snake_case → camelCase
+            isSelected: scene.is_selected,      // snake_case → camelCase
+            selectedImage: selectedImage,       // transformed from selected_image_id
+            selectedImageId: selectedImageId,   // reference for DB operations
+            sceneImages: sceneImages,
+            settings: scene.settings,
+            createdAt: scene.created_at         // snake_case → camelCase
         };
     });
 };
@@ -140,7 +156,7 @@ function projectReducer(state, action) {
                 ...state,
                 scenes: state.scenes.map(scene => 
                     scene.id === action.payload.sceneId 
-                        ? { ...scene, is_selected: action.payload.isSelected }
+                        ? { ...scene, isSelected: action.payload.isSelected }
                         : scene
                 )
             };
@@ -150,7 +166,7 @@ function projectReducer(state, action) {
                 ...state,
                 scenes: state.scenes.map(scene => 
                     scene.id === action.payload.sceneId 
-                        ? { ...scene, selected_image: action.payload.imageUrl }
+                        ? { ...scene, selectedImage: action.payload.imageUrl }
                         : scene
                 )
             };
@@ -425,10 +441,10 @@ export function ProjectProvider({ children }) {
             // selectedImage is just a convenience for UI
             await projectStorage.updateScene(sceneId, { selected_image_id: image.id });
             
-            // Update in local state (uses selected_image URL)
+            // Update in local state (uses selectedImage URL)
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION, 
-                payload: { sceneId, imageUrl: image.gcs_url } 
+                payload: { sceneId, imageUrl: image.gcsUrl } 
             });
             
             return { success: true };

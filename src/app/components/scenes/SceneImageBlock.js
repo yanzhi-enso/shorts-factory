@@ -9,17 +9,17 @@ import { useProjectManager } from 'app/hocs/ProjectManager';
 const SceneImageBlock = ({ scene, onImageClick }) => {
   const { updateSceneSelection } = useProjectManager();
 
-  if (!scene || !scene.selected_image) {
+  if (!scene || !scene.selectedImage) {
     return null; // Handle case where scene or image is not available
   }
   
   const handleSceneToggle = async () => {
-    updateSceneSelection(scene.id, !scene.is_selected);
+    updateSceneSelection(scene.id, !scene.isSelected);
   }
 
   return (
     <div 
-      className={`${styles.gridItem} ${!scene.is_selected ? styles.deselected : ''}`}
+      className={`${styles.gridItem} ${!scene.isSelected ? styles.deselected : ''}`}
       onClick={ () => {
         if (scene?.sceneImages?.length > 1) {
           // only scenes with multiple images
@@ -37,7 +37,7 @@ const SceneImageBlock = ({ scene, onImageClick }) => {
       >
         <input 
           type="checkbox" 
-          checked={scene.is_selected}
+          checked={scene.isSelected}
           onChange={(e) => {
             e.stopPropagation(); // Prevent triggering image click
             handleSceneToggle();
@@ -50,11 +50,11 @@ const SceneImageBlock = ({ scene, onImageClick }) => {
       </div>
       
       {/* Opacity mask for deselected scenes */}
-      {!scene.is_selected && <div className={styles.opacityMask} />}
+      {!scene.isSelected && <div className={styles.opacityMask} />}
       
       <Image
-        src={scene.selected_image}
-        alt={`Scene ${scene.scene_order / 100}`}
+        src={scene.selectedImage}
+        alt={`Scene ${scene.sceneOrder / 100}`}
         width={200}
         height={350}
         className={styles.image}
@@ -62,7 +62,7 @@ const SceneImageBlock = ({ scene, onImageClick }) => {
       
       {/* Scene info */}
       <div className={styles.sceneInfo}>
-        <span>Scene {scene.scene_order / 100}</span>
+        <span>Scene {scene.sceneOrder / 100}</span>
       </div>
     </div>
   );

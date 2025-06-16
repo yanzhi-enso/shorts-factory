@@ -14,7 +14,7 @@ const ImageSelectionModal = ({
   };
 
   const isSelected = (imageObj) => {
-    return imageObj.gcs_url === scene.selected_image;
+    return imageObj.gcsUrl === scene.selectedImage;
   }
 
   return (
@@ -28,7 +28,7 @@ const ImageSelectionModal = ({
               onClick={() => onSelectImage(index)}
             >
               <Image
-                src={imageObj.gcs_url}
+                src={imageObj.gcsUrl}
                 alt={`Scene option ${index + 1}`}
                 width={150}
                 height={250}

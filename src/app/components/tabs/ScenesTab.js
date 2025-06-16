@@ -12,7 +12,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError }) => {
 
     const handleNext = () => {
         // Validation: check if any scenes are selected
-        if (!scenes.some(scene => scene.is_selected)) {
+        if (!scenes.some(scene => scene.isSelected)) {
             onError('Please select at least one scene to continue');
             return;
         }
@@ -20,7 +20,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError }) => {
         onNext();
     };
 
-    const hasSelectedScenes = scenes.some(scene => scene.is_selected);
+    const hasSelectedScenes = scenes.some(scene => scene.isSelected);
 
     return (
         <div className={styles.container}>
