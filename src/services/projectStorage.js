@@ -4,13 +4,14 @@
  */
 
 const DB_NAME = 'shorts-factory-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Table names
 const STORES = {
   PROJECTS: 'projects',
   SCENES: 'scenes',
-  SCENE_IMAGES: 'scene_images'
+  SCENE_IMAGES: 'scene_images',
+  RECREATED_SCENE_IMAGES: 'recreated_scene_images'
 };
 
 class ProjectStorage {
@@ -35,6 +36,8 @@ class ProjectStorage {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        const transaction = event.target.transaction;
+        const oldVersion = event.oldVersion;
 
         // Create PROJECTS table
         if (!db.objectStoreNames.contains(STORES.PROJECTS)) {
@@ -43,8 +46,9 @@ class ProjectStorage {
           projectStore.createIndex('tiktok_url', 'tiktok_url');
         }
 
-        // Create SCENES table
+        // Create or migrate SCENES table
         if (!db.objectStoreNames.contains(STORES.SCENES)) {
+          // Fresh installation - create new SCENES table with all fields
           const sceneStore = db.createObjectStore(STORES.SCENES, { 
             keyPath: 'id', 
             autoIncrement: true 
@@ -52,6 +56,8 @@ class ProjectStorage {
           sceneStore.createIndex('project_id', 'project_id');
           sceneStore.createIndex('scene_order', 'scene_order');
         }
+        // Note: For existing v1 installations, we handle the missing selected_generated_image_id 
+        // field gracefully in the application code (it will be undefined/null)
 
         // Create SCENE_IMAGES table
         if (!db.objectStoreNames.contains(STORES.SCENE_IMAGES)) {
@@ -61,6 +67,15 @@ class ProjectStorage {
           });
           imageStore.createIndex('scene_id', 'scene_id');
           imageStore.createIndex('image_order', 'image_order');
+        }
+
+        // Create RECREATED_SCENE_IMAGES table (version 2+)
+        if (oldVersion < 2 && !db.objectStoreNames.contains(STORES.RECREATED_SCENE_IMAGES)) {
+          const recreatedImageStore = db.createObjectStore(STORES.RECREATED_SCENE_IMAGES, { 
+            keyPath: 'id', 
+            autoIncrement: true 
+          });
+          recreatedImageStore.createIndex('scene_id', 'scene_id');
         }
       };
     });
@@ -179,6 +194,7 @@ class ProjectStorage {
       scene_order: sceneData.scene_order,
       is_selected: sceneData.is_selected || false,
       selected_image_id: sceneData.selected_image_id || null,
+      selected_generated_image_id: sceneData.selected_generated_image_id || null,
       settings: sceneData.settings || {},
       created_at: new Date().toISOString()
     }));
@@ -324,6 +340,52 @@ class ProjectStorage {
     }
 
     return sceneImages;
+  }
+
+  // ==================== RECREATED_SCENE_IMAGES TABLE OPERATIONS ====================
+
+  /**
+   * Get recreated scene images for a scene
+   */
+  async getRecreatedSceneImages(sceneId) {
+    const tx = await this.transaction([STORES.RECREATED_SCENE_IMAGES]);
+    const store = tx.objectStore(STORES.RECREATED_SCENE_IMAGES);
+    const index = store.index('scene_id');
+
+    return new Promise((resolve, reject) => {
+      const request = index.getAll(sceneId);
+      request.onsuccess = () => {
+        // Sort by created_at descending (newest first)
+        const images = request.result.sort((a, b) => 
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        resolve(images);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Add a recreated scene image
+   */
+  async addRecreatedSceneImage(sceneId, gcsUrl, generationSources) {
+    const tx = await this.transaction([STORES.RECREATED_SCENE_IMAGES], 'readwrite');
+    const store = tx.objectStore(STORES.RECREATED_SCENE_IMAGES);
+
+    const recreatedImage = {
+      scene_id: sceneId,
+      gcs_url: gcsUrl,
+      generation_sources: generationSources || null,
+      created_at: new Date().toISOString()
+    };
+
+    return new Promise((resolve, reject) => {
+      const request = store.add(recreatedImage);
+      request.onsuccess = () => {
+        resolve({ ...recreatedImage, id: request.result });
+      };
+      request.onerror = () => reject(request.error);
+    });
   }
 
   // ==================== UTILITY METHODS ====================

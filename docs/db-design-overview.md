@@ -122,13 +122,15 @@ Projects need to track current stage:
 | `scene_order` | INTEGER | NOT NULL | Gap-based ordering (100, 200, 300...) for easy insertions |
 | `is_selected` | BOOLEAN | DEFAULT FALSE | Whether user selected scene for processing |
 | `selected_image_id` | INTEGER | NULLABLE, FK to scene_images.id | Reference to selected scene image |
+| `selected_generated_image_id` | INTEGER | NULLABLE, FK to scene_images.id | Reference to selected scene image |
 | `settings` | JSON | NULLABLE | Scene-specific configuration and UI settings |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When scene was created |
 
 **Notes:**
 - Supports both extracted scenes and user-created scenes
 - `scene_order` uses gap-based integers (100, 200, 300) to allow mid-list insertions without mass updates
-- `selected_image_id` points to the user's chosen image for this scene (no joins needed for common queries)
+- `selected_image_id` points to the user's chosen image for this scene from original video (no joins needed for common queries)
+- `selected_generated_image_id` points to the user's chosen image for this scene (no joins needed for common queries)
 - When gaps get tight, occasional rebalancing may be needed
 
 ### 4. RECREATED_SCENE_IMAGES Table ✅
