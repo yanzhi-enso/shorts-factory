@@ -8,9 +8,17 @@ import styles from './VideoTab.module.css';
 import VideoRow from './VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
 import VideoRequestManager from './VideoRequestManager';
-import { analyzeImageForVideo } from '../../../services/backend';
+import { analyzeImageForVideo } from 'services/backend';
+import { useProjectManager } from 'app/hocs/ProjectManager';
 
-const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackToRemake, onNext, onError, videoManager, onSceneStateChange, onVideoGenerated }) => {
+const VideoTabContent = ({
+  onBackToRemake, onError,
+  // videoManager ingested properties
+  videoManager, onSceneStateChange, onVideoGenerated,
+  // deprecating properties
+  storyDescription
+}) => {
+  const { projectState } = useProjectManager();
   const [modalState, setModalState] = useState({
     isOpen: false,
     imageUrl: null,
@@ -27,18 +35,24 @@ const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackT
   // Generated videos array for next tab (using ref for performance)
   const generatedVideosRef = useRef([]);
 
-  // Process generated images from RemakeTab
-  const inputImages = useMemo(() => {
-    if (!generatedImages || !Array.isArray(generatedImages)) {
-      return [];
+  // Initialize scene data when scenes change
+  useEffect(() => {
+    if (!projectState.scenes || !Array.isArray(projectState.scenes)) {
+      return;
     }
 
+    // Filter scenes that have selected generated images
+    const scenesWithGeneratedImages = projectState.scenes.filter(scene => 
+      scene.selectedGeneratedImage
+    );
+
     // Initialize scene data if not already present
-    generatedImages.forEach(item => {
-      if (!sceneData[item.sceneId]) {
+    scenesWithGeneratedImages.forEach(scene => {
+      const sceneIdStr = scene.id.toString();
+      if (!sceneData[sceneIdStr]) {
         setSceneData(prev => ({
           ...prev,
-          [item.sceneId]: {
+          [sceneIdStr]: {
             prompt: '', // Keep blank initially for video prompts
             generatedVideo: null,
             taskId: null,
@@ -48,14 +62,33 @@ const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackT
         }));
       }
     });
+  }, [projectState.scenes]);
 
-    return generatedImages.map(item => ({
-      sceneId: item.sceneId,
-      imageUrl: item.image,
-      title: `${item.sceneId} Input`,
-      imagePrompt: item.revisedPrompt || '' // Store image generation prompt for context
-    }));
-  }, [generatedImages]);
+  // Process generated images from ProjectManager scenes
+  const inputImages = useMemo(() => {
+    if (!projectState.scenes || !Array.isArray(projectState.scenes)) {
+      return [];
+    }
+
+    // Filter scenes that have selected generated images
+    const scenesWithGeneratedImages = projectState.scenes.filter(scene => 
+      scene.selectedGeneratedImage
+    );
+
+    return scenesWithGeneratedImages.map(scene => {
+      // Find the selected generated image to get generation sources
+      const selectedGeneratedImageData = scene.generatedImages.find(
+        img => img.gcsUrl === scene.selectedGeneratedImage
+      );
+      
+      return {
+        sceneId: scene.id.toString(),
+        imageUrl: scene.selectedGeneratedImage,
+        title: `Scene ${scene.id} Input`,
+        imagePrompt: selectedGeneratedImageData?.generationSources?.revisedPrompt || '' // Store image generation prompt for context
+      };
+    });
+  }, [projectState.scenes]);
 
   const handleInputImageClick = (imageUrl, title) => {
     setModalState({
@@ -330,12 +363,6 @@ const VideoTabContent = ({ projectId, generatedImages, storyDescription, onBackT
             title="Export Generated Videos"
           >
             <FaDownload /> {isExporting ? 'Exporting...' : 'Export'}
-          </button>
-          <button 
-            onClick={() => onNext && onNext(generatedVideosRef.current)}
-            className={styles.stepButton}
-          >
-            Next Step →
           </button>
         </div>
       </div>
