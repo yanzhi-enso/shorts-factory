@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import GeneratedImageBlock from './GeneratedImageBlock';
@@ -17,7 +16,6 @@ const SceneRow = ({
   isPromptAssistantRunning = false,
   isGenerating = false,
   onOriginalImageClick,
-  onGeneratedImageClick,
   onPromptChange,
   onPromptAssistant,
   onGenerate,
@@ -25,8 +23,6 @@ const SceneRow = ({
   onImageSelect,
   onImageCountChange
 }) => {
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-
   const handlePromptChange = (newPrompt) => {
     if (onPromptChange) {
       onPromptChange(sceneId, newPrompt);
@@ -86,7 +82,6 @@ const SceneRow = ({
           selectedImageIndex={selectedImageIndex}
           onImageUpload={onImageUpload}
           onImageSelect={onImageSelect}
-          onImageClick={onGeneratedImageClick}
         />
       </div>
     </div>

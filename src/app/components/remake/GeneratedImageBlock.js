@@ -12,7 +12,6 @@ const GeneratedImageBlock = ({
   selectedImageIndex = -1,
   onImageUpload,
   onImageSelect,
-  onImageClick
 }) => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
