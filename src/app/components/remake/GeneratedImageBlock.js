@@ -5,88 +5,98 @@ import styles from './GeneratedImageBlock.module.css';
 import Image from 'next/image';
 import ImageHistoryModal from './ImageHistoryModal';
 
-const GeneratedImageBlock = ({ 
-  sceneId,
-  selectedImage = null,
-  imageHistory = [],
-  selectedImageIndex = -1,
-  onImageUpload,
-  onImageSelect,
+const GeneratedImageBlock = ({
+    sceneId,
+    generatedImages = [],
+    selectedGeneratedImage = null,
+    selectedGeneratedImageId = null,
+    onImageUpload,
+    onImageSelect,
 }) => {
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
-  const handleClick = () => {
-    // Always open history modal when clicked - this allows both selection and upload
-    setHistoryModalOpen(true);
-  };
+    const handleClick = () => {
+        // Always open history modal when clicked - this allows both selection and upload
+        setHistoryModalOpen(true);
+    };
 
-  const handleHistoryModalClose = () => {
-    setHistoryModalOpen(false);
-  };
+    const handleHistoryModalClose = () => {
+        setHistoryModalOpen(false);
+    };
 
-  const handleSelectFromHistory = (selectedIndex) => {
-    if (onImageSelect) {
-      onImageSelect(sceneId, selectedIndex);
-    }
-    setHistoryModalOpen(false);
-  };
+    const handleSelectFromHistory = (selectedImageId) => {
+        if (onImageSelect) {
+            onImageSelect(selectedImageId);
+        }
+        setHistoryModalOpen(false);
+    };
 
-  const handleImageUploadFromModal = (file) => {
-    if (onImageUpload) {
-      onImageUpload(sceneId, file);
-    }
-  };
+    const handleImageUploadFromModal = (imageFile) => {
+        if (onImageUpload) {
+            onImageUpload(imageFile);
+        }
+    };
 
-  const renderContent = () => {
-    if (!selectedImage) {
-      return (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyText}>
-            Generate to see result or upload an image
-          </div>
-        </div>
-      );
-    }
+    const renderContent = () => {
+        if (!selectedGeneratedImage) {
+            return (
+                <div className={styles.emptyState}>
+                    <div className={styles.emptyText}>
+                        Generate to see result or upload an image
+                    </div>
+                </div>
+            );
+        }
+
+        // Determine image type based on generationSources
+        const selectedImageData = generatedImages.find(
+            (img) => img.id === selectedGeneratedImageId
+        );
+        const imageType = selectedImageData?.generationSources ? 'Generated' : 'Uploaded';
+
+        return (
+            <Image
+                src={selectedGeneratedImage}
+                alt={`${sceneId} ${imageType}`}
+                width={200}
+                height={300}
+                className={styles.image}
+            />
+        );
+    };
 
     return (
-      <Image
-        src={selectedImage.imageUrl}
-        alt={`${sceneId} ${selectedImage.type === 'uploaded' ? 'Uploaded' : 'Generated'}`}
-        width={200}
-        height={300}
-        className={styles.image}
-      />
+        <>
+            <div
+                className={`${styles.imageBlock} ${!selectedGeneratedImage ? styles.empty : ''} ${
+                    styles.generated
+                }`}
+                onClick={handleClick}
+            >
+                {renderContent()}
+
+                {/* Show history indicator if there are multiple images */}
+                {generatedImages.length > 1 && (
+                    <div className={styles.historyIndicator}>
+                        {generatedImages.findIndex((img) => img.id === selectedGeneratedImageId) +
+                            1}
+                        /{generatedImages.length}
+                    </div>
+                )}
+            </div>
+
+            {/* History Modal */}
+            <ImageHistoryModal
+                isOpen={historyModalOpen}
+                sceneId={sceneId}
+                generatedImages={generatedImages}
+                selectedGeneratedImageId={selectedGeneratedImageId}
+                onClose={handleHistoryModalClose}
+                onSelectImage={handleSelectFromHistory}
+                onImageUpload={handleImageUploadFromModal}
+            />
+        </>
     );
-  };
-
-  return (
-    <>
-      <div 
-        className={`${styles.imageBlock} ${!selectedImage ? styles.empty : ''} ${styles.generated}`} 
-        onClick={handleClick}
-      >
-        {renderContent()}
-        
-        {/* Show history indicator if there are multiple images */}
-        {imageHistory.length > 1 && (
-          <div className={styles.historyIndicator}>
-            {selectedImageIndex + 1}/{imageHistory.length}
-          </div>
-        )}
-      </div>
-
-      {/* History Modal */}
-      <ImageHistoryModal
-        isOpen={historyModalOpen}
-        sceneId={sceneId}
-        imageHistory={imageHistory}
-        selectedImageIndex={selectedImageIndex}
-        onClose={handleHistoryModalClose}
-        onSelectImage={handleSelectFromHistory}
-        onImageUpload={handleImageUploadFromModal}
-      />
-    </>
-  );
 };
 
 export default GeneratedImageBlock;
