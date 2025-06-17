@@ -5,9 +5,9 @@ import { FaMagic, FaVideo, FaDownload } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
-import VideoRow from './VideoRow';
+import VideoRow from '../video/VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
-import VideoRequestManager from './VideoRequestManager';
+import VideoRequestManager from '../video/VideoRequestManager';
 import { analyzeImageForVideo } from 'services/backend';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 

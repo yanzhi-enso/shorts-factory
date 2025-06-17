@@ -7,7 +7,7 @@ import TabNavigation, { TABS } from './tabs/TabNavigation';
 import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
-import VideoTab from './video/VideoTab';
+import VideoTab from './tabs/VideoTab';
 import { useProjectManager } from '../hocs/ProjectManager';
 import { getUnlockedTabsForStage } from 'utils/projectValidation';
 
