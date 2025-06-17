@@ -598,6 +598,49 @@ export function ProjectProvider({ children }) {
         }
     };
 
+    /**
+     * Update project settings (including story configuration)
+     */
+    const updateProjectSettings = async (settings) => {
+        try {
+            // Update current project settings
+            const updatedProject = {
+                ...projectState.currentProject,
+                settings: {
+                    ...projectState.currentProject?.settings,
+                    ...settings
+                }
+            };
+            
+            // Update in persistent storage
+            await projectStorage.updateProject(projectState.curProjId, { settings: updatedProject.settings });
+            
+            // Update in local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
+                payload: {
+                    project: updatedProject,
+                    scenes: projectState.scenes
+                }
+            });
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update project settings';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Handle image upload (placeholder implementation)
+     * TODO: Implement GCS upload and proper image storage
+     */
+    const handleImageUpload = async (sceneId, imageFile) => {
+        console.log('Image upload not implemented yet', { sceneId, imageFile });
+        return { success: false, error: 'Upload not implemented' };
+    };
+
     const value = {
         projectState,
         dispatch,
@@ -611,7 +654,9 @@ export function ProjectProvider({ children }) {
         updateSceneSelection,
         updateSelectedImage,
         addGeneratedImage,
-        updateSelectedGeneratedImage
+        updateSelectedGeneratedImage,
+        updateProjectSettings,
+        handleImageUpload
     };
     
     return (
