@@ -25,7 +25,9 @@ const PROJECT_ACTIONS = {
     UPDATE_SCENE_SELECTION: 'UPDATE_SCENE_SELECTION',
     UPDATE_SCENE_IMAGE_SELECTION: 'UPDATE_SCENE_IMAGE_SELECTION',
     ADD_GENERATED_IMAGE_SUCCESS: 'ADD_GENERATED_IMAGE_SUCCESS',
-    UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION'
+    UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION',
+    ADD_GENERATED_CLIP_SUCCESS: 'ADD_GENERATED_CLIP_SUCCESS',
+    UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION'
 };
 
 /**
@@ -63,6 +65,15 @@ const PROJECT_ACTIONS = {
  *   }],
  *   selectedGeneratedImage: string|null,    // URL of selected generated image
  *   selectedGeneratedImageId: number|null,  // Selected generated image ID (DB storage reference)
+ *   sceneClips: Array[{            // All generated clips for this scene
+ *     id: number,                  // Generated clip ID
+ *     sceneId: number,             // Parent scene ID
+ *     gcsUrl: string,              // Generated clip URL
+ *     generationSources: object|null, // Sources used for generation
+ *     createdAt: string            // Creation timestamp
+ *   }],
+ *   selectedSceneClip: string|null,         // URL of selected generated clip
+ *   selectedSceneClipId: number|null,       // Selected generated clip ID (DB storage reference)
  *   settings: object,              // Scene-specific configuration
  *   createdAt: string              // Scene creation timestamp
  * }
@@ -76,7 +87,7 @@ const PROJECT_ACTIONS = {
  */
 
 /**
- * Private helper to enrich raw scenes with embedded scene images, generated images, and resolved selected image URLs
+ * Private helper to enrich raw scenes with embedded scene images, generated images, scene clips, and resolved selected URLs
  * Transforms snake_case DB properties to camelCase for internal JavaScript use
  */
 const enrichScenes = async (rawScenes, sceneImagesMap) => {
@@ -117,7 +128,26 @@ const enrichScenes = async (rawScenes, sceneImagesMap) => {
             ? generatedImages.find(img => img.id === selectedGeneratedImageId)?.gcsUrl || null
             : null;
         
-        // Transform scene properties to camelCase and add generated image fields
+        // Load generated clips for this scene
+        const rawSceneClips = await projectStorage.getSceneClips(scene.id);
+        
+        // Transform scene clips to camelCase
+        const sceneClips = rawSceneClips.map(clip => ({
+            id: clip.id,
+            sceneId: clip.scene_id,
+            gcsUrl: clip.gcs_url,
+            generationSources: clip.generation_sources,
+            createdAt: clip.created_at
+        }));
+        
+        // Determine selected scene clip (fallback to most recent if selectedSceneClipId is null)
+        const selectedSceneClipId = scene.selected_clip_id || 
+                                  (sceneClips.length > 0 ? sceneClips[0].id : null);
+        const selectedSceneClip = selectedSceneClipId 
+            ? sceneClips.find(clip => clip.id === selectedSceneClipId)?.gcsUrl || null
+            : null;
+        
+        // Transform scene properties to camelCase and add all fields
         enrichedScenes.push({
             id: scene.id,
             projectId: scene.project_id,
@@ -129,6 +159,9 @@ const enrichScenes = async (rawScenes, sceneImagesMap) => {
             generatedImages: generatedImages,
             selectedGeneratedImage: selectedGeneratedImage,
             selectedGeneratedImageId: selectedGeneratedImageId,
+            sceneClips: sceneClips,
+            selectedSceneClip: selectedSceneClip,
+            selectedSceneClipId: selectedSceneClipId,
             settings: scene.settings,
             createdAt: scene.created_at
         });
@@ -235,6 +268,35 @@ function projectReducer(state, action) {
                             ...scene, 
                             selectedGeneratedImage: action.payload.imageUrl,
                             selectedGeneratedImageId: action.payload.imageId
+                          }
+                        : scene
+                )
+            };
+        
+        case PROJECT_ACTIONS.ADD_GENERATED_CLIP_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { 
+                            ...scene, 
+                            sceneClips: [action.payload.generatedClip, ...scene.sceneClips],
+                            selectedSceneClip: action.payload.generatedClip.gcsUrl,
+                            selectedSceneClipId: action.payload.generatedClip.id
+                          }
+                        : scene
+                )
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_GENERATED_CLIP_SELECTION:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { 
+                            ...scene, 
+                            selectedSceneClip: action.payload.clipUrl,
+                            selectedSceneClipId: action.payload.clipId
                           }
                         : scene
                 )
@@ -633,6 +695,96 @@ export function ProjectProvider({ children }) {
     };
 
     /**
+     * Add a new generated clip to a scene and set it as selected
+     */
+    const addGeneratedClip = async (sceneId, gcsUrl, generationSources) => {
+        try {
+            // Add to persistent storage (returns raw DB object)
+            const rawSceneClip = await projectStorage.addSceneClip(
+                sceneId, gcsUrl, generationSources
+            );
+            
+            // Update scene to select this new clip
+            await projectStorage.updateScene(sceneId, { 
+                selected_clip_id: rawSceneClip.id 
+            });
+            
+            // Transform to JavaScript format for state
+            const generatedClip = {
+                id: rawSceneClip.id,
+                sceneId: rawSceneClip.scene_id,
+                gcsUrl: rawSceneClip.gcs_url,
+                generationSources: rawSceneClip.generation_sources,
+                createdAt: rawSceneClip.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.ADD_GENERATED_CLIP_SUCCESS, 
+                payload: { sceneId, generatedClip } 
+            });
+            
+            return { success: true, generatedClip };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to add generated clip';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Get generated clips for a scene (sorted by -created_at)
+     */
+    const getGeneratedClips = (sceneId) => {
+        const scene = projectState.scenes.find(s => s.id === sceneId);
+        return scene?.sceneClips || [];
+    };
+
+    /**
+     * Update selected generated clip for a scene with persistent storage
+     */
+    const updateSelectedGeneratedClip = async (sceneClipId) => {
+        try {
+            // Find the scene that contains this clip
+            const scene = projectState.scenes.find(s => 
+                s.sceneClips.some(clip => clip.id === sceneClipId)
+            );
+            
+            if (!scene) {
+                throw new Error('Scene not found for clip');
+            }
+            
+            // Find the clip to get its URL
+            const sceneClip = scene.sceneClips.find(clip => clip.id === sceneClipId);
+            
+            if (!sceneClip) {
+                throw new Error('Scene clip not found');
+            }
+            
+            // Update in persistent storage
+            await projectStorage.updateScene(scene.id, { 
+                selected_clip_id: sceneClipId 
+            });
+            
+            // Update in local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_GENERATED_CLIP_SELECTION, 
+                payload: { 
+                    sceneId: scene.id, 
+                    clipId: sceneClipId,
+                    clipUrl: sceneClip.gcsUrl 
+                } 
+            });
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update selected generated clip';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
      * Handle image upload (placeholder implementation)
      * TODO: Implement GCS upload and proper image storage
      */
@@ -655,6 +807,9 @@ export function ProjectProvider({ children }) {
         updateSelectedImage,
         addGeneratedImage,
         updateSelectedGeneratedImage,
+        addGeneratedClip,
+        getGeneratedClips,
+        updateSelectedGeneratedClip,
         updateProjectSettings,
         handleImageUpload
     };
