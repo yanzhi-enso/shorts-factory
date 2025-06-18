@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'shorts-factory-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // Table names
 const STORES = {
@@ -12,6 +12,7 @@ const STORES = {
     SCENES: 'scenes',
     SCENE_IMAGES: 'scene_images',
     RECREATED_SCENE_IMAGES: 'recreated_scene_images',
+    SCENE_CLIPS: 'scene_clips',
 };
 
 class ProjectStorage {
@@ -82,6 +83,18 @@ class ProjectStorage {
                         }
                     );
                     recreatedImageStore.createIndex('scene_id', 'scene_id');
+                }
+
+                // Create SCENE_CLIPS table (version 3+)
+                if (oldVersion < 3) {
+                    // Create SCENE_CLIPS table
+                    if (!db.objectStoreNames.contains(STORES.SCENE_CLIPS)) {
+                        const sceneClipsStore = db.createObjectStore(STORES.SCENE_CLIPS, {
+                            keyPath: 'id',
+                            autoIncrement: true,
+                        });
+                        sceneClipsStore.createIndex('scene_id', 'scene_id');
+                    }
                 }
             };
         });
@@ -201,6 +214,7 @@ class ProjectStorage {
             is_selected: sceneData.is_selected || false,
             selected_image_id: sceneData.selected_image_id || null,
             selected_generated_image_id: sceneData.selected_generated_image_id || null,
+            selected_clip_id: sceneData.selected_clip_id || null,
             settings: sceneData.settings || {},
             created_at: new Date().toISOString(),
         }));
@@ -389,6 +403,52 @@ class ProjectStorage {
             const request = store.add(recreatedImage);
             request.onsuccess = () => {
                 resolve({ ...recreatedImage, id: request.result });
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // ==================== SCENE_CLIPS TABLE OPERATIONS ====================
+
+    /**
+     * Get scene clips for a scene
+     */
+    async getSceneClips(sceneId) {
+        const tx = await this.transaction([STORES.SCENE_CLIPS]);
+        const store = tx.objectStore(STORES.SCENE_CLIPS);
+        const index = store.index('scene_id');
+
+        return new Promise((resolve, reject) => {
+            const request = index.getAll(sceneId);
+            request.onsuccess = () => {
+                // Sort by created_at descending (newest first)
+                const clips = request.result.sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+                resolve(clips);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Add a scene clip
+     */
+    async addSceneClip(sceneId, gcsUrl, generationSources) {
+        const tx = await this.transaction([STORES.SCENE_CLIPS], 'readwrite');
+        const store = tx.objectStore(STORES.SCENE_CLIPS);
+
+        const sceneClip = {
+            scene_id: sceneId,
+            gcs_url: gcsUrl,
+            generation_sources: generationSources || null,
+            created_at: new Date().toISOString(),
+        };
+
+        return new Promise((resolve, reject) => {
+            const request = store.add(sceneClip);
+            request.onsuccess = () => {
+                resolve({ ...sceneClip, id: request.result });
             };
             request.onerror = () => reject(request.error);
         });
