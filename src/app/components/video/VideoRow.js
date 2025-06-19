@@ -16,7 +16,7 @@ const VideoRow = ({
     onGeneratedVideoClick,
 }) => {
     const { addGeneratedClip } = useProjectManager();
-    const { id: sceneId, selectedGeneratedImage, generatedImages } = scene;
+    const { id: sceneId, selectedGeneratedImage, generatedImages, selectedSceneClip } = scene;
 
     // Internal state for this specific scene row
     const [prompt, setPrompt] = useState('');
@@ -140,13 +140,13 @@ const VideoRow = ({
             {/* Generated Video */}
             <div className={styles.videoSection}>
                 <VideoBlock
-                    videoUrl={scene.selectedSceneClip}
-                    title={scene.selectedSceneClip ? `${sceneId} Generated Video` : ''}
+                    videoUrl={selectedSceneClip}
+                    title={selectedSceneClip ? `${sceneId} Generated Video` : ''}
                     variant='generated'
-                    isEmpty={!scene.selectedSceneClip}
+                    isEmpty={!selectedSceneClip}
                     isGenerating={isGeneratingVideo}
                     onClick={() =>
-                        handleGeneratedVideoClick(scene.selectedSceneClip, `${sceneId} Generated Video`)
+                        handleGeneratedVideoClick(selectedSceneClip, `${sceneId} Generated Video`)
                     }
                 />
             </div>
