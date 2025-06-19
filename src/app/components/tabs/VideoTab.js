@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { FaMagic, FaVideo, FaDownload } from 'react-icons/fa';
+import { FaMagic, FaVideo, FaDownload, FaBookOpen } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
@@ -10,7 +10,7 @@ import FullSizeImageModal from '../common/FullSizeImageModal';
 import VideoRequestManager from '../video/VideoRequestManager';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 
-const VideoTabContent = ({ onBackToRemake, onError, videoManager }) => {
+const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClick }) => {
     const { projectState } = useProjectManager();
     const [modalState, setModalState] = useState({
         isOpen: false,
@@ -72,7 +72,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager }) => {
         if (isExporting) return;
 
         // Get scenes with generated videos directly from project state
-        const videosToExport = scenesForVideo.filter((scene) => scene.generatedVideoUrl);
+        const videosToExport = scenesForVideo.filter((scene) => scene.selectedSceneClip);
 
         if (videosToExport.length === 0) {
             alert('No generated videos to export. Please generate some videos first.');
@@ -86,7 +86,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager }) => {
 
             for (const scene of videosToExport) {
                 try {
-                    const response = await fetch(scene.generatedVideoUrl);
+                    const response = await fetch(scene.selectedSceneClip);
                     if (!response.ok) {
                         throw new Error(
                             `Failed to fetch video for Scene ${scene.id}: ${response.statusText}`
@@ -118,6 +118,14 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager }) => {
                     ← Back to Remake
                 </button>
                 <div className={styles.centerButtons}>
+                    <button
+                        onClick={onSettingsClick}
+                        className={`${styles.actionButton} ${styles.settingsButton}`}
+                        title='Story Configuration'
+                    >
+                        <FaBookOpen />
+                        Story Context
+                    </button>
                     <button
                         onClick={handlePromptGenAll}
                         className={`${styles.actionButton} ${styles.promptButton}`}

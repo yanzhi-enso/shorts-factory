@@ -1,10 +1,11 @@
 "use client";
 
+import { FaBookOpen } from 'react-icons/fa';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 import styles from './ScenesTab.module.css';
 import ImageGrid from '../scenes/ImageGrid';
 
-const ScenesTab = ({ onBackToStart, onNext, onError }) => {
+const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
     // Get data from ProjectManager instead of props
@@ -31,7 +32,16 @@ const ScenesTab = ({ onBackToStart, onNext, onError }) => {
                 >
                     ← Back to Start
                 </button>
-                <p className={styles.projectId}>Pick scenes and their index images for next step.</p>
+                <div className={styles.centerButtons}>
+                    <button
+                        onClick={onSettingsClick}
+                        className={`${styles.actionButton} ${styles.settingsButton}`}
+                        title='Story Configuration'
+                    >
+                        <FaBookOpen />
+                        Story Context
+                    </button>
+                </div>
                 <button
                     onClick={handleNext}
                     className={`${styles.stepButton} ${!hasSelectedScenes ? styles.disabled : ''}`}
@@ -39,6 +49,10 @@ const ScenesTab = ({ onBackToStart, onNext, onError }) => {
                 >
                     Next Step →
                 </button>
+            </div>
+
+            <div className={styles.instructionRow}>
+                <p className={styles.projectId}>Pick scenes and their index images for next step.</p>
             </div>
 
             <div className={styles.content}>

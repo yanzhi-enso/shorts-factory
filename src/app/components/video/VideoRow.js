@@ -15,12 +15,11 @@ const VideoRow = ({
     onInputImageClick,
     onGeneratedVideoClick,
 }) => {
-    const { updateScene } = useProjectManager();
+    const { addGeneratedClip } = useProjectManager();
     const { id: sceneId, selectedGeneratedImage, generatedImages } = scene;
 
     // Internal state for this specific scene row
     const [prompt, setPrompt] = useState('');
-    const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
     const [isPromptAssistantRunning, setIsPromptAssistantRunning] = useState(false);
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [error, setError] = useState(null);
@@ -59,16 +58,15 @@ const VideoRow = ({
                 setIsGeneratingVideo(true);
                 setError(null);
             } else if (update.status === 'succeed' && update.videoUrl) {
-                setGeneratedVideoUrl(update.videoUrl);
                 setIsGeneratingVideo(false);
-                // Persist final video URL and prompt to global state
-                updateScene(sceneId, {
-                    generatedVideoUrl: update.videoUrl,
-                    videoPrompt: prompt,
+                // Add generated clip to ProjectManager with prompt in generation sources
+                addGeneratedClip(sceneId, update.videoUrl, {
+                    prompt: prompt,
+                    // Add other generation sources if available
                 });
             }
         },
-        [sceneId, prompt, updateScene]
+        [sceneId, prompt, addGeneratedClip]
     );
 
     const handleVideoError = useCallback((errorMessage) => {
@@ -142,13 +140,13 @@ const VideoRow = ({
             {/* Generated Video */}
             <div className={styles.videoSection}>
                 <VideoBlock
-                    videoUrl={generatedVideoUrl}
-                    title={generatedVideoUrl ? `${sceneId} Generated Video` : ''}
+                    videoUrl={scene.selectedSceneClip}
+                    title={scene.selectedSceneClip ? `${sceneId} Generated Video` : ''}
                     variant='generated'
-                    isEmpty={!generatedVideoUrl}
+                    isEmpty={!scene.selectedSceneClip}
                     isGenerating={isGeneratingVideo}
                     onClick={() =>
-                        handleGeneratedVideoClick(generatedVideoUrl, `${sceneId} Generated Video`)
+                        handleGeneratedVideoClick(scene.selectedSceneClip, `${sceneId} Generated Video`)
                     }
                 />
             </div>

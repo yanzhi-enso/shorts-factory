@@ -7,6 +7,7 @@ const StoryConfigModal = ({
     isOpen,
     storyDescription = '',
     changeRequest = '',
+    originalVideoUrl = '',
     onSave,
     onSkip,
     onClose
@@ -77,6 +78,20 @@ const StoryConfigModal = ({
                 </div>
 
                 <div className={styles.content}>
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>🔗 Original Video URL</label>
+                        <p className={styles.fieldInfo}>
+                            The original TikTok video URL used to create this project.
+                        </p>
+                        <input
+                            type="text"
+                            className={styles.readonlyInput}
+                            value={originalVideoUrl}
+                            readOnly
+                            placeholder="No video URL available"
+                        />
+                    </div>
+
                     <div className={styles.fieldGroup}>
                         <label className={styles.fieldLabel}>📖 Story Description</label>
                         <p className={styles.fieldInfo}>

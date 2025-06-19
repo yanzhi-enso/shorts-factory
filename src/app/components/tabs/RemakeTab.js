@@ -7,14 +7,12 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
-import StoryConfigModal from '../common/StoryConfigModal';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 
-const RemakeTab = ({ onBackToScenes, onNext, onError }) => {
-    const { projectState, updateProjectSettings } = useProjectManager();
+const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
+    const { projectState } = useProjectManager();
 
     const [isExporting, setIsExporting] = useState(false);
-    const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
     // Get selected scenes from ProjectManager
     const selectedScenes = useMemo(
@@ -34,25 +32,6 @@ const RemakeTab = ({ onBackToScenes, onNext, onError }) => {
         console.log('Bulk image generation not implemented yet');
     };
 
-    const handleStoryConfigSave = async (configData) => {
-        await updateProjectSettings({
-            storyDescription: configData.storyDescription,
-            changeRequest: configData.changeRequest,
-        });
-        setIsStoryModalOpen(false);
-    };
-
-    const handleStoryConfigSkip = () => {
-        setIsStoryModalOpen(false);
-    };
-
-    const handleStoryConfigClose = () => {
-        setIsStoryModalOpen(false);
-    };
-
-    const handleSettingsClick = () => {
-        setIsStoryModalOpen(true);
-    };
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -138,6 +117,14 @@ const RemakeTab = ({ onBackToScenes, onNext, onError }) => {
                 </button>
                 <div className={styles.centerButtons}>
                     <button
+                        onClick={onSettingsClick}
+                        className={`${styles.actionButton} ${styles.settingsButton}`}
+                        title='Story Configuration'
+                    >
+                        <FaBookOpen />
+                        Story Context
+                    </button>
+                    <button
                         onClick={handlePromptGenAll}
                         className={`${styles.actionButton} ${styles.promptButton}`}
                         title='Generate Prompts for All Scenes'
@@ -150,14 +137,6 @@ const RemakeTab = ({ onBackToScenes, onNext, onError }) => {
                         title='Generate Images for All Scenes'
                     >
                         <FaImages /> ImageGen All
-                    </button>
-                    <button
-                        onClick={handleSettingsClick}
-                        className={`${styles.actionButton} ${styles.settingsButton}`}
-                        title='Story Configuration'
-                    >
-                        <FaBookOpen />
-                        Story Context
                     </button>
                 </div>
                 <div className={styles.rightButtons}>
@@ -182,15 +161,6 @@ const RemakeTab = ({ onBackToScenes, onNext, onError }) => {
                     <SceneRow key={scene.id} scene={scene} storyConfig={storyConfig} />
                 ))}
             </div>
-
-            <StoryConfigModal
-                isOpen={isStoryModalOpen}
-                storyDescription={storyConfig.storyDescription || ''}
-                changeRequest={storyConfig.changeRequest || ''}
-                onSave={handleStoryConfigSave}
-                onSkip={handleStoryConfigSkip}
-                onClose={handleStoryConfigClose}
-            />
         </div>
     );
 };

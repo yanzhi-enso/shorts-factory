@@ -8,6 +8,7 @@ import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
+import StoryConfigModal from './common/StoryConfigModal';
 import { useProjectManager } from '../hocs/ProjectManager';
 import { getUnlockedTabsForStage } from 'utils/projectValidation';
 
@@ -17,13 +18,14 @@ const PROJECT_ID_PARAM = 'pid';
 export default function TabManager() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { initializeFromUrl, projectState } = useProjectManager();
+    const { initializeFromUrl, projectState, updateProjectSettings } = useProjectManager();
 
     const [activeTab, setActiveTab] = useState(TABS.START);
     const [unlockedTabs, setUnlockedTabs] = useState([TABS.START]);
     
     const [error, setError] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
     const updateUrl = (tab, pid = null) => {
         const params = new URLSearchParams();
@@ -124,6 +126,27 @@ export default function TabManager() {
         updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
+    // Story Config Modal handlers
+    const handleStoryConfigSave = async (configData) => {
+        await updateProjectSettings({
+            storyDescription: configData.storyDescription,
+            changeRequest: configData.changeRequest,
+        });
+        setIsStoryModalOpen(false);
+    };
+
+    const handleStoryConfigSkip = () => {
+        setIsStoryModalOpen(false);
+    };
+
+    const handleStoryConfigClose = () => {
+        setIsStoryModalOpen(false);
+    };
+
+    const handleSettingsClick = () => {
+        setIsStoryModalOpen(true);
+    };
+
     // Don't render until initialized to avoid hydration issues
     if (!isInitialized) {
         return (
@@ -145,6 +168,7 @@ export default function TabManager() {
                         onBackToStart={handleBackToStart}
                         onNext={handleNextToRemake}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
 
@@ -153,6 +177,7 @@ export default function TabManager() {
                         onBackToScenes={handleBackToScenes}
                         onNext={handleNextFromRemake}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
 
@@ -160,11 +185,22 @@ export default function TabManager() {
                     <VideoTab
                         onBackToRemake={handleBackToRemake}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
+
+            <StoryConfigModal
+                isOpen={isStoryModalOpen}
+                storyDescription={projectState.currentProject?.settings?.storyDescription || ''}
+                changeRequest={projectState.currentProject?.settings?.changeRequest || ''}
+                originalVideoUrl={projectState.currentProject?.tiktok_url || ''}
+                onSave={handleStoryConfigSave}
+                onSkip={handleStoryConfigSkip}
+                onClose={handleStoryConfigClose}
+            />
         </>
     );
 }
