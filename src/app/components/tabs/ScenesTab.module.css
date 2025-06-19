@@ -10,7 +10,41 @@
   width: 100%;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.centerButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.actionButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settingsButton {
+  background: #FC9E4F;
+  color: white;
+}
+
+.settingsButton:hover {
+  background: #E38E47;
+}
+
+.instructionRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
 .stepButton {
@@ -27,6 +61,16 @@
 
 .stepButton:hover {
   background-color: #5a6268;
+}
+
+.stepButton.disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.stepButton.disabled:hover {
+  background-color: #adb5bd;
 }
 
 

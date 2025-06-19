@@ -55,6 +55,81 @@
   font-weight: 500;
 }
 
+.projectList {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.projectListTitle {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.projectTable {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.projectTableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+}
+
+.projectTableHeaderCell {
+  padding: 0.75rem;
+  text-align: left;
+  color: #495057;
+  font-size: 0.875rem;
+}
+
+.projectRow {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.projectRow:hover {
+  background-color: #f8f9fa;
+}
+
+.projectRow:last-child {
+  border-bottom: none;
+}
+
+.projectCell {
+  padding: 1rem 0.75rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.deleteButton {
+  padding: 0.375rem 0.75rem;
+  background-color: #b8394c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.deleteButton:hover {
+  background-color: #a83244;
+}
+
 @media (max-width: 768px) {
   .inputContainer {
     flex-direction: column;
@@ -70,5 +145,52 @@
   .button {
     width: 100%;
     max-width: 400px;
+  }
+  
+  .projectList {
+    margin-top: 1.5rem;
+  }
+  
+  .projectTableHeader,
+  .projectRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .projectTableHeader {
+    display: none; /* Hide header on mobile for cleaner look */
+  }
+  
+  .projectRow {
+    display: block;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .projectCell {
+    padding: 0.25rem 0;
+    display: block;
+  }
+  
+  .projectCell:first-child::before {
+    content: "Project: ";
+    font-weight: 600;
+    color: #666;
+  }
+  
+  .projectCell:nth-child(2)::before {
+    content: "Created: ";
+    font-weight: 600;
+    color: #666;
+  }
+  
+  .projectCell:last-child {
+    margin-top: 0.5rem;
+  }
+  
+  .deleteButton {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.875rem;
   }
 }

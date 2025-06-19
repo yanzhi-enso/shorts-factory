@@ -86,21 +86,12 @@
 }
 
 .settingsButton {
-  padding: 10px;
-  background-color: #FC9E4F;
+  background: #FC9E4F;
   color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.settingsButton:hover {
-  background-color: #E38E47;
+.settingsButton:hover:not(.disabled) {
+  background: #E38E47;
 }
 
 .disabled {

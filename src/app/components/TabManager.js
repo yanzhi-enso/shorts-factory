@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../page.module.css';
 import TabNavigation, { TABS } from './tabs/TabNavigation';
 import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
-import VideoTab from './video/VideoTab';
-import projectStorage from '../../services/projectStorage';
+import VideoTab from './tabs/VideoTab';
+import StoryConfigModal from './common/StoryConfigModal';
+import { useProjectManager } from '../hocs/ProjectManager';
+import { getUnlockedTabsForStage } from 'utils/projectValidation';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -16,20 +18,16 @@ const PROJECT_ID_PARAM = 'pid';
 export default function TabManager() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { initializeFromUrl, projectState, updateProjectSettings } = useProjectManager();
 
     const [activeTab, setActiveTab] = useState(TABS.START);
     const [unlockedTabs, setUnlockedTabs] = useState([TABS.START]);
-    const [projectId, setProjectId] = useState(null);
-    const [images, setImages] = useState([]);
-    const [remakeImages, setRemakeImages] = useState([]);
-    const [generatedImages, setGeneratedImages] = useState([]);
-    const [storyDescription, setStoryDescription] = useState('');
-    const [generatedVideos, setGeneratedVideos] = useState([]);
-    const [selectedIndices, setSelectedIndices] = useState({});
+    
     const [error, setError] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
 
-    const updateUrl = useCallback((tab, pid = null) => {
+    const updateUrl = (tab, pid = null) => {
         const params = new URLSearchParams();
         params.set(STAGE_PARAM, tab);
 
@@ -38,49 +36,41 @@ export default function TabManager() {
         }
 
         router.push(`/?${params.toString()}`, { shallow: true });
-    }, [router]);
+    };
 
     // Initialize from URL on mount
     useEffect(() => {
-        const initializeFromUrl = async () => {
+        const initializeFromUrlHandler = async () => {
             const stage = searchParams.get(STAGE_PARAM);
             const pid = searchParams.get(PROJECT_ID_PARAM);
 
-            if ((stage === TABS.SCENES || stage === TABS.REMAKE || stage === TABS.VIDEO) && pid) {
-                // Validate project exists by checking file list
-                try {
-                    const response = await fetch(`/api/files/${pid}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setProjectId(pid);
-                        setImages(data.files);
-                        setActiveTab(stage);
+            const isParsableStages = (
+                stage === TABS.SCENES ||
+                stage === TABS.REMAKE ||
+                stage === TABS.VIDEO
+            )
 
-                        // Set appropriate unlocked tabs based on current stage
-                        if (stage === TABS.SCENES) {
-                            setUnlockedTabs([TABS.START, TABS.SCENES]);
-                        } else if (stage === TABS.REMAKE) {
-                            setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
-                        } else if (stage === TABS.VIDEO) {
-                            setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
-                        }
-                    } else {
-                        // Project doesn't exist, redirect to start with error
-                        setError('Project not found or has expired');
-                        updateUrl(TABS.START);
-                    }
-                } catch (err) {
-                    setError('Failed to validate project');
+            if (isParsableStages && pid) {
+                // Use ProjectManager to initialize project from URL
+                const result = await initializeFromUrl(stage, pid);
+                
+                if (result.success) {
+                    console.log("Initialized from URL:", stage, pid);
+                    setActiveTab(stage);
+                    setUnlockedTabs(getUnlockedTabsForStage(stage));
+                    setError(null);
+                } else {
+                    console.error("Failed to initialize from URL");
+                    setError(result.error);
                     updateUrl(TABS.START);
                 }
-            } else if (
-                (stage === TABS.SCENES || stage === TABS.REMAKE || stage === TABS.VIDEO) &&
-                !pid
-            ) {
+            } else if ( isParsableStages && !pid) {
+                console.warn("no project id provided, go back to start tab");
                 // Invalid scenes/remake URL without project ID
                 setError('Invalid project URL');
                 updateUrl(TABS.START);
             } else {
+                console.log("no valid stage provided, go back to start tab");
                 // Default to start tab
                 setActiveTab(TABS.START);
             }
@@ -88,33 +78,13 @@ export default function TabManager() {
             setIsInitialized(true);
         };
 
-        initializeFromUrl();
-    }, [updateUrl, searchParams]);
+        initializeFromUrlHandler();
+    }, [initializeFromUrl]);
 
-    const handleTabChange = (tab) => {
-        if ((tab === TABS.SCENES || tab === TABS.REMAKE || tab === TABS.VIDEO) && !projectId) {
-            return; // Can't switch to scenes/remake/video without project
-        }
-
-        setActiveTab(tab);
-        updateUrl(
-            tab,
-            tab === TABS.SCENES || tab === TABS.REMAKE || tab === TABS.VIDEO ? projectId : null
-        );
-    };
-
-    const handleProcessComplete = async ({ projectId: newProjectId, images: newImages, tiktokUrl }) => {
-        try {
-            // Store project data in IndexedDB
-            await projectStorage.createProjectFromGCS(newProjectId, tiktokUrl, newImages);
-            console.log('Project stored successfully in IndexedDB:', newProjectId);
-        } catch (storageError) {
-            console.error('Failed to store project in IndexedDB:', storageError);
-            // Continue with the flow even if storage fails - don't break the user experience
-        }
-
-        setProjectId(newProjectId);
-        setImages(newImages);
+    // DEPRECATED: This method is being replaced by ProjectManager.createProject
+    // TODO: Remove when StartTab fully migrates to ProjectManager
+    const handleProcessComplete = ({ projectId: newProjectId }) => {
+        // Project creation is now handled by ProjectManager, this just handles navigation
         setActiveTab(TABS.SCENES);
         setUnlockedTabs([TABS.START, TABS.SCENES]);
         setError(null);
@@ -123,7 +93,6 @@ export default function TabManager() {
 
     const handleBackToStart = () => {
         setActiveTab(TABS.START);
-        setProjectId(null);
         setError(null);
         // Use replace instead of push to remove history entry
         const params = new URLSearchParams();
@@ -135,35 +104,47 @@ export default function TabManager() {
         setError(errorMessage);
     };
 
-    const handleNextToRemake = (filteredImages) => {
-        setRemakeImages(filteredImages);
+    const handleNextToRemake = () => {
         setActiveTab(TABS.REMAKE);
         setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
-        updateUrl(TABS.REMAKE, projectId);
+        updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
     const handleBackToScenes = () => {
         setActiveTab(TABS.SCENES);
-        updateUrl(TABS.SCENES, projectId);
+        updateUrl(TABS.SCENES, projectState.curProjId);
     };
 
-    const handleNextFromRemake = (generatedImagesData, storyConfig) => {
-        setGeneratedImages(generatedImagesData);
-        setStoryDescription(storyConfig.storyDescription);
+    const handleNextFromRemake = () => {
         setActiveTab(TABS.VIDEO);
         setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
-        updateUrl(TABS.VIDEO, projectId);
+        updateUrl(TABS.VIDEO, projectState.curProjId);
     };
 
     const handleBackToRemake = () => {
         setActiveTab(TABS.REMAKE);
-        updateUrl(TABS.REMAKE, projectId);
+        updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
-    const handleNextFromVideo = (generatedVideosData) => {
-        setGeneratedVideos(generatedVideosData);
-        // Future: implement next tab functionality
-        console.log('Next from Video - future functionality', generatedVideosData);
+    // Story Config Modal handlers
+    const handleStoryConfigSave = async (configData) => {
+        await updateProjectSettings({
+            storyDescription: configData.storyDescription,
+            changeRequest: configData.changeRequest,
+        });
+        setIsStoryModalOpen(false);
+    };
+
+    const handleStoryConfigSkip = () => {
+        setIsStoryModalOpen(false);
+    };
+
+    const handleStoryConfigClose = () => {
+        setIsStoryModalOpen(false);
+    };
+
+    const handleSettingsClick = () => {
+        setIsStoryModalOpen(true);
     };
 
     // Don't render until initialized to avoid hydration issues
@@ -182,42 +163,44 @@ export default function TabManager() {
                     <StartTab onProcessComplete={handleProcessComplete} onError={handleError} />
                 )}
 
-                {activeTab === TABS.SCENES && projectId && (
+                {activeTab === TABS.SCENES && (
                     <ScenesTab
-                        projectId={projectId}
-                        images={images}
-                        selectedIndices={selectedIndices}
-                        setSelectedIndices={setSelectedIndices}
                         onBackToStart={handleBackToStart}
                         onNext={handleNextToRemake}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
 
-                {activeTab === TABS.REMAKE && projectId && (
+                {activeTab === TABS.REMAKE && (
                     <RemakeTab
-                        projectId={projectId}
-                        images={remakeImages}
-                        selectedIndices={selectedIndices}
                         onBackToScenes={handleBackToScenes}
                         onNext={handleNextFromRemake}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
 
-                {activeTab === TABS.VIDEO && projectId && (
+                {activeTab === TABS.VIDEO && (
                     <VideoTab
-                        projectId={projectId}
-                        generatedImages={generatedImages}
-                        storyDescription={storyDescription}
                         onBackToRemake={handleBackToRemake}
-                        onNext={handleNextFromVideo}
                         onError={handleError}
+                        onSettingsClick={handleSettingsClick}
                     />
                 )}
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
+
+            <StoryConfigModal
+                isOpen={isStoryModalOpen}
+                storyDescription={projectState.currentProject?.settings?.storyDescription || ''}
+                changeRequest={projectState.currentProject?.settings?.changeRequest || ''}
+                originalVideoUrl={projectState.currentProject?.tiktok_url || ''}
+                onSave={handleStoryConfigSave}
+                onSkip={handleStoryConfigSkip}
+                onClose={handleStoryConfigClose}
+            />
         </>
     );
 }

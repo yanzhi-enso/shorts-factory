@@ -1,63 +1,76 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './StartTab.module.css';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { useProjectManager } from '../../hocs/ProjectManager';
 
 const StartTab = ({ onProcessComplete, onError }) => {
   const [videoUrl, setVideoUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const { projectState, createProject, loadProject, getAllProjects } = useProjectManager();
+
+  // Load projects on component mount
+  useEffect(() => {
+    const loadProjects = async () => {
+      const result = await getAllProjects();
+      if (result.success) {
+        setProjects(result.projects);
+      }
+    };
+    
+    loadProjects();
+  }, [getAllProjects]);
 
   const handleProcessVideo = async () => {
     if (!videoUrl) {
-      setError('Please enter a video URL');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Call backend API to start processing
-      const response = await fetch('/api/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_url: videoUrl })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process video');
-      }
-
-      const data = await response.json();
-      
-      // Fetch file list via backend proxy to avoid CORS issues
-      const fileListResponse = await fetch(`/api/files/${data.project_id}`);
-      if (!fileListResponse.ok) {
-        throw new Error('Failed to fetch file list');
-      }
-      
-      const fileData = await fileListResponse.json();
-      
-      // Call parent callback with success data
+    const result = await createProject(videoUrl);
+    
+    if (result.success) {
+      // Call parent callback for backward compatibility with TabManager
+      // This maintains the existing interface while we transition
       onProcessComplete({
-        projectId: data.project_id,
-        images: fileData.files,
-        tiktokUrl: videoUrl
+        projectId: result.projectId
       });
-    } catch (err) {
-      const errorMessage = err.message || 'An error occurred';
-      setError(errorMessage);
+    } else {
       if (onError) {
-        onError(errorMessage);
+        onError(result.error);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (loading) {
+  const handleLoadProject = async (projectId) => {
+    const result = await loadProject(projectId);
+    
+    if (result.success) {
+      onProcessComplete({
+        projectId: projectId
+      });
+    } else {
+      if (onError) {
+        onError(result.error);
+      }
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    console.log(`Deleting project ${projectId}`);
+    console.warn('not implemented yet');
+  }
+
+  // Use global loading state from ProjectManager
+  if (projectState.loading) {
     return <LoadingSpinner />;
   }
 
@@ -78,7 +91,48 @@ const StartTab = ({ onProcessComplete, onError }) => {
           Create Project
         </button>
       </div>
-      {error && <p className={styles.error}>{error}</p>}
+      {projectState.error && <p className={styles.error}>{projectState.error}</p>}
+      
+      {/* Project List Section */}
+      {projects.length > 0 && (
+        <div className={styles.projectList}>
+          <h3 className={styles.projectListTitle}>Load Existing Project</h3>
+          {/* TODO: Add pagination for large project lists */}
+          {/* TODO: Add search/filter functionality */}
+          {/* TODO: Add project status indicators (processing complete, scenes selected, etc.) */}
+          <div className={styles.projectTable}>
+            <div className={styles.projectTableHeader}>
+              <div className={styles.projectTableHeaderCell}>Project Name</div>
+              <div className={styles.projectTableHeaderCell}>Created</div>
+              <div className={styles.projectTableHeaderCell}>Actions</div>
+            </div>
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className={styles.projectRow}
+                onClick={() => handleLoadProject(project.id)}
+              >
+                <div className={styles.projectCell}>
+                  {project.name || "Unknown"}
+                </div>
+                <div className={styles.projectCell}>
+                  {formatDate(project.created_at)}
+                </div>
+                <div className={styles.projectCell}>
+                <button
+                    className={styles.deleteButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(project.id);
+                    }}
+                >
+                  Delete
+                </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>)}
     </div>
   );
 };

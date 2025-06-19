@@ -58,7 +58,7 @@ PROJECTS (1) ──────── (M) SCENES
 
 ### 5. SCENE_CLIPS
 **Purpose**: Final video clips generated from recreated scene images
-- **Relationship**: Many-to-one with RECREATED_SCENE_IMAGES
+- **Relationship**: Many-to-one with SCENES table
 - **Key Responsibilities**:
   - Store generated video data
   - Track generation prompts and attempts
@@ -67,8 +67,7 @@ PROJECTS (1) ──────── (M) SCENES
 ## Key Design Considerations
 
 ### Flexibility Requirements
-- **User-created scenes**: SCENES table must handle scenes without source video
-- **Multiple attempts**: Both RECREATED_SCENE_IMAGES and SCENE_CLIPS need versioning
+- **User-created scenes**: SCENES table must handle scenes without source video or without source image
 - **Special image format**: Need to accommodate your custom image storage format
 
 ### Data Hierarchy
@@ -77,12 +76,13 @@ Project
 ├── Scene 1 (extracted)
 │   ├── Scene Image 1a (candidate)
 │   ├── Scene Image 1b (candidate) 
-│   ├── Recreated Image 1 (attempt 1) → Clip 1a, Clip 1b
-│   └── Recreated Image 2 (attempt 2) → Clip 2a
+│   ├── Recreated Image 1 (attempt 1)
+│   └── Recreated Image 2 (attempt 2)
+│   └── Generated Clip 1 (attempt 2)
 ├── Scene 2 (extracted + selected)
 │   └── ...
 └── Scene 3 (user-created)
-    ├── Recreated Image 1 (prompt-only) → Clip 1
+    ├── Recreated Image 1 (prompt-only)
     └── ...
 ```
 
@@ -121,17 +121,33 @@ Projects need to track current stage:
 | `project_id` | UUID | NOT NULL, FK to projects.id | Parent project reference |
 | `scene_order` | INTEGER | NOT NULL | Gap-based ordering (100, 200, 300...) for easy insertions |
 | `is_selected` | BOOLEAN | DEFAULT FALSE | Whether user selected scene for processing |
-| `selected_image_id` | INTEGER | NULLABLE, FK to scene_images.id | Reference to selected scene image |
+| `selected_image_id` | INTEGER | NULLABLE, FK to scene_images.id | Selected original scene image |
+| `selected_generated_image_id` | INTEGER | NULLABLE, FK to scene_generated_scene_images.id | Selected AI-generated image |
+| `selected_clip_id` | INTEGER | NULLABLE, FK to scene_clips.id | Selected video clip |
 | `settings` | JSON | NULLABLE | Scene-specific configuration and UI settings |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When scene was created |
 
 **Notes:**
 - Supports both extracted scenes and user-created scenes
 - `scene_order` uses gap-based integers (100, 200, 300) to allow mid-list insertions without mass updates
-- `selected_image_id` points to the user's chosen image for this scene (no joins needed for common queries)
-- When gaps get tight, occasional rebalancing may be needed
+- Three selection fields track user's chosen assets at each stage of the workflow
+- All selections are nullable to support different workflow stages
 
-### 4. RECREATED_SCENE_IMAGES Table ✅
+### 3. SCENE_IMAGES Table ✅
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Auto-generated image ID |
+| `scene_id` | INTEGER | NOT NULL, FK to scenes.id | Parent scene reference |
+| `gcs_url` | TEXT | NOT NULL | URL to image stored in Google Cloud Storage |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When image was processed/stored |
+
+**Notes:**
+- Images are ordered by `created_at` (temporal order from video processing)
+- No explicit ordering field needed since insertion order = processing order
+- Selection state is managed in the SCENES table via `source_img_id`
+
+### 4. GENERATED_SCENE_IMAGES Table ✅
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
@@ -142,8 +158,8 @@ Projects need to track current stage:
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When image was generated |
 
 **Notes:**
-- Each recreated image is independent (no versioning/attempt tracking)
-- Selection state managed in SCENES table (similar to scene_images)
+- Each generated image is independent (no versioning/attempt tracking)
+- Selection state managed in SCENES table via `generated_img_id`
 - `generation_sources` JSON structure example:
   ```json
   {
@@ -152,8 +168,23 @@ Projects need to track current stage:
     "mask": "gcs_url_to_mask"
   }
   ```
-- Images in sources can be scene images, tool images, or any other reference images
-- No rigid foreign key relationships for maximum flexibility
+- Works for both "recreated from source" and "created from scratch" scenarios
+
+### 5. SCENE_CLIPS Table ✅
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Auto-generated clip ID |
+| `scene_id` | INTEGER | NOT NULL, FK to scenes.id | Parent scene reference |
+| `gcs_url` | TEXT | NOT NULL | URL to generated video clip in Google Cloud Storage |
+| `generation_sources` | JSON | NULLABLE | Sources used for video generation (prompt, images, etc.) |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When video was generated |
+
+**Notes:**
+- Each video clip is independent (no versioning/attempt tracking)
+- Selection state managed in SCENES table via `selected_clip_id`
+- `generation_sources` stores flexible input data as URLs (no rigid FK relationships)
+- Typically includes generated image URL and text prompt for video generation
 
 ---
 

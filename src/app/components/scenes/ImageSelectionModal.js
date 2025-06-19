@@ -2,7 +2,9 @@ import React from 'react';
 import Image from 'next/image';
 import styles from './ImageSelectionModal.module.css';
 
-const ImageSelectionModal = ({ isOpen, onClose, sceneImages, onSelectImage, selectedIndex }) => {
+const ImageSelectionModal = ({
+  isOpen, onClose, scene, onSelectImage
+}) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e) => {
@@ -11,29 +13,28 @@ const ImageSelectionModal = ({ isOpen, onClose, sceneImages, onSelectImage, sele
     }
   };
 
-  const handleImageSelect = (index) => {
-    onSelectImage(index);
-    onClose(); // Auto-close after selection
-  };
+  const isSelected = (imageObj) => {
+    return imageObj.gcsUrl === scene.selectedImage;
+  }
 
   return (
     <div className={styles.backdrop} onClick={handleBackdropClick}>
       <div className={styles.modal}>
         <div className={styles.imageRow}>
-          {sceneImages.map((imageUrl, index) => (
+          {scene?.sceneImages?.map((imageObj, index) => (
             <div 
-              key={index} 
-              className={`${styles.imageContainer} ${selectedIndex === index ? styles.selected : ''}`}
-              onClick={() => handleImageSelect(index)}
+              key={imageObj.id || index} 
+              className={`${styles.imageContainer} ${isSelected(imageObj) ? styles.selected : ''}`}
+              onClick={() => onSelectImage(index)}
             >
               <Image
-                src={imageUrl}
+                src={imageObj.gcsUrl}
                 alt={`Scene option ${index + 1}`}
                 width={150}
                 height={250}
                 className={styles.image}
               />
-              {selectedIndex === index && (
+              {isSelected(imageObj) && (
                 <div className={styles.selectedIndicator}>✓</div>
               )}
             </div>

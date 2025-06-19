@@ -4,42 +4,40 @@
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.gridItem.customSelected {
-  border: 2px solid white;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 0 0 2px white;
+.gridItem.deselected {
+  opacity: 0.7;
 }
 
-.deleteButton {
+.selectionCheckbox {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #e74c3c;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 10;
-  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.deleteButton:hover {
-  background-color: #e74c3c;
-  color: white;
-  transform: scale(1.1);
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
 }
 
-.deleteButton:active {
-  transform: scale(0.95);
+.opacityMask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 5;
 }
 
 .image {
@@ -53,14 +51,58 @@
   transform: scale(1.05);
 }
 
+.sceneInfo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  color: white;
+  padding: 12px 8px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  z-index: 6;
+}
+
+.sceneInfo span:first-child {
+  font-weight: bold;
+}
+
+.sceneInfo span:last-child {
+  opacity: 0.8;
+}
+
+/* Selected state styling */
+.gridItem:not(.deselected) {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 @media (max-width: 768px) {
   .image {
     height: 250px;
+  }
+  
+  .sceneInfo {
+    font-size: 11px;
+    padding: 8px 6px 6px;
   }
 }
 
 @media (max-width: 480px) {
   .image {
     height: 200px;
+  }
+  
+  .sceneInfo {
+    font-size: 10px;
+    padding: 6px 4px 4px;
+  }
+  
+  .checkbox {
+    width: 14px;
+    height: 14px;
   }
 }
