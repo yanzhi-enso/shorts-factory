@@ -4,20 +4,16 @@ import styles from './VideoBlock.module.css';
 const VideoBlock = ({ 
   videoUrl, 
   title, 
-  onClick, 
   variant = 'generated', // 'generated', 'empty'
   isEmpty = false,
-  isGenerating = false 
+  isGenerating = false,
+  sceneClips = [],
+  selectedSceneClipId = null,
+  onHistoryClick
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const videoRef = useRef(null);
-
-  const handleClick = () => {
-    if (onClick && videoUrl) {
-      onClick(videoUrl, title, variant);
-    }
-  };
 
   const handleVideoLoad = () => {
     setIsLoading(false);
@@ -87,10 +83,28 @@ const VideoBlock = ({
 
   return (
     <div 
-      className={`${styles.videoBlock} ${isEmpty ? styles.empty : ''} ${isGenerating ? styles.generating : ''} ${styles[variant]}`} 
-      onClick={handleClick}
+      className={`${styles.videoBlock} ${isEmpty ? styles.empty : ''} ${isGenerating ? styles.generating : ''} ${styles[variant]}`}
     >
       {renderContent()}
+
+      {/* History button - bottom centered, appears on hover */}
+      {sceneClips.length > 1 && onHistoryClick && (
+        <button
+          className={styles.historyButton}
+          onClick={onHistoryClick}
+          disabled={sceneClips.length < 2}
+        >
+          History
+        </button>
+      )}
+
+      {/* Show history indicator if there are multiple clips */}
+      {sceneClips.length > 1 && (
+        <div className={styles.historyIndicator}>
+          {sceneClips.findIndex((clip) => clip.id === selectedSceneClipId) + 1}
+          /{sceneClips.length}
+        </div>
+      )}
     </div>
   );
 };

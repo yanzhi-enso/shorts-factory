@@ -132,6 +132,13 @@
   font-weight: 500;
 }
 
+.generateButtonContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
 .generateButton {
   background: #28a745;
   color: white;
@@ -173,6 +180,7 @@
   animation: spin 1s linear infinite;
   margin-left: 8px;
 }
+
 
 @keyframes spin {
   0% { transform: rotate(0deg); }

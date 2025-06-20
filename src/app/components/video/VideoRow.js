@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
+import VideoHistoryModal from './VideoHistoryModal';
 import RemakeImageBlock from '../remake/RemakeImageBlock';
 import VideoControlPanel from './VideoControlPanel';
 import { useProjectManager } from 'app/hocs/ProjectManager';
@@ -13,16 +14,16 @@ const VideoRow = ({
     storyConfig,
     videoManager,
     onInputImageClick,
-    onGeneratedVideoClick,
 }) => {
-    const { addGeneratedClip } = useProjectManager();
-    const { id: sceneId, selectedGeneratedImage, generatedImages, selectedSceneClip } = scene;
+    const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
+    const { id: sceneId, selectedGeneratedImage, generatedImages, selectedSceneClip, sceneClips, selectedSceneClipId } = scene;
 
     // Internal state for this specific scene row
     const [prompt, setPrompt] = useState('');
     const [isPromptAssistantRunning, setIsPromptAssistantRunning] = useState(false);
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [error, setError] = useState(null);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
     const handlePromptChange = (newPrompt) => {
         setPrompt(newPrompt);
@@ -100,10 +101,20 @@ const VideoRow = ({
         }
     };
 
-    const handleGeneratedVideoClick = (videoUrl, title, variant) => {
-        if (onGeneratedVideoClick) {
-            onGeneratedVideoClick(videoUrl, title, variant);
+    const handleGeneratedVideoClick = () => {
+        // Open history modal instead of the old behavior
+        setHistoryModalOpen(true);
+    };
+
+    const handleHistoryModalClose = () => {
+        setHistoryModalOpen(false);
+    };
+
+    const handleSelectFromHistory = async (selectedClipId) => {
+        if (updateSelectedGeneratedClip) {
+            await updateSelectedGeneratedClip(selectedClipId);
         }
+        setHistoryModalOpen(false);
     };
 
     const inputImage = {
@@ -145,11 +156,21 @@ const VideoRow = ({
                     variant='generated'
                     isEmpty={!selectedSceneClip}
                     isGenerating={isGeneratingVideo}
-                    onClick={() =>
-                        handleGeneratedVideoClick(selectedSceneClip, `${sceneId} Generated Video`)
-                    }
+                    sceneClips={sceneClips}
+                    selectedSceneClipId={selectedSceneClipId}
+                    onHistoryClick={handleGeneratedVideoClick}
                 />
             </div>
+
+            {/* Video History Modal */}
+            <VideoHistoryModal
+                isOpen={historyModalOpen}
+                sceneId={sceneId}
+                sceneClips={sceneClips}
+                selectedSceneClipId={selectedSceneClipId}
+                onClose={handleHistoryModalClose}
+                onSelectClip={handleSelectFromHistory}
+            />
         </div>
     );
 };

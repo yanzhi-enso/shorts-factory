@@ -78,13 +78,15 @@ const VideoControlPanel = ({
         )}
 
         {/* Generate Button (no dropdown for video) */}
-        <button
-          className={`${styles.generateButton} ${isGenerating ? styles.generating : ''}`}
-          onClick={handleGenerateClick}
-          disabled={isGenerating}
-        >
-          {isGenerating ? 'Generating...' : 'Generate Video'}
-        </button>
+        <div className={styles.generateButtonContainer}>
+          <button
+            className={`${styles.generateButton} ${isGenerating ? styles.generating : ''}`}
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+          >
+            {isGenerating ? 'Generating...' : 'Generate Video'}
+          </button>
+        </div>
       </div>
     </div>
   );
