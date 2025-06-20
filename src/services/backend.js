@@ -122,6 +122,7 @@ export async function generateVideo(imageBase64, prompt, options = {}) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+                model_name: 'kling-v2-1',
                 image: imageBase64,
                 prompt,
                 ...options
