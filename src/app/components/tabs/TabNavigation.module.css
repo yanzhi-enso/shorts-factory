@@ -13,43 +13,45 @@
   border-bottom: 3px solid transparent;
   font-size: 1rem;
   font-weight: 500;
-  color: #6c757d;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.2s ease;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.tab:hover:not(:disabled) {
-  color: #495057;
-  background-color: #e9ecef;
-}
-
+/* Active tab - currently selected */
 .tab.active {
   color: #007bff;
   border-bottom-color: #007bff;
   background-color: white;
+  font-weight: 600;
 }
 
-.tab:disabled {
-  color: #adb5bd;
-  cursor: not-allowed;
-  opacity: 0.6;
+/* Unlocked tab - available for navigation */
+.tab.unlocked {
+  color: #6c757d;
 }
 
-.tab:disabled:hover {
-  background: none;
-}
-
+/* Locked tab - not yet accessible */
 .tab.locked {
   color: #adb5bd;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.tab.unlocked {
-  cursor: default;
+/* Clickable tabs get hover effects */
+.tab.clickable {
+  cursor: pointer;
 }
 
+.tab.clickable:hover {
+  color: #495057;
+  background-color: #e9ecef;
+}
+
+/* Locked tabs don't get hover effects */
 .tab.locked:hover {
   background: none;
   color: #adb5bd;

@@ -10,7 +10,6 @@ import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
 import StoryConfigModal from './common/StoryConfigModal';
 import { useProjectManager } from '../hocs/ProjectManager';
-import { getUnlockedTabsForStage } from 'utils/projectValidation';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -18,10 +17,9 @@ const PROJECT_ID_PARAM = 'pid';
 export default function TabManager() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { initializeFromUrl, projectState, updateProjectSettings } = useProjectManager();
+    const { initializeFromUrl, projectState, updateProjectSettings, updateStage } = useProjectManager();
 
     const [activeTab, setActiveTab] = useState(TABS.START);
-    const [unlockedTabs, setUnlockedTabs] = useState([TABS.START]);
     
     const [error, setError] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -57,7 +55,6 @@ export default function TabManager() {
                 if (result.success) {
                     console.log("Initialized from URL:", stage, pid);
                     setActiveTab(stage);
-                    setUnlockedTabs(getUnlockedTabsForStage(stage));
                     setError(null);
                 } else {
                     console.error("Failed to initialize from URL");
@@ -81,12 +78,30 @@ export default function TabManager() {
         initializeFromUrlHandler();
     }, [initializeFromUrl]);
 
+    // Tab click navigation handler
+    const handleTabClick = async (tab) => {
+        // Auto-advance stage if navigating to a more advanced tab
+        const currentStage = projectState.currentProject?.stage || 'scenes';
+        
+        if (tab !== TABS.START && tab !== currentStage) {
+            await updateStage(tab);
+        }
+        
+        setActiveTab(tab);
+        
+        // Update URL based on tab
+        if (tab === TABS.START) {
+            updateUrl(TABS.START);
+        } else {
+            updateUrl(tab, projectState.curProjId);
+        }
+    };
+
     // DEPRECATED: This method is being replaced by ProjectManager.createProject
     // TODO: Remove when StartTab fully migrates to ProjectManager
     const handleProcessComplete = ({ projectId: newProjectId }) => {
         // Project creation is now handled by ProjectManager, this just handles navigation
         setActiveTab(TABS.SCENES);
-        setUnlockedTabs([TABS.START, TABS.SCENES]);
         setError(null);
         updateUrl(TABS.SCENES, newProjectId);
     };
@@ -104,9 +119,9 @@ export default function TabManager() {
         setError(errorMessage);
     };
 
-    const handleNextToRemake = () => {
+    const handleNextToRemake = async () => {
+        await updateStage('remake');
         setActiveTab(TABS.REMAKE);
-        setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE]);
         updateUrl(TABS.REMAKE, projectState.curProjId);
     };
 
@@ -115,9 +130,9 @@ export default function TabManager() {
         updateUrl(TABS.SCENES, projectState.curProjId);
     };
 
-    const handleNextFromRemake = () => {
+    const handleNextFromRemake = async () => {
+        await updateStage('video');
         setActiveTab(TABS.VIDEO);
-        setUnlockedTabs([TABS.START, TABS.SCENES, TABS.REMAKE, TABS.VIDEO]);
         updateUrl(TABS.VIDEO, projectState.curProjId);
     };
 
@@ -154,9 +169,16 @@ export default function TabManager() {
         );
     }
 
+    // Get current stage from project state for tab status computation
+    const currentStage = projectState.currentProject?.stage || 'scenes';
+
     return (
         <>
-            <TabNavigation activeTab={activeTab} unlockedTabs={unlockedTabs} />
+            <TabNavigation 
+                activeTab={activeTab} 
+                currentStage={currentStage}
+                onTabClick={handleTabClick}
+            />
 
             <div className={styles.tabContent}>
                 {activeTab === TABS.START && (

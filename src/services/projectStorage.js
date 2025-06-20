@@ -124,6 +124,7 @@ class ProjectStorage {
             story_description: projectData.story_description || null,
             story_global_changes: projectData.story_global_changes || null,
             settings: projectData.settings || {},
+            stage: projectData.stage || 'scenes', // Default to scenes stage
             created_at: new Date().toISOString(),
             modified_at: new Date().toISOString(),
         };

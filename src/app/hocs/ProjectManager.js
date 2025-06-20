@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import projectStorage from 'services/projectStorage';
-import { validateProjectExists } from 'utils/projectValidation';
+import { validateProjectExists, isStageAdvancement } from 'utils/projectValidation';
 
 // Initial state for the project manager
 const initialState = {
@@ -27,7 +27,8 @@ const PROJECT_ACTIONS = {
     ADD_GENERATED_IMAGE_SUCCESS: 'ADD_GENERATED_IMAGE_SUCCESS',
     UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION',
     ADD_GENERATED_CLIP_SUCCESS: 'ADD_GENERATED_CLIP_SUCCESS',
-    UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION'
+    UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION',
+    UPDATE_PROJECT_STAGE: 'UPDATE_PROJECT_STAGE'
 };
 
 /**
@@ -300,6 +301,15 @@ function projectReducer(state, action) {
                           }
                         : scene
                 )
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_PROJECT_STAGE:
+            return {
+                ...state,
+                currentProject: {
+                    ...state.currentProject,
+                    stage: action.payload.stage
+                }
             };
         
         default:
@@ -785,6 +795,36 @@ export function ProjectProvider({ children }) {
     };
 
     /**
+     * Update project stage with progression validation
+     * Only updates if new stage is more advanced than current stage
+     */
+    const updateStage = async (newStage) => {
+        try {
+            const currentStage = projectState.currentProject?.stage || 'scenes';
+            
+            // Use utility function for stage comparison
+            if (isStageAdvancement(currentStage, newStage)) {
+                // Update in persistent storage
+                await projectStorage.updateProject(projectState.curProjId, { stage: newStage });
+                
+                // Update in local state
+                dispatch({ 
+                    type: PROJECT_ACTIONS.UPDATE_PROJECT_STAGE, 
+                    payload: { stage: newStage } 
+                });
+                
+                return { success: true, updated: true };
+            }
+            
+            return { success: true, updated: false }; // No update needed
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update project stage';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
      * Handle image upload (placeholder implementation)
      * TODO: Implement GCS upload and proper image storage
      */
@@ -811,6 +851,7 @@ export function ProjectProvider({ children }) {
         getGeneratedClips,
         updateSelectedGeneratedClip,
         updateProjectSettings,
+        updateStage,
         handleImageUpload
     };
     

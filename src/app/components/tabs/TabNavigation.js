@@ -1,6 +1,7 @@
 "use client";
 
 import styles from './TabNavigation.module.css';
+import { getTabStatus } from 'utils/projectValidation';
 
 const TABS = {
   START: 'start',
@@ -9,29 +10,45 @@ const TABS = {
   VIDEO: 'video'
 };
 
-const TabNavigation = ({ activeTab, unlockedTabs }) => {
+const getTabLabel = (tab) => {
+  switch (tab) {
+    case TABS.START:
+      return 'Start';
+    case TABS.SCENES:
+      return 'Scenes';
+    case TABS.REMAKE:
+      return 'Remake';
+    case TABS.VIDEO:
+      return 'Video';
+    default:
+      return tab;
+  }
+};
+
+const TabNavigation = ({ activeTab, currentStage, onTabClick }) => {
+  const handleTabClick = (tab) => {
+    const status = getTabStatus(tab, activeTab, currentStage);
+    if (status === 'unlocked' && tab !== activeTab) {
+      onTabClick(tab);
+    }
+  };
+
   return (
     <div className={styles.container}>
-      <div
-        className={`${styles.tab} ${activeTab === TABS.START ? styles.active : ''} ${unlockedTabs.includes(TABS.START) ? styles.unlocked : styles.locked}`}
-      >
-        Start
-      </div>
-      <div
-        className={`${styles.tab} ${activeTab === TABS.SCENES ? styles.active : ''} ${unlockedTabs.includes(TABS.SCENES) ? styles.unlocked : styles.locked}`}
-      >
-        Scenes
-      </div>
-      <div
-        className={`${styles.tab} ${activeTab === TABS.REMAKE ? styles.active : ''} ${unlockedTabs.includes(TABS.REMAKE) ? styles.unlocked : styles.locked}`}
-      >
-        Remake
-      </div>
-      <div
-        className={`${styles.tab} ${activeTab === TABS.VIDEO ? styles.active : ''} ${unlockedTabs.includes(TABS.VIDEO) ? styles.unlocked : styles.locked}`}
-      >
-        Video
-      </div>
+      {Object.values(TABS).map(tab => {
+        const status = getTabStatus(tab, activeTab, currentStage);
+        return (
+          <div
+            key={tab}
+            className={`${styles.tab} ${styles[status]} ${
+              status === 'unlocked' ? styles.clickable : ''
+            }`}
+            onClick={() => handleTabClick(tab)}
+          >
+            {getTabLabel(tab)}
+          </div>
+        );
+      })}
     </div>
   );
 };
