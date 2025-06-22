@@ -99,13 +99,14 @@ const SceneRow = ({ scene, storyConfig }) => {
     };
 
     const handleImageUploadInternal = async (imageFile) => {
-        // Call ProjectManager's placeholder upload handler
+        // Call ProjectManager's image upload handler
         const result = await handleImageUpload(sceneDbId, imageFile);
 
         if (!result.success) {
-            console.log('Image upload:', result.error);
-            // For now, just show the error since upload is not implemented
-            alert(`Image upload not yet implemented: ${result.error}`);
+            console.error('Image upload failed:', result.error);
+            // Error handling is already done in ProjectManager (shows alert)
+        } else {
+            console.log('Image uploaded successfully:', result.publicUrl);
         }
     };
 

@@ -825,12 +825,101 @@ export function ProjectProvider({ children }) {
     };
 
     /**
-     * Handle image upload (placeholder implementation)
-     * TODO: Implement GCS upload and proper image storage
+     * Convert WebP image to PNG using Canvas API
+     */
+    const convertWebPToPNG = async (webpFile) => {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        // Create a new File object with PNG type
+                        const pngFile = new File([blob], webpFile.name.replace(/\.webp$/i, '.png'), {
+                            type: 'image/png',
+                            lastModified: Date.now()
+                        });
+                        resolve(pngFile);
+                    } else {
+                        reject(new Error('Failed to convert WebP to PNG'));
+                    }
+                }, 'image/png', 1.0); // Maximum quality
+            };
+            
+            img.onerror = () => reject(new Error('Failed to load WebP image'));
+            img.src = URL.createObjectURL(webpFile);
+        });
+    };
+
+    /**
+     * Handle image upload with file validation, WebP conversion, and GCS upload
      */
     const handleImageUpload = async (sceneId, imageFile) => {
-        console.log('Image upload not implemented yet', { sceneId, imageFile });
-        return { success: false, error: 'Upload not implemented' };
+        try {
+            // 1. Validate file size (< 25MB)
+            const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+            if (imageFile.size > maxSize) {
+                alert('File size must be less than 25MB');
+                return { success: false, error: 'File size exceeds 25MB limit' };
+            }
+
+            // 2. Handle WebP conversion to PNG if needed
+            let processedFile = imageFile;
+            if (imageFile.type === 'image/webp') {
+                try {
+                    processedFile = await convertWebPToPNG(imageFile);
+                } catch (conversionError) {
+                    console.error('WebP conversion failed:', conversionError);
+                    return { success: false, error: 'Failed to convert WebP image' };
+                }
+            }
+
+            // 3. Request signed URL from backend
+            const signedUrlResponse = await fetch('/api/upload/signed-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: projectState.curProjId })
+            });
+
+            if (!signedUrlResponse.ok) {
+                throw new Error('Failed to get signed URL');
+            }
+
+            const { signed_url, public_url, image_id } = await signedUrlResponse.json();
+
+            // 4. Upload file directly to GCS using signed URL
+            const uploadResponse = await fetch(signed_url, {
+                method: 'PUT',
+                body: processedFile,
+                headers: {
+                    'Content-Type': 'image/png'
+                }
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image to storage');
+            }
+
+            // 5. Store public URL in IndexedDB (no generation sources for uploaded images)
+            const result = await addGeneratedImage(sceneId, public_url, null);
+            
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return { success: true, imageId: image_id, publicUrl: public_url };
+
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            alert(`Image upload failed: ${error.message}`);
+            return { success: false, error: error.message };
+        }
     };
 
     const value = {

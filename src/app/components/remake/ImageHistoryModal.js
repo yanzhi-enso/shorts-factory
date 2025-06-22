@@ -29,11 +29,11 @@ const ImageHistoryModal = ({
     };
 
     const handleFileChange = (e) => {
-        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
         const file = e.target.files?.[0];
         if (file && onImageUpload) {
             if (!allowedTypes.includes(file.type)) {
-                alert('Please select only PNG or JPEG images');
+                alert('Please select only PNG, JPEG, or WebP images');
                 e.target.value = '';
                 return;
             }
@@ -121,7 +121,7 @@ const ImageHistoryModal = ({
                 <input
                     ref={fileInputRef}
                     type='file'
-                    accept='image/png,image/jpeg,image/jpg'
+                    accept='image/png,image/jpeg,image/jpg,image/webp'
                     onChange={handleFileChange}
                     style={{ display: 'none' }}
                 />
