@@ -4,6 +4,7 @@
   height: 100%;
   padding: 20px;
   background-color: #f8f9fa;
+  overflow: hidden;
 }
 
 .header {
@@ -105,8 +106,10 @@
 
 .rowsContainer {
   flex: 1;
-  overflow-y: auto;
   padding-right: 8px;
+  overflow-y: scroll;
+  height: 100%;
+  min-height: 100%;
 }
 
 /* Scrollbar styling */
