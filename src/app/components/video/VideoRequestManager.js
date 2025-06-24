@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateVideo, getVideoTaskStatus, KlingThrottleError } from 'services/backend';
+import { useProjectManager } from 'app/hocs/ProjectManager';
 
 const VideoRequestManager = ({ children, onError, ...props }) => {
+    const { projectState } = useProjectManager();
     const [requestQueue, setRequestQueue] = useState([]);
     const [activePolling, setActivePolling] = useState(new Map()); // taskId -> { sceneId, startTime }
     const [isQueueHalted, setIsQueueHalted] = useState(false);
@@ -246,7 +248,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
                     console.log(
                         `🔄 Polling attempt ${attempts}/${maxAttempts} for task ${taskId} (scene: ${sceneId})`
                     );
-                    const result = await getVideoTaskStatus(taskId);
+                    const result = await getVideoTaskStatus(taskId, projectState.curProjId);
 
                     if (
                         result.data?.task_status === 'succeed' &&

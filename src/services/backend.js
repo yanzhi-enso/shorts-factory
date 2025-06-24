@@ -87,8 +87,12 @@ export async function analyzeImageForVideo(
     }
 }
 
-export async function generateImage(prompt, n = 1) {
+export async function generateImage(prompt, n = 1, projectId) {
     try {
+        if (!projectId) {
+            throw new Error('Project ID is required for image generation');
+        }
+
         const response = await fetch(
             '/api/workflows/txt2img/gen_img', {
             method: 'POST',
@@ -97,7 +101,8 @@ export async function generateImage(prompt, n = 1) {
             },
             body: JSON.stringify({
                 prompt,
-                n
+                n,
+                project_id: projectId
             })
         });
 
@@ -158,9 +163,13 @@ export async function generateVideo(imageBase64, prompt, options = {}) {
     }
 }
 
-export async function getVideoTaskStatus(taskId) {
+export async function getVideoTaskStatus(taskId, projectId) {
     try {
-        const response = await fetch(`/api/services/kling/video/${taskId}`, {
+        if (!projectId) {
+            throw new Error('Project ID is required for video task status');
+        }
+
+        const response = await fetch(`/api/services/kling/video/${taskId}?project_id=${encodeURIComponent(projectId)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
