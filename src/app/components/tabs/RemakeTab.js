@@ -8,6 +8,7 @@ import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import { useProjectManager } from 'app/hocs/ProjectManager';
+import ToolBoxBlock from '../remake/ToolBoxBlock';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
@@ -157,6 +158,10 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.rowsContainer}>
+                <div className={styles.toolbox}>
+                    {/* <ToolBoxBlock src="https://via.placeholder.com/100x100/007bff/ffffff?text=Test" /> */}
+                    <ToolBoxBlock />
+                </div>
                 {selectedScenes.map((scene) => (
                     <SceneRow key={scene.id} scene={scene} storyConfig={storyConfig} />
                 ))}
