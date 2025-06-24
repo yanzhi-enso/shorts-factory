@@ -9,7 +9,7 @@ import { analyzeImage, generateImage } from 'services/backend';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 
 const SceneRow = ({ scene, storyConfig }) => {
-    const { addGeneratedImage, updateSelectedGeneratedImage, handleImageUpload } =
+    const { addGeneratedImage, updateSelectedGeneratedImage, handleImageUpload, projectState } =
         useProjectManager();
 
     // Parse scene properties
@@ -66,29 +66,34 @@ const SceneRow = ({ scene, storyConfig }) => {
         setIsGenerating(true);
 
         try {
-            const result = await generateImage(prompt, imageCount);
+            // Get project ID from ProjectManager state
+            const { curProjId } = projectState;
+            
+            if (!curProjId) {
+                throw new Error('No project ID available');
+            }
+
+            const result = await generateImage(prompt, imageCount, curProjId);
 
             // Handle multiple images response
             if (result?.images && Array.isArray(result.images)) {
                 // Add each generated image to ProjectManager
                 for (const imgData of result.images) {
-                    const imageDataUrl = `data:image/png;base64,${imgData.imageBase64}`;
                     const generationSources = {
                         prompt: prompt,
                         revisedPrompt: imgData.revisedPrompt || result.revisedPrompt || prompt,
                     };
 
-                    await addGeneratedImage(sceneDbId, imageDataUrl, generationSources);
+                    await addGeneratedImage(sceneDbId, imgData.imageUrl, generationSources);
                 }
-            } else if (result?.imageBase64) {
+            } else if (result?.imageUrl) {
                 // Single image returned (backward compatibility)
-                const imageDataUrl = `data:image/png;base64,${result.imageBase64}`;
                 const generationSources = {
                     prompt: prompt,
                     revisedPrompt: result?.revisedPrompt || prompt,
                 };
 
-                await addGeneratedImage(sceneDbId, imageDataUrl, generationSources);
+                await addGeneratedImage(sceneDbId, result.imageUrl, generationSources);
             }
         } catch (error) {
             console.error('Error generating image:', error);
