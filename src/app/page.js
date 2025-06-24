@@ -10,8 +10,6 @@ export default function Home() {
         <ProjectProvider>
             <div className={styles.page}>
                 <main className={styles.main}>
-                    <h1 className={styles.title}>TikTok Video Processor</h1>
-                    
                     <Suspense 
                         fallback={
                             <div className={styles.loading}>Loading...</div>
