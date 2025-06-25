@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'shorts-factory-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 // Table names
 const STORES = {
@@ -13,6 +13,7 @@ const STORES = {
     SCENE_IMAGES: 'scene_images',
     RECREATED_SCENE_IMAGES: 'recreated_scene_images',
     SCENE_CLIPS: 'scene_clips',
+    ELEMENT_IMAGES: 'element_images',
 };
 
 class ProjectStorage {
@@ -94,6 +95,19 @@ class ProjectStorage {
                             autoIncrement: true,
                         });
                         sceneClipsStore.createIndex('scene_id', 'scene_id');
+                    }
+                }
+
+                // Create ELEMENT_IMAGES table (version 4+)
+                if (oldVersion < 4) {
+                    // Create ELEMENT_IMAGES table
+                    if (!db.objectStoreNames.contains(STORES.ELEMENT_IMAGES)) {
+                        const elementImagesStore = db.createObjectStore(STORES.ELEMENT_IMAGES, {
+                            keyPath: 'id',
+                            autoIncrement: true,
+                        });
+                        elementImagesStore.createIndex('project_id', 'project_id');
+                        elementImagesStore.createIndex('created_at', 'created_at');
                     }
                 }
             };
@@ -450,6 +464,69 @@ class ProjectStorage {
             const request = store.add(sceneClip);
             request.onsuccess = () => {
                 resolve({ ...sceneClip, id: request.result });
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // ==================== ELEMENT_IMAGES TABLE OPERATIONS ====================
+
+    /**
+     * Add an element image to a project
+     */
+    async addElementImage(projectId, gcsUrl, generationSources = null, name = null, description = null, tags = null) {
+        const tx = await this.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
+        const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+
+        const elementImage = {
+            project_id: projectId,
+            gcs_url: gcsUrl,
+            generation_sources: generationSources || null,
+            name: name || null,
+            description: description || null,
+            tags: tags || null,
+            created_at: new Date().toISOString(),
+        };
+
+        return new Promise((resolve, reject) => {
+            const request = store.add(elementImage);
+            request.onsuccess = () => {
+                resolve({ ...elementImage, id: request.result });
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Remove an element image by ID
+     */
+    async removeElementImage(elementImageId) {
+        const tx = await this.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
+        const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+
+        return new Promise((resolve, reject) => {
+            const request = store.delete(elementImageId);
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Get element images for a project
+     */
+    async getElementImages(projectId) {
+        const tx = await this.transaction([STORES.ELEMENT_IMAGES]);
+        const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+        const index = store.index('project_id');
+
+        return new Promise((resolve, reject) => {
+            const request = index.getAll(projectId);
+            request.onsuccess = () => {
+                // Sort by created_at descending (newest first)
+                const images = request.result.sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+                resolve(images);
             };
             request.onerror = () => reject(request.error);
         });

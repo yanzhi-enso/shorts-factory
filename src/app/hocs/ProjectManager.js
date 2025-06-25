@@ -8,7 +8,8 @@ import { validateProjectExists, isStageAdvancement } from 'utils/projectValidati
 const initialState = {
     curProjId: null,
     currentProject: null,    // Full project object from storage
-    scenes: [],              // Scene objects with proper structure  
+    scenes: [],              // Scene objects with proper structure
+    elementImages: [],       // Element images for current project (project-level resources)
     loading: false,
     error: null
 };
@@ -28,6 +29,8 @@ const PROJECT_ACTIONS = {
     UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION',
     ADD_GENERATED_CLIP_SUCCESS: 'ADD_GENERATED_CLIP_SUCCESS',
     UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION',
+    ADD_ELEMENT_IMAGE_SUCCESS: 'ADD_ELEMENT_IMAGE_SUCCESS',
+    REMOVE_ELEMENT_IMAGE_SUCCESS: 'REMOVE_ELEMENT_IMAGE_SUCCESS',
     UPDATE_PROJECT_STAGE: 'UPDATE_PROJECT_STAGE'
 };
 
@@ -41,6 +44,7 @@ const PROJECT_ACTIONS = {
  * - scenes: Array of scene objects with selected_image_id and selected_generated_image_id (foreign key references)
  * - sceneImages: Separate array of all scene images across all scenes
  * - recreatedSceneImages: Separate array of all generated images across all scenes
+ * - elementImages: Separate array of all element images for the project (project-level resources)
  * 
  * Enriched Structure (provided by ProjectManager):
  * {
@@ -79,12 +83,25 @@ const PROJECT_ACTIONS = {
  *   createdAt: string              // Scene creation timestamp
  * }
  * 
+ * Project-Level Element Images (separate from scenes):
+ * elementImages: Array[{          // All element images for the project (shared resources)
+ *   id: number,                   // Element image ID
+ *   projectId: string,            // Parent project ID
+ *   gcsUrl: string,               // Element image URL
+ *   generationSources: object|null, // Sources used for generation (null for uploaded images)
+ *   name: string|null,            // Optional user-defined name
+ *   description: string|null,     // Optional description
+ *   tags: string|null,            // Optional tags for organization
+ *   createdAt: string             // Creation timestamp
+ * }]
+ * 
  * Key Transformations:
  * 1. selected_image_id → selectedImage (ID reference → actual URL string)
  * 2. selected_generated_image_id → selectedGeneratedImage (ID reference → actual URL string)
  * 3. Separate sceneImages array → embedded sceneImages per scene
  * 4. Separate recreatedSceneImages array → embedded generatedImages per scene
- * 5. All internal JS properties use camelCase, DB persistence still uses snake_case
+ * 5. Separate elementImages array → project-level elementImages (not scene-specific)
+ * 6. All internal JS properties use camelCase, DB persistence still uses snake_case
  */
 
 /**
@@ -206,6 +223,7 @@ function projectReducer(state, action) {
                 curProjId: action.payload.project.id,
                 currentProject: action.payload.project,
                 scenes: action.payload.scenes,
+                elementImages: action.payload.elementImages || [],
             };
         
         case PROJECT_ACTIONS.RESET_PROJECT:
@@ -301,6 +319,18 @@ function projectReducer(state, action) {
                           }
                         : scene
                 )
+            };
+        
+        case PROJECT_ACTIONS.ADD_ELEMENT_IMAGE_SUCCESS:
+            return {
+                ...state,
+                elementImages: [action.payload.elementImage, ...state.elementImages]
+            };
+        
+        case PROJECT_ACTIONS.REMOVE_ELEMENT_IMAGE_SUCCESS:
+            return {
+                ...state,
+                elementImages: state.elementImages.filter(img => img.id !== action.payload.elementImageId)
             };
         
         case PROJECT_ACTIONS.UPDATE_PROJECT_STAGE:
@@ -458,11 +488,27 @@ export function ProjectProvider({ children }) {
             // Enrich scenes with embedded images and selected image URL
             const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
+            // Load element images for the project
+            const rawElementImages = await projectStorage.getElementImages(projectId);
+            
+            // Transform element images to camelCase
+            const elementImages = rawElementImages.map(img => ({
+                id: img.id,
+                projectId: img.project_id,
+                gcsUrl: img.gcs_url,
+                generationSources: img.generation_sources,
+                name: img.name,
+                description: img.description,
+                tags: img.tags,
+                createdAt: img.created_at
+            }));
+
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
                 payload: {
                     project,
-                    scenes: enrichedScenes
+                    scenes: enrichedScenes,
+                    elementImages
                 }
             });
 
@@ -471,6 +517,7 @@ export function ProjectProvider({ children }) {
                 shouldRedirect: false,
                 project,
                 scenes: enrichedScenes,
+                elementImages
             };
 
         } catch (err) {
@@ -513,15 +560,31 @@ export function ProjectProvider({ children }) {
             // Enrich scenes with embedded images and selected image URL
             const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
+            // Load element images for the project
+            const rawElementImages = await projectStorage.getElementImages(projectId);
+            
+            // Transform element images to camelCase
+            const elementImages = rawElementImages.map(img => ({
+                id: img.id,
+                projectId: img.project_id,
+                gcsUrl: img.gcs_url,
+                generationSources: img.generation_sources,
+                name: img.name,
+                description: img.description,
+                tags: img.tags,
+                createdAt: img.created_at
+            }));
+
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
                 payload: {
                     project,
                     scenes: enrichedScenes,
+                    elementImages
                 }
             });
 
-            return { success: true, project, scenes: enrichedScenes };
+            return { success: true, project, scenes: enrichedScenes, elementImages };
         } catch (err) {
             const errorMessage = err.message || 'Failed to load project';
             dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
@@ -922,6 +985,64 @@ export function ProjectProvider({ children }) {
         }
     };
 
+    /**
+     * Add a new element image to the project
+     */
+    const addElementImage = async (gcsUrl, generationSources = null, name = null, description = null, tags = null) => {
+        try {
+            // Add to persistent storage (returns raw DB object)
+            const rawElementImage = await projectStorage.addElementImage(
+                projectState.curProjId, gcsUrl, generationSources, name, description, tags
+            );
+            
+            // Transform to JavaScript format for state
+            const elementImage = {
+                id: rawElementImage.id,
+                projectId: rawElementImage.project_id,
+                gcsUrl: rawElementImage.gcs_url,
+                generationSources: rawElementImage.generation_sources,
+                name: rawElementImage.name,
+                description: rawElementImage.description,
+                tags: rawElementImage.tags,
+                createdAt: rawElementImage.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.ADD_ELEMENT_IMAGE_SUCCESS, 
+                payload: { elementImage } 
+            });
+            
+            return { success: true, elementImage };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to add element image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Remove an element image from the project
+     */
+    const removeElementImage = async (elementImageId) => {
+        try {
+            // Remove from persistent storage
+            await projectStorage.removeElementImage(elementImageId);
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.REMOVE_ELEMENT_IMAGE_SUCCESS, 
+                payload: { elementImageId } 
+            });
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to remove element image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     const value = {
         projectState,
         dispatch,
@@ -941,7 +1062,9 @@ export function ProjectProvider({ children }) {
         updateSelectedGeneratedClip,
         updateProjectSettings,
         updateStage,
-        handleImageUpload
+        handleImageUpload,
+        addElementImage,
+        removeElementImage
     };
     
     return (
