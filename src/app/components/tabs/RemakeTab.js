@@ -8,12 +8,14 @@ import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import { useProjectManager } from 'app/hocs/ProjectManager';
-import ToolBoxBlock from '../remake/ToolBoxBlock';
+import ElementImageList from '../remake/ElementImageList';
+import ImageGenerationModal from '../common/ImageGenerationModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
     const [isExporting, setIsExporting] = useState(false);
+    const [isImageGenerationModalOpen, setIsImageGenerationModalOpen] = useState(false);
 
     // Get selected scenes from ProjectManager
     const selectedScenes = useMemo(
@@ -33,6 +35,14 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
         console.log('Bulk image generation not implemented yet');
     };
 
+    // Modal handlers
+    const handleOpenImageGenerationModal = () => {
+        setIsImageGenerationModalOpen(true);
+    };
+
+    const handleCloseImageGenerationModal = () => {
+        setIsImageGenerationModalOpen(false);
+    };
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -158,14 +168,16 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.rowsContainer}>
-                <div className={styles.toolbox}>
-                    {/* <ToolBoxBlock src="https://via.placeholder.com/100x100/007bff/ffffff?text=Test" /> */}
-                    <ToolBoxBlock />
-                </div>
+                <ElementImageList onAddElementImage={handleOpenImageGenerationModal} />
                 {selectedScenes.map((scene) => (
                     <SceneRow key={scene.id} scene={scene} storyConfig={storyConfig} />
                 ))}
             </div>
+
+            <ImageGenerationModal
+                isOpen={isImageGenerationModalOpen}
+                onClose={handleCloseImageGenerationModal}
+            />
         </div>
     );
 };
