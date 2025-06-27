@@ -78,3 +78,6 @@ __tests__/
 # Logs
 logs/
 *.log
+
+# Google Cloud service account key
+.gcp/google-service-account.json
