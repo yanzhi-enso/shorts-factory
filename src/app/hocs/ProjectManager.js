@@ -31,6 +31,7 @@ const PROJECT_ACTIONS = {
     UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION',
     ADD_ELEMENT_IMAGE_SUCCESS: 'ADD_ELEMENT_IMAGE_SUCCESS',
     REMOVE_ELEMENT_IMAGE_SUCCESS: 'REMOVE_ELEMENT_IMAGE_SUCCESS',
+    UPDATE_ELEMENT_IMAGE_SUCCESS: 'UPDATE_ELEMENT_IMAGE_SUCCESS',
     UPDATE_PROJECT_STAGE: 'UPDATE_PROJECT_STAGE'
 };
 
@@ -331,6 +332,16 @@ function projectReducer(state, action) {
             return {
                 ...state,
                 elementImages: state.elementImages.filter(img => img.id !== action.payload.elementImageId)
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS:
+            return {
+                ...state,
+                elementImages: state.elementImages.map(img => 
+                    img.id === action.payload.elementImage.id 
+                        ? action.payload.elementImage
+                        : img
+                )
             };
         
         case PROJECT_ACTIONS.UPDATE_PROJECT_STAGE:
@@ -1043,6 +1054,40 @@ export function ProjectProvider({ children }) {
         }
     };
 
+    /**
+     * Update element image metadata (name, description, tags)
+     */
+    const updateElementImage = async (elementImageId, updates) => {
+        try {
+            // Update in persistent storage (returns raw DB object)
+            const rawElementImage = await projectStorage.updateElementImage(elementImageId, updates);
+            
+            // Transform to JavaScript format for state
+            const elementImage = {
+                id: rawElementImage.id,
+                projectId: rawElementImage.project_id,
+                gcsUrl: rawElementImage.gcs_url,
+                generationSources: rawElementImage.generation_sources,
+                name: rawElementImage.name,
+                description: rawElementImage.description,
+                tags: rawElementImage.tags,
+                createdAt: rawElementImage.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS, 
+                payload: { elementImage } 
+            });
+            
+            return { success: true, elementImage };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update element image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     const value = {
         projectState,
         dispatch,
@@ -1064,7 +1109,8 @@ export function ProjectProvider({ children }) {
         updateStage,
         handleImageUpload,
         addElementImage,
-        removeElementImage
+        removeElementImage,
+        updateElementImage
     };
     
     return (

@@ -1,6 +1,8 @@
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'app/hocs/ProjectManager';
+import ElementImageModal from 'app/components/common/ElementImageModal';
 import styles from './ElementImageList.module.css';
 
 const ElementImageBlock = ({ src, onClick }) => {
@@ -26,18 +28,39 @@ const ElementImageBlock = ({ src, onClick }) => {
 const ElementImageList = ({ onAddElementImage }) => {
     const { projectState } = useProjectManager();
     const elementImages = projectState.elementImages || [];
+    
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleImageClick = (image) => {
+        setSelectedImage(image);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedImage(null);
+    };
 
     return (
-        <div className={styles.container}>
-            {elementImages.map((image) => (
-                <ElementImageBlock
-                    key={image.id}
-                    src={image.gcsUrl}
-                    onClick={() => handleImageClick(image)}
-                />
-            ))}
-            <ElementImageBlock src={null} onClick={onAddElementImage} />
-        </div>
+        <>
+            <div className={styles.container}>
+                {elementImages.map((image) => (
+                    <ElementImageBlock
+                        key={image.id}
+                        src={image.gcsUrl}
+                        onClick={() => handleImageClick(image)}
+                    />
+                ))}
+                <ElementImageBlock src={null} onClick={onAddElementImage} />
+            </div>
+            
+            <ElementImageModal
+                isOpen={isModalOpen}
+                elementImage={selectedImage}
+                onClose={handleCloseModal}
+            />
+        </>
     );
 };
 

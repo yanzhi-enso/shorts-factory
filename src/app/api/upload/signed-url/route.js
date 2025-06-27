@@ -9,9 +9,12 @@ const bucket = storage.bucket('shorts-scenes');
 
 export async function POST(request) {
   try {
-    const { project_id } = await request.json();
+    const { 
+      project_id: projectId,
+      bucket_type: bucketType
+    } = await request.json();
     
-    if (!project_id) {
+    if (!projectId || !bucketType) {
       return NextResponse.json(
         { error: 'Missing project_id parameter' },
         { status: 400 }

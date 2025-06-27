@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { FaUpload, FaImage, FaTimes } from 'react-icons/fa';
+import { useProjectManager } from 'app/hocs/ProjectManager';
 import styles from './ImageGenerationModal.module.css';
 
 const ImageGenerationModal = ({
@@ -8,7 +10,209 @@ const ImageGenerationModal = ({
     onClose,
     onImageGenerated
 }) => {
+    const { projectState, addElementImage } = useProjectManager();
+    
     const [activeTab, setActiveTab] = useState('prompt');
+    
+    // Upload tab state
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+    const [isDragOver, setIsDragOver] = useState(false);
+    
+    const fileInputRef = useRef(null);
+    
+    // File validation constants
+    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+
+    // WebP conversion function (from ProjectManager)
+    const convertWebPToPNG = useCallback(async (webpFile) => {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const pngFile = new File([blob], webpFile.name.replace(/\.webp$/i, '.png'), {
+                            type: 'image/png',
+                            lastModified: Date.now()
+                        });
+                        resolve(pngFile);
+                    } else {
+                        reject(new Error('Failed to convert WebP to PNG'));
+                    }
+                }, 'image/png', 1.0);
+            };
+            
+            img.onerror = () => reject(new Error('Failed to load WebP image'));
+            img.src = URL.createObjectURL(webpFile);
+        });
+    }, []);
+
+    // File validation
+    const validateFile = useCallback((file) => {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            return { valid: false, error: 'Please select only PNG, JPEG, JPG, or WebP images' };
+        }
+        
+        if (file.size > MAX_FILE_SIZE) {
+            return { valid: false, error: 'File size must be less than 25MB' };
+        }
+        
+        return { valid: true };
+    }, []);
+
+    // Handle file selection
+    const handleFileSelect = useCallback((file) => {
+        const validation = validateFile(file);
+        
+        if (!validation.valid) {
+            setUploadError(validation.error);
+            return;
+        }
+
+        setSelectedFile(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        setUploadError(null);
+    }, [validateFile]);
+
+    // Reset upload state
+    const resetUploadState = useCallback(() => {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploadError(null);
+        setIsUploading(false);
+        setIsDragOver(false);
+    }, [previewUrl]);
+
+    // Drag and drop handlers
+    const handleDragEnter = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+    }, []);
+
+    const handleDragOver = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, []);
+
+    const handleDrop = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            handleFileSelect(files[0]); // Only take first file
+        }
+    }, [handleFileSelect]);
+
+    // File input click handler
+    const handleFileInputClick = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
+
+    // File input change handler
+    const handleFileInputChange = useCallback((e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handleFileSelect(file);
+        }
+        // Reset input so same file can be selected again
+        e.target.value = '';
+    }, [handleFileSelect]);
+
+    // Main upload function
+    const handleUpload = useCallback(async () => {
+        if (!selectedFile || !projectState.curProjId) {
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadError(null);
+
+        try {
+            // 1. Handle WebP conversion if needed
+            let processedFile = selectedFile;
+            if (selectedFile.type === 'image/webp') {
+                try {
+                    processedFile = await convertWebPToPNG(selectedFile);
+                } catch (conversionError) {
+                    throw new Error('Failed to convert WebP image');
+                }
+            }
+
+            // 2. Get signed URL from backend
+            const signedUrlResponse = await fetch('/api/upload/signed-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: projectState.curProjId })
+            });
+
+            if (!signedUrlResponse.ok) {
+                throw new Error('Failed to get signed URL');
+            }
+
+            const { signed_url, public_url, image_id } = await signedUrlResponse.json();
+
+            // 3. Upload file to GCS using signed URL
+            const uploadResponse = await fetch(signed_url, {
+                method: 'PUT',
+                body: processedFile,
+                headers: {
+                    'Content-Type': 'image/png'
+                }
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image to storage');
+            }
+
+            // 4. Store in IndexedDB via ProjectManager (element image, not scene-specific)
+            const result = await addElementImage(public_url, null); // null = no generation sources
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            // 5. Success - trigger callback and close modal
+            if (onImageGenerated) {
+                onImageGenerated(result.elementImage);
+            }
+
+            resetUploadState();
+            onClose();
+
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            setUploadError(error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    }, [selectedFile, projectState.curProjId, convertWebPToPNG, addElementImage, onImageGenerated, resetUploadState, onClose]);
+
+    // Clear selected file
+    const handleClearFile = useCallback(() => {
+        resetUploadState();
+    }, [resetUploadState]);
 
     useEffect(() => {
         const handleEscape = (e) => {
@@ -75,15 +279,73 @@ const ImageGenerationModal = ({
             case 'upload':
                 return (
                     <div className={styles.tabContent}>
-                        <div className={styles.placeholder}>
-                            <h3>Local Image Upload</h3>
-                            <p>Local image upload functionality coming soon...</p>
-                            <p>This tab will support:</p>
-                            <ul>
-                                <li>Drag & drop image upload</li>
-                                <li>File format validation and conversion</li>
-                                <li>Direct integration with project storage</li>
-                            </ul>
+                        <div className={styles.uploadContainer}>
+                            {!selectedFile ? (
+                                <div
+                                    className={`${styles.dropZone} ${isDragOver ? styles.dragOver : ''}`}
+                                    onDragEnter={handleDragEnter}
+                                    onDragLeave={handleDragLeave}
+                                    onDragOver={handleDragOver}
+                                    onDrop={handleDrop}
+                                    onClick={handleFileInputClick}
+                                >
+                                    <FaUpload className={styles.uploadIcon} />
+                                    <h3 className={styles.dropZoneTitle}>
+                                        {isDragOver ? 'Drop your image here' : 'Upload Image'}
+                                    </h3>
+                                    <p className={styles.dropZoneText}>
+                                        Drag & drop an image or click to select
+                                    </p>
+                                    <p className={styles.dropZoneSubtext}>
+                                        Supports PNG, JPEG, JPG, WebP • Max 25MB
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className={styles.filePreview}>
+                                    <div className={styles.previewHeader}>
+                                        <h3 className={styles.previewTitle}>Image Preview</h3>
+                                        <button
+                                            className={styles.clearButton}
+                                            onClick={handleClearFile}
+                                            disabled={isUploading}
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className={styles.previewImageContainer}>
+                                        <img
+                                            src={previewUrl}
+                                            alt="Preview"
+                                            className={styles.previewImage}
+                                        />
+                                    </div>
+                                    
+                                    <div className={styles.fileInfo}>
+                                        <div className={styles.fileName}>
+                                            <FaImage className={styles.fileIcon} />
+                                            {selectedFile.name}
+                                        </div>
+                                        <div className={styles.fileSize}>
+                                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {uploadError && (
+                                <div className={styles.errorMessage}>
+                                    {uploadError}
+                                </div>
+                            )}
+                            
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                onChange={handleFileInputChange}
+                                style={{ display: 'none' }}
+                            />
                         </div>
                     </div>
                 );
@@ -132,9 +394,26 @@ const ImageGenerationModal = ({
                     <button className={styles.cancelButton} onClick={onClose}>
                         Cancel
                     </button>
-                    <button className={styles.actionButton} disabled>
-                        Coming Soon
-                    </button>
+                    {activeTab === 'upload' ? (
+                        <button 
+                            className={`${styles.actionButton} ${(!selectedFile || isUploading) ? styles.disabled : ''}`}
+                            onClick={handleUpload}
+                            disabled={!selectedFile || isUploading}
+                        >
+                            {isUploading ? (
+                                <>
+                                    <span className={styles.loadingSpinner}></span>
+                                    Uploading...
+                                </>
+                            ) : (
+                                'Upload'
+                            )}
+                        </button>
+                    ) : (
+                        <button className={styles.actionButton} disabled>
+                            Coming Soon
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

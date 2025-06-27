@@ -532,6 +532,43 @@ class ProjectStorage {
         });
     }
 
+    /**
+     * Update element image metadata (name, description, tags)
+     */
+    async updateElementImage(elementImageId, updates) {
+        const tx = await this.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
+        const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(elementImageId);
+            getRequest.onsuccess = () => {
+                const elementImage = getRequest.result;
+                if (!elementImage) {
+                    reject(new Error('Element image not found'));
+                    return;
+                }
+
+                // Only update editable metadata fields
+                const editableFields = ['name', 'description', 'tags'];
+                const filteredUpdates = {};
+                
+                editableFields.forEach(field => {
+                    if (updates.hasOwnProperty(field)) {
+                        filteredUpdates[field] = updates[field];
+                    }
+                });
+
+                // Apply updates to element image
+                Object.assign(elementImage, filteredUpdates);
+
+                const putRequest = store.put(elementImage);
+                putRequest.onsuccess = () => resolve(elementImage);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
     // ==================== UTILITY METHODS ====================
 
     /**
