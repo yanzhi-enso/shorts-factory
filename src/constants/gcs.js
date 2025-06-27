@@ -3,7 +3,8 @@ export const GCS_CONFIG = {
     BUCKET_NAME: 'shorts-scenes',
     BASE_URL: 'https://storage.googleapis.com',
     FOLDERS: {
-        GENERATED_IMAGES: 'generated_img',
+        ELEMENT_IMAGES: 'element_img',
+        GENERATED_SCENE_IMAGES: 'generated_scene_images',
         CLIPS: 'clips'
     },
     CONTENT_TYPES: {
