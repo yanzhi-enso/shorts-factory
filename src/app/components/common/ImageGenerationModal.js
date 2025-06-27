@@ -21,6 +21,10 @@ const ImageGenerationModal = ({
     const [uploadError, setUploadError] = useState(null);
     const [isDragOver, setIsDragOver] = useState(false);
     
+    // Shared metadata state
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    
     const fileInputRef = useRef(null);
     
     // File validation constants
@@ -94,6 +98,9 @@ const ImageGenerationModal = ({
         setUploadError(null);
         setIsUploading(false);
         setIsDragOver(false);
+        // Reset metadata fields
+        setName('');
+        setDescription('');
     }, [previewUrl]);
 
     // Drag and drop handlers
@@ -187,7 +194,12 @@ const ImageGenerationModal = ({
             }
 
             // 4. Store in IndexedDB via ProjectManager (element image, not scene-specific)
-            const result = await addElementImage(public_url, null); // null = no generation sources
+            const result = await addElementImage(
+                public_url, 
+                null, // generation sources
+                name.trim() || null, 
+                description.trim() || null
+            );
 
             if (!result.success) {
                 throw new Error(result.error);
@@ -388,6 +400,35 @@ const ImageGenerationModal = ({
 
                 <div className={styles.content}>
                     {renderTabContent()}
+                </div>
+
+                {/* Shared metadata section */}
+                <div className={styles.metadataSection}>
+                    <div className={styles.formField}>
+                        <label htmlFor="name" className={styles.label}>Name</label>
+                        <input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Enter image name..."
+                            className={styles.input}
+                            disabled={isUploading}
+                        />
+                    </div>
+                    
+                    <div className={styles.formField}>
+                        <label htmlFor="description" className={styles.label}>Description</label>
+                        <textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Enter description..."
+                            className={styles.textarea}
+                            disabled={isUploading}
+                            rows={3}
+                        />
+                    </div>
                 </div>
 
                 <div className={styles.footer}>
