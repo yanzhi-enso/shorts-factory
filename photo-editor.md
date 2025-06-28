@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document outlines the implementation plan for the Image Generation Modal in the ToolBoxBlock component. The modal provides users with three different ways to generate or add images to their project using OpenAI's image generation APIs.
+This document outlines the implementation plan for the Element Generation Modal in the ElementImageList component. The modal provides users with three different ways to generate or add element images to their project using OpenAI's image generation APIs.
 
 ## Background Context
 
-The modal is triggered when users click on an empty ToolBoxBlock (no src provided) in the RemakeTab. It integrates with existing OpenAI image generation APIs to provide three distinct image creation workflows:
+The modal is triggered when users click on the "Add Element Image" button in the ElementImageList component in the RemakeTab. It integrates with existing OpenAI image generation APIs to provide three distinct element image creation workflows:
 
 1. **Text-to-Image & Image Extension** - Generate images from text prompts or extend existing images
 2. **Image Inpainting** - Edit specific parts of images using masks and prompts  
@@ -48,22 +48,22 @@ The modal utilizes three existing API endpoints:
 
 ### File Structure
 ```
-src/app/components/common/
-├── ImageGenerationModal.js          # Main modal component
-├── ImageGenerationModal.module.css  # Modal styling
+src/app/components/remake/
+├── ElementGenModal.js               # Main modal component
+├── ElementGenModal.module.css       # Modal styling
 
 src/app/components/tabs/
 ├── RemakeTab.js                     # Modified to include modal state
 
 src/app/components/remake/
-├── ToolBoxBlock.js                  # Modified to accept onClick handler
+├── ElementImageList.js              # Modified to accept onClick handler
 
 photo-editor.md                      # This documentation file
 ```
 
 ### Component Architecture
 
-#### ImageGenerationModal Component
+#### ElementGenModal Component
 - **State Management**: Local useState for modal state, tab selection, form data
 - **Props**:
   - `isOpen`: Boolean to control modal visibility
@@ -73,7 +73,7 @@ photo-editor.md                      # This documentation file
   - Tab-based navigation system
   - Form validation and error handling
   - Loading states during API calls
-  - Integration with ProjectManager for image persistence
+  - Integration with ProjectManager for element image persistence
 
 #### Tab Structure
 
@@ -100,15 +100,15 @@ photo-editor.md                      # This documentation file
 
 ### Integration Points
 
-#### ToolBoxBlock Integration
-- Modified to accept `onClick` prop
-- Triggers modal when clicked and no `src` is provided
-- Visual feedback on hover for empty state
+#### ElementImageList Integration
+- Modified to accept `onAddElementImage` prop
+- Triggers modal when "Add Element Image" button is clicked
+- Visual feedback for adding new element images
 
 #### RemakeTab Integration  
 - Manages modal open/close state
-- Passes necessary props to ImageGenerationModal
-- Handles image generation callbacks
+- Passes necessary props to ElementGenModal
+- Handles element image generation callbacks
 - Updates project state through ProjectManager
 
 #### ProjectManager Integration
@@ -123,7 +123,7 @@ photo-editor.md                      # This documentation file
 - [x] Create modal component with tab structure
 - [x] Implement basic styling following existing patterns
 - [x] Add modal state management to RemakeTab
-- [x] Integrate with ToolBoxBlock click handler
+- [x] Integrate with ElementImageList click handler
 - [x] Create placeholder content for all tabs
 
 ### Phase 2: Prompt Tab Implementation
@@ -155,8 +155,8 @@ photo-editor.md                      # This documentation file
 
 ### State Management
 - Modal state managed locally in RemakeTab
-- Form data managed within ImageGenerationModal
-- Generated images persisted through ProjectManager
+- Form data managed within ElementGenModal
+- Generated element images persisted through ProjectManager
 - Error states handled at component level with user feedback
 
 ### File Handling
@@ -179,13 +179,13 @@ photo-editor.md                      # This documentation file
 
 ## User Experience Flow
 
-1. **Trigger**: User clicks empty ToolBoxBlock
-2. **Modal Opens**: ImageGenerationModal appears with "Prompt" tab selected
+1. **Trigger**: User clicks "Add Element Image" button in ElementImageList
+2. **Modal Opens**: ElementGenModal appears with "Prompt" tab selected
 3. **Tab Selection**: User can switch between Prompt, Inpainting, Upload tabs
 4. **Form Interaction**: User fills out relevant form fields for selected generation type
 5. **Generation**: User clicks generate/upload button
 6. **Loading State**: Modal shows loading indicator during processing
-7. **Success**: Generated image is added to project and modal closes
+7. **Success**: Generated element image is added to project and modal closes
 8. **Error Handling**: Any errors are displayed with actionable feedback
 
 ## Future Enhancements
