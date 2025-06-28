@@ -36,21 +36,28 @@ export function getPublicGCSUrl(filePath) {
  * Upload base64 data to GCS with retry logic
  * @param {string} base64Data - Base64 encoded data (without data URL prefix)
  * @param {string} projectId - Project ID
- * @param {string} contentType - MIME type
- * @param {string} fileExtension - File extension
+ * @param {string} assetType - Asset type key from GCS_CONFIG.FOLDERS
  * @returns {Promise<{success: boolean, gcsUrl?: string, error?: string}>}
  */
 export async function uploadBase64ToGCS(
     base64Data,
     projectId,
-    contentType,
-    fileExtension
+    assetType
 ) {
+    // Validate asset type
+    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
+        return {
+            success: false,
+            error: `Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`
+        };
+    }
+
     const fileId = randomUUID();
-    const folder =
-        contentType === GCS_CONFIG.CONTENT_TYPES.IMAGE
-            ? GCS_CONFIG.FOLDERS.GENERATED_IMAGES
-            : GCS_CONFIG.FOLDERS.CLIPS;
+    const folder = GCS_CONFIG.FOLDERS[assetType];
+    
+    // Determine content type and file extension based on asset type
+    const contentType = assetType === 'CLIPS' ? GCS_CONFIG.CONTENT_TYPES.VIDEO : GCS_CONFIG.CONTENT_TYPES.IMAGE;
+    const fileExtension = assetType === 'CLIPS' ? GCS_CONFIG.FILE_EXTENSIONS.VIDEO : GCS_CONFIG.FILE_EXTENSIONS.IMAGE;
 
     const filePath = generateGCSPath(projectId, folder, fileId, fileExtension);
     const file = bucket.file(filePath);
@@ -103,21 +110,28 @@ export async function uploadBase64ToGCS(
  * Download content from URL and upload to GCS with retry logic
  * @param {string} url - Source URL to download from
  * @param {string} projectId - Project ID
- * @param {string} contentType - MIME type
- * @param {string} fileExtension - File extension
+ * @param {string} assetType - Asset type key from GCS_CONFIG.FOLDERS
  * @returns {Promise<{success: boolean, gcsUrl?: string, error?: string}>}
  */
 export async function downloadAndUploadToGCS(
     url,
     projectId,
-    contentType,
-    fileExtension
+    assetType
 ) {
+    // Validate asset type
+    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
+        return {
+            success: false,
+            error: `Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`
+        };
+    }
+
     const fileId = randomUUID();
-    const folder =
-        contentType === GCS_CONFIG.CONTENT_TYPES.IMAGE
-            ? GCS_CONFIG.FOLDERS.GENERATED_IMAGES
-            : GCS_CONFIG.FOLDERS.CLIPS;
+    const folder = GCS_CONFIG.FOLDERS[assetType];
+    
+    // Determine content type and file extension based on asset type
+    const contentType = assetType === 'CLIPS' ? GCS_CONFIG.CONTENT_TYPES.VIDEO : GCS_CONFIG.CONTENT_TYPES.IMAGE;
+    const fileExtension = assetType === 'CLIPS' ? GCS_CONFIG.FILE_EXTENSIONS.VIDEO : GCS_CONFIG.FILE_EXTENSIONS.IMAGE;
 
     const filePath = generateGCSPath(projectId, folder, fileId, fileExtension);
     const file = bucket.file(filePath);
