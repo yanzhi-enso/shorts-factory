@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from 'react';
-import styles from './GeneratedImageBlock.module.css';
+import styles from './SceneGenBlock.module.css';
 import Image from 'next/image';
-import ImageHistoryModal from './ImageHistoryModal';
+import SceneGenHistoryModal from './SceneGenHistoryModal';
 
-const GeneratedImageBlock = ({
+const SceneGenBlock = ({
     sceneId,
     generatedImages = [],
     selectedGeneratedImage = null,
@@ -86,7 +86,7 @@ const GeneratedImageBlock = ({
             </div>
 
             {/* History Modal */}
-            <ImageHistoryModal
+            <SceneGenHistoryModal
                 isOpen={historyModalOpen}
                 sceneId={sceneId}
                 generatedImages={generatedImages}
@@ -99,4 +99,4 @@ const GeneratedImageBlock = ({
     );
 };
 
-export default GeneratedImageBlock;
+export default SceneGenBlock;

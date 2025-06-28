@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
-import GeneratedImageBlock from './GeneratedImageBlock';
+import SceneGenBlock from './SceneGenBlock';
 import SceneControlPanel from './SceneControlPanel';
 import { analyzeImage, generateImage } from 'services/backend';
 import { useProjectManager } from 'app/hocs/ProjectManager';
@@ -157,7 +157,7 @@ const SceneRow = ({ scene, storyConfig }) => {
 
             {/* Generated Image */}
             <div className={styles.imageSection}>
-                <GeneratedImageBlock
+                <SceneGenBlock
                     sceneId={sceneId}
                     generatedImages={generatedImages}
                     selectedGeneratedImage={selectedGeneratedImage}

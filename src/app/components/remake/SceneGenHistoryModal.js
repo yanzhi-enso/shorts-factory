@@ -2,10 +2,10 @@
 
 import { useRef } from 'react';
 import { FaUpload } from "react-icons/fa";
-import styles from "./ImageHistoryModal.module.css";
+import styles from "./SceneGenHistoryModal.module.css";
 import Image from "next/image";
 
-const ImageHistoryModal = ({
+const SceneGenHistoryModal = ({
     isOpen,
     sceneId,
     generatedImages = [],
@@ -130,4 +130,4 @@ const ImageHistoryModal = ({
     );
 };
 
-export default ImageHistoryModal;
+export default SceneGenHistoryModal;

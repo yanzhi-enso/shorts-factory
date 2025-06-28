@@ -9,7 +9,7 @@ import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 import ElementImageList from '../remake/ElementImageList';
-import ImageGenerationModal from '../common/ImageGenerationModal';
+import ElementGenModal from '../remake/ElementGenModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
@@ -174,7 +174,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 ))}
             </div>
 
-            <ImageGenerationModal
+            <ElementGenModal
                 isOpen={isImageGenerationModalOpen}
                 onClose={handleCloseImageGenerationModal}
             />

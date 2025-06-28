@@ -4,9 +4,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { FaUpload, FaImage, FaTimes } from 'react-icons/fa';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 import { validateImageFile } from 'utils/client/upload';
-import styles from './ImageGenerationModal.module.css';
+import styles from './ElementGenModal.module.css';
 
-const ImageGenerationModal = ({
+const ElementGenModal = ({
     isOpen,
     onClose,
     onImageGenerated
@@ -386,4 +386,4 @@ const ImageGenerationModal = ({
     );
 };
 
-export default ImageGenerationModal;
+export default ElementGenModal;
