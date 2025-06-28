@@ -7,6 +7,7 @@ import SceneGenBlock from './SceneGenBlock';
 import SceneControlPanel from './SceneControlPanel';
 import { analyzeImage, generateImage } from 'services/backend';
 import { useProjectManager } from 'app/hocs/ProjectManager';
+import { ASSET_TYPES } from 'constants/gcs';
 
 const SceneRow = ({ scene, storyConfig }) => {
     const { 
@@ -77,7 +78,7 @@ const SceneRow = ({ scene, storyConfig }) => {
                 throw new Error('No project ID available');
             }
 
-            const result = await generateImage(prompt, imageCount, curProjId);
+            const result = await generateImage(prompt, imageCount, curProjId, ASSET_TYPES.GENERATED_SCENE_IMAGES);
 
             // Handle multiple images response
             if (result?.images && Array.isArray(result.images)) {

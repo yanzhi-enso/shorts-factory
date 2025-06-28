@@ -1,5 +1,7 @@
 // This file store utils for client-side operations that interact with the backend API.
 
+import { ASSET_TYPES } from '../constants/gcs';
+
 // Custom error classes for Kling API
 class KlingError extends Error {
     constructor(message, status) {
@@ -87,10 +89,17 @@ export async function analyzeImageForVideo(
     }
 }
 
-export async function generateImage(prompt, n = 1, projectId) {
+export async function generateImage(prompt, n = 1, projectId, assetType) {
     try {
-        if (!projectId) {
-            throw new Error('Project ID is required for image generation');
+        // Validate projectId
+        if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+            throw new Error('Project ID is required and must be a non-empty string');
+        }
+
+        // Validate assetType
+        const validAssetTypes = Object.values(ASSET_TYPES);
+        if (!assetType || !validAssetTypes.includes(assetType)) {
+            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
         }
 
         const response = await fetch(
@@ -102,7 +111,8 @@ export async function generateImage(prompt, n = 1, projectId) {
             body: JSON.stringify({
                 prompt,
                 n,
-                project_id: projectId
+                project_id: projectId,
+                asset_type: assetType
             })
         });
 
@@ -189,8 +199,19 @@ export async function getVideoTaskStatus(taskId, projectId) {
     }
 }
 
-export async function extendImage(images, prompt, n = 1) {
+export async function extendImage(images, prompt, n = 1, projectId, assetType) {
     try {
+        // Validate projectId
+        if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+            throw new Error('Project ID is required and must be a non-empty string');
+        }
+
+        // Validate assetType
+        const validAssetTypes = Object.values(ASSET_TYPES);
+        if (!assetType || !validAssetTypes.includes(assetType)) {
+            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
+        }
+
         const response = await fetch(
             '/api/workflows/img2img/extend', {
             method: 'POST',
@@ -200,7 +221,9 @@ export async function extendImage(images, prompt, n = 1) {
             body: JSON.stringify({
                 images,
                 prompt,
-                n
+                n,
+                project_id: projectId,
+                asset_type: assetType
             })
         });
 
@@ -217,8 +240,19 @@ export async function extendImage(images, prompt, n = 1) {
     }
 }
 
-export async function inpaintingImage(image, mask, prompt, n = 1) {
+export async function inpaintingImage(image, mask, prompt, n = 1, projectId, assetType) {
     try {
+        // Validate projectId
+        if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+            throw new Error('Project ID is required and must be a non-empty string');
+        }
+
+        // Validate assetType
+        const validAssetTypes = Object.values(ASSET_TYPES);
+        if (!assetType || !validAssetTypes.includes(assetType)) {
+            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
+        }
+
         const response = await fetch(
             '/api/workflows/img2img/inpainting', {
             method: 'POST',
@@ -229,7 +263,9 @@ export async function inpaintingImage(image, mask, prompt, n = 1) {
                 image,
                 mask,
                 prompt,
-                n
+                n,
+                project_id: projectId,
+                asset_type: assetType
             })
         });
 

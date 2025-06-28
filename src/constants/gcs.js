@@ -20,3 +20,10 @@ export const GCS_CONFIG = {
         RETRY_DELAY: 1000 // 1 second
     }
 };
+
+// Asset type constants for client usage
+export const ASSET_TYPES = {
+    ELEMENT_IMAGES: 'ELEMENT_IMAGES',
+    GENERATED_SCENE_IMAGES: 'GENERATED_SCENE_IMAGES',
+    CLIPS: 'CLIPS'
+};
