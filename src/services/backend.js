@@ -245,3 +245,35 @@ export async function inpaintingImage(image, mask, prompt, n = 1) {
         throw error;
     }
 }
+
+export async function getSignedUrl(projectId, imageType) {
+    try {
+        if (!projectId) {
+            throw new Error('Project ID is required for signed URL request');
+        }
+        
+        if (!imageType) {
+            throw new Error('Image type is required for signed URL request');
+        }
+
+        const response = await fetch('/api/upload/signed-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                project_id: projectId,
+                image_type: imageType 
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to get signed URL');
+        }
+        
+        return data; // Returns { signed_url, public_url, image_id }
+    } catch (error) {
+        console.error('Error getting signed URL:', error);
+        throw error;
+    }
+}

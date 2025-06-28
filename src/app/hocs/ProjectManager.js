@@ -1,8 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback } from 'react';
 import projectStorage from 'services/projectStorage';
-import { validateProjectExists, isStageAdvancement } from 'utils/projectValidation';
+import { 
+    validateProjectExists, isStageAdvancement
+} from 'utils/client/projectValidation';
+import { 
+    uploadImage, IMAGE_TYPE_ELEMENT, IMAGE_TYPE_GENERATED_SCENE
+} from '../utils/client/upload';
 
 // Initial state for the project manager
 const initialState = {
@@ -899,99 +904,79 @@ export function ProjectProvider({ children }) {
     };
 
     /**
-     * Convert WebP image to PNG using Canvas API
+     * Handle scene image upload using centralized upload utility
      */
-    const convertWebPToPNG = async (webpFile) => {
-        return new Promise((resolve, reject) => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
+    const handleSceneImageUpload = async (sceneId, imageFile) => {
+        try {
+            // Use centralized upload utility
+            const uploadResult = await uploadImage(
+                imageFile, 
+                IMAGE_TYPE_GENERATED_SCENE,
+                projectState.curProjId
+            );
             
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        // Create a new File object with PNG type
-                        const pngFile = new File([blob], webpFile.name.replace(/\.webp$/i, '.png'), {
-                            type: 'image/png',
-                            lastModified: Date.now()
-                        });
-                        resolve(pngFile);
-                    } else {
-                        reject(new Error('Failed to convert WebP to PNG'));
-                    }
-                }, 'image/png', 1.0); // Maximum quality
+            if (!uploadResult.success) {
+                return uploadResult;
+            }
+
+            // Store in IndexedDB as generated scene image
+            const result = await addGeneratedImage(sceneId, uploadResult.public_url, null);
+            
+            if (!result.success) {
+                return result;
+            }
+
+            return {
+                success: true,
+                imageId: uploadResult.image_id,
+                publicUrl: uploadResult.public_url,
+                generatedImage: result.generatedImage
             };
-            
-            img.onerror = () => reject(new Error('Failed to load WebP image'));
-            img.src = URL.createObjectURL(webpFile);
-        });
+
+        } catch (error) {
+            console.error('Scene image upload failed:', error);
+            return { success: false, error: error.message };
+        }
     };
 
     /**
-     * Handle image upload with file validation, WebP conversion, and GCS upload
+     * Handle element image upload using centralized upload utility
      */
-    const handleImageUpload = async (sceneId, imageFile) => {
+    const handleElementImageUpload = async (imageFile, metadata = {}) => {
         try {
-            // 1. Validate file size (< 25MB)
-            const maxSize = 25 * 1024 * 1024; // 25MB in bytes
-            if (imageFile.size > maxSize) {
-                alert('File size must be less than 25MB');
-                return { success: false, error: 'File size exceeds 25MB limit' };
+            // Use centralized upload utility
+            const uploadResult = await uploadImage(
+                imageFile, 
+                IMAGE_TYPE_ELEMENT, 
+                projectState.curProjId
+            );
+            
+            if (!uploadResult.success) {
+                return uploadResult;
             }
 
-            // 2. Handle WebP conversion to PNG if needed
-            let processedFile = imageFile;
-            if (imageFile.type === 'image/webp') {
-                try {
-                    processedFile = await convertWebPToPNG(imageFile);
-                } catch (conversionError) {
-                    console.error('WebP conversion failed:', conversionError);
-                    return { success: false, error: 'Failed to convert WebP image' };
-                }
-            }
-
-            // 3. Request signed URL from backend
-            const signedUrlResponse = await fetch('/api/upload/signed-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_id: projectState.curProjId })
-            });
-
-            if (!signedUrlResponse.ok) {
-                throw new Error('Failed to get signed URL');
-            }
-
-            const { signed_url, public_url, image_id } = await signedUrlResponse.json();
-
-            // 4. Upload file directly to GCS using signed URL
-            const uploadResponse = await fetch(signed_url, {
-                method: 'PUT',
-                body: processedFile,
-                headers: {
-                    'Content-Type': 'image/png'
-                }
-            });
-
-            if (!uploadResponse.ok) {
-                throw new Error('Failed to upload image to storage');
-            }
-
-            // 5. Store public URL in IndexedDB (no generation sources for uploaded images)
-            const result = await addGeneratedImage(sceneId, public_url, null);
+            // Store in IndexedDB as element image
+            const result = await addElementImage(
+                uploadResult.public_url, 
+                null, // generation sources
+                metadata.name || null, 
+                metadata.description || null,
+                metadata.tags || null
+            );
             
             if (!result.success) {
-                throw new Error(result.error);
+                return result;
             }
 
-            return { success: true, imageId: image_id, publicUrl: public_url };
+            return {
+                success: true,
+                imageId: uploadResult.image_id,
+                publicUrl: uploadResult.public_url,
+                elementImage: result.elementImage
+            };
 
         } catch (error) {
-            console.error('Image upload failed:', error);
-            alert(`Image upload failed: ${error.message}`);
+            console.error('Element image upload failed:', error);
             return { success: false, error: error.message };
         }
     };
@@ -1107,7 +1092,8 @@ export function ProjectProvider({ children }) {
         updateSelectedGeneratedClip,
         updateProjectSettings,
         updateStage,
-        handleImageUpload,
+        handleSceneImageUpload,
+        handleElementImageUpload,
         addElementImage,
         removeElementImage,
         updateElementImage
