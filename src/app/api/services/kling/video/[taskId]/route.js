@@ -42,8 +42,7 @@ export async function GET(request, { params }) {
           const uploadResult = await downloadAndUploadToGCS(
             originalUrl,
             project_id,
-            GCS_CONFIG.CONTENT_TYPES.VIDEO,
-            GCS_CONFIG.FILE_EXTENSIONS.VIDEO
+            'CLIPS'
           );
           
           if (!uploadResult.success) {

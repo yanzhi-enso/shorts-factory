@@ -8,7 +8,7 @@ export async function POST(request) {
         const body = await request.json();
 
         // Extract camelCase parameters from HTTP payload
-        const { prompt, n = 1, project_id } = body;
+        const { prompt, n = 1, project_id, asset_type } = body;
 
         // Validate required parameters
         if (!prompt) {
@@ -21,6 +21,21 @@ export async function POST(request) {
         if (!project_id) {
             return NextResponse.json(
                 { error: 'project_id is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!asset_type) {
+            return NextResponse.json(
+                { error: 'asset_type is required' },
+                { status: 400 }
+            );
+        }
+
+        // Validate asset_type
+        if (!GCS_CONFIG.FOLDERS[asset_type]) {
+            return NextResponse.json(
+                { error: `Invalid asset_type: ${asset_type}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}` },
                 { status: 400 }
             );
         }
@@ -38,7 +53,6 @@ export async function POST(request) {
 
         // Upload images to GCS and replace base64 with URLs
         const processedImages = [];
-        let singleImageUrl = null;
 
         if (result?.images && Array.isArray(result.images)) {
             // Handle multiple images
@@ -46,8 +60,7 @@ export async function POST(request) {
                 const uploadResult = await uploadBase64ToGCS(
                     imgData.imageBase64,
                     project_id,
-                    GCS_CONFIG.CONTENT_TYPES.IMAGE,
-                    GCS_CONFIG.FILE_EXTENSIONS.IMAGE
+                    asset_type
                 );
 
                 if (!uploadResult.success) {
@@ -62,19 +75,13 @@ export async function POST(request) {
                     imageUrl: uploadResult.gcsUrl,
                     revisedPrompt: imgData.revisedPrompt
                 });
-
-                // Set single image URL for backward compatibility
-                if (!singleImageUrl) {
-                    singleImageUrl = uploadResult.gcsUrl;
-                }
             }
         } else if (result?.imageBase64) {
             // Handle single image (backward compatibility)
             const uploadResult = await uploadBase64ToGCS(
                 result.imageBase64,
                 project_id,
-                GCS_CONFIG.CONTENT_TYPES.IMAGE,
-                GCS_CONFIG.FILE_EXTENSIONS.IMAGE
+                asset_type
             );
 
             if (!uploadResult.success) {
@@ -85,18 +92,15 @@ export async function POST(request) {
                 );
             }
 
-            singleImageUrl = uploadResult.gcsUrl;
             processedImages.push({
                 imageUrl: uploadResult.gcsUrl,
                 revisedPrompt: result.revisedPrompt
             });
         }
 
-        // Return response with GCS URLs instead of base64
+        // Return response with GCS URLs instead of base64 (clean format)
         const responseResult = {
             images: processedImages,
-            imageUrl: singleImageUrl, // For backward compatibility
-            revisedPrompt: result.revisedPrompt,
             format: 'png',
             created: result.created
         };
