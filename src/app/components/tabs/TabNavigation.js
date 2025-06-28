@@ -1,7 +1,7 @@
 "use client";
 
 import styles from './TabNavigation.module.css';
-import { getTabStatus } from 'utils/projectValidation';
+import { getTabStatus } from 'utils/client/projectValidation';
 
 const TABS = {
   START: 'start',

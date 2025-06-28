@@ -9,8 +9,12 @@ import { analyzeImage, generateImage } from 'services/backend';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 
 const SceneRow = ({ scene, storyConfig }) => {
-    const { addGeneratedImage, updateSelectedGeneratedImage, handleImageUpload, projectState } =
-        useProjectManager();
+    const { 
+        addGeneratedImage,
+        updateSelectedGeneratedImage,
+        handleSceneImageUpload,
+        projectState 
+    } = useProjectManager();
 
     // Parse scene properties
     const {
@@ -105,7 +109,7 @@ const SceneRow = ({ scene, storyConfig }) => {
 
     const handleImageUploadInternal = async (imageFile) => {
         // Call ProjectManager's image upload handler
-        const result = await handleImageUpload(sceneDbId, imageFile);
+        const result = await handleSceneImageUpload(sceneDbId, imageFile);
 
         if (!result.success) {
             console.error('Image upload failed:', result.error);

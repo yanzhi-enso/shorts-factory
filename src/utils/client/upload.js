@@ -5,7 +5,7 @@ export const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/web
 export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 // Image Type
-export const IMAGE_TYPE_ELEMENT = 'ELEMENT_IMAGE'
+export const IMAGE_TYPE_ELEMENT = 'ELEMENT_IMAGES'
 export const IMAGE_TYPE_GENERATED_SCENE = 'GENERATED_SCENE_IMAGES'
 
 /**

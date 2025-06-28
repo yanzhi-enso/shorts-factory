@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { FaUpload, FaImage, FaTimes } from 'react-icons/fa';
 import { useProjectManager } from 'app/hocs/ProjectManager';
+import { validateImageFile } from 'utils/client/upload';
 import styles from './ImageGenerationModal.module.css';
 
 const ImageGenerationModal = ({
@@ -10,7 +11,7 @@ const ImageGenerationModal = ({
     onClose,
     onImageGenerated
 }) => {
-    const { projectState, addElementImage } = useProjectManager();
+    const { projectState, handleElementImageUpload } = useProjectManager();
     
     const [activeTab, setActiveTab] = useState('prompt');
     
@@ -26,57 +27,10 @@ const ImageGenerationModal = ({
     const [description, setDescription] = useState('');
     
     const fileInputRef = useRef(null);
-    
-    // File validation constants
-    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
-
-    // WebP conversion function (from ProjectManager)
-    const convertWebPToPNG = useCallback(async (webpFile) => {
-        return new Promise((resolve, reject) => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        const pngFile = new File([blob], webpFile.name.replace(/\.webp$/i, '.png'), {
-                            type: 'image/png',
-                            lastModified: Date.now()
-                        });
-                        resolve(pngFile);
-                    } else {
-                        reject(new Error('Failed to convert WebP to PNG'));
-                    }
-                }, 'image/png', 1.0);
-            };
-            
-            img.onerror = () => reject(new Error('Failed to load WebP image'));
-            img.src = URL.createObjectURL(webpFile);
-        });
-    }, []);
-
-    // File validation
-    const validateFile = useCallback((file) => {
-        if (!ALLOWED_TYPES.includes(file.type)) {
-            return { valid: false, error: 'Please select only PNG, JPEG, JPG, or WebP images' };
-        }
-        
-        if (file.size > MAX_FILE_SIZE) {
-            return { valid: false, error: 'File size must be less than 25MB' };
-        }
-        
-        return { valid: true };
-    }, []);
 
     // Handle file selection
     const handleFileSelect = useCallback((file) => {
-        const validation = validateFile(file);
+        const validation = validateImageFile(file);
         
         if (!validation.valid) {
             setUploadError(validation.error);
@@ -86,7 +40,7 @@ const ImageGenerationModal = ({
         setSelectedFile(file);
         setPreviewUrl(URL.createObjectURL(file));
         setUploadError(null);
-    }, [validateFile]);
+    }, []);
 
     // Reset upload state
     const resetUploadState = useCallback(() => {
@@ -147,7 +101,7 @@ const ImageGenerationModal = ({
         e.target.value = '';
     }, [handleFileSelect]);
 
-    // Main upload function
+    // Main upload function using centralized upload logic
     const handleUpload = useCallback(async () => {
         if (!selectedFile || !projectState.curProjId) {
             return;
@@ -157,55 +111,17 @@ const ImageGenerationModal = ({
         setUploadError(null);
 
         try {
-            // 1. Handle WebP conversion if needed
-            let processedFile = selectedFile;
-            if (selectedFile.type === 'image/webp') {
-                try {
-                    processedFile = await convertWebPToPNG(selectedFile);
-                } catch (conversionError) {
-                    throw new Error('Failed to convert WebP image');
-                }
-            }
-
-            // 2. Get signed URL from backend
-            const signedUrlResponse = await fetch('/api/upload/signed-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_id: projectState.curProjId })
+            // Use centralized upload function from ProjectManager
+            const result = await handleElementImageUpload(selectedFile, {
+                name: name.trim() || null,
+                description: description.trim() || null
             });
-
-            if (!signedUrlResponse.ok) {
-                throw new Error('Failed to get signed URL');
-            }
-
-            const { signed_url, public_url, image_id } = await signedUrlResponse.json();
-
-            // 3. Upload file to GCS using signed URL
-            const uploadResponse = await fetch(signed_url, {
-                method: 'PUT',
-                body: processedFile,
-                headers: {
-                    'Content-Type': 'image/png'
-                }
-            });
-
-            if (!uploadResponse.ok) {
-                throw new Error('Failed to upload image to storage');
-            }
-
-            // 4. Store in IndexedDB via ProjectManager (element image, not scene-specific)
-            const result = await addElementImage(
-                public_url, 
-                null, // generation sources
-                name.trim() || null, 
-                description.trim() || null
-            );
 
             if (!result.success) {
                 throw new Error(result.error);
             }
 
-            // 5. Success - trigger callback and close modal
+            // Success - trigger callback and close modal
             if (onImageGenerated) {
                 onImageGenerated(result.elementImage);
             }
@@ -219,7 +135,16 @@ const ImageGenerationModal = ({
         } finally {
             setIsUploading(false);
         }
-    }, [selectedFile, projectState.curProjId, convertWebPToPNG, addElementImage, onImageGenerated, resetUploadState, onClose]);
+    }, [
+        selectedFile,
+        projectState.curProjId,
+        handleElementImageUpload,
+        name,
+        description,
+        onImageGenerated,
+        resetUploadState,
+        onClose
+    ]);
 
     // Clear selected file
     const handleClearFile = useCallback(() => {

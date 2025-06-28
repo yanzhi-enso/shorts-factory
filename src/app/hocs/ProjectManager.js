@@ -7,7 +7,7 @@ import {
 } from 'utils/client/projectValidation';
 import { 
     uploadImage, IMAGE_TYPE_ELEMENT, IMAGE_TYPE_GENERATED_SCENE
-} from '../utils/client/upload';
+} from 'utils/client/upload';
 
 // Initial state for the project manager
 const initialState = {
