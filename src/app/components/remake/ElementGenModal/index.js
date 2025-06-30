@@ -118,6 +118,8 @@ const ElementGenModal = ({
                     </button>
                 );
             case 'prompt':
+                // PromptTab manages its own buttons internally
+                return null;
             case 'inpainting':
             default:
                 return (
@@ -197,7 +199,7 @@ const ElementGenModal = ({
                     <button className={styles.cancelButton} onClick={onClose}>
                         Cancel
                     </button>
-                    {getActionButton()}
+                    {getActionButton() && getActionButton()}
                 </div>
             </div>
         </div>
