@@ -67,12 +67,12 @@ const [generationError, setGenerationError] = useState(null); // Error handling
 
 ### 🔌 **API Integration**
 
-#### Automatic Mode Detection
-```javascript
-const isTextOnly = selectedImages.length === 0;
 
+#### Backend Image Processing
+```javascript
+// Frontend now sends image URLs instead of base64 data
 if (isTextOnly) {
-    // POST /api/workflows/txt2img/gen_img
+    // Text-to-image generation (unchanged)
     payload = {
         prompt: prompt.trim(),
         n: numberOfImages,
@@ -80,33 +80,15 @@ if (isTextOnly) {
         asset_type: 'ELEMENT_IMAGES'
     };
 } else {
-    // POST /api/workflows/img2img/extend
-    const imageBase64Array = await convertImagesToBase64(selectedImages);
+    // Image extension with URLs (backend handles conversion)
     payload = {
-        images: imageBase64Array,
+        image_urls: selectedImages.map(img => img.gcsUrl),
         prompt: prompt.trim(),
         n: numberOfImages,
         project_id: curProjId,
         asset_type: 'ELEMENT_IMAGES'
     };
 }
-```
-
-#### Base64 Conversion
-```javascript
-const convertImageToBase64 = async (imageUrl) => {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result.split(',')[1]; // Remove data:image prefix
-            resolve(base64String);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-};
 ```
 
 #### Error Handling

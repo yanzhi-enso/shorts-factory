@@ -8,20 +8,20 @@ export async function POST(request) {
         const body = await request.json();
 
         // Extract camelCase parameters from HTTP payload
-        const { images, prompt, n = 1, project_id, asset_type } = body;
+        const { image_urls, prompt, n = 1, project_id, asset_type } = body;
 
-        // Validate required parameter - images array
-        if (!images || !Array.isArray(images) || images.length === 0) {
+        // Validate required parameter - image_urls array
+        if (!image_urls || !Array.isArray(image_urls) || image_urls.length === 0) {
             return NextResponse.json(
-                { error: 'images array is required and cannot be empty' },
+                { error: 'image_urls array is required and cannot be empty' },
                 { status: 400 }
             );
         }
 
-        // Validate images array length (OpenAI limit)
-        if (images.length > 10) {
+        // Validate image_urls array length (OpenAI limit)
+        if (image_urls.length > 10) {
             return NextResponse.json(
-                { error: 'images array cannot contain more than 10 images' },
+                { error: 'image_urls array cannot contain more than 10 images' },
                 { status: 400 }
             );
         }
@@ -66,7 +66,7 @@ export async function POST(request) {
         }
 
         // Call the extend function
-        const result = await workflow.extendImage(images, prompt, n);
+        const result = await workflow.extendImage(image_urls, prompt, n);
 
         // Upload images to GCS and replace base64 with URLs
         const processedImages = [];

@@ -199,7 +199,7 @@ export async function getVideoTaskStatus(taskId, projectId) {
     }
 }
 
-export async function extendImage(images, prompt, n = 1, projectId, assetType) {
+export async function extendImage(imageUrls, prompt, n = 1, projectId, assetType) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -219,7 +219,7 @@ export async function extendImage(images, prompt, n = 1, projectId, assetType) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                images,
+                image_urls: imageUrls,
                 prompt,
                 n,
                 project_id: projectId,

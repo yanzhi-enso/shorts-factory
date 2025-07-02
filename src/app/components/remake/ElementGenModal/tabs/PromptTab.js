@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 import Dropdown from 'app/components/common/Dropdown';
 import { ASSET_TYPES } from 'constants/gcs';
+import { generateImage, extendImage } from 'services/backend';
 import styles from '../ElementGenModal.module.css';
 
 const PromptTab = ({ 
@@ -37,36 +38,6 @@ const PromptTab = ({
         { value: 10, label: '10 images' }
     ];
 
-    // Helper function to convert image URL to base64
-    const convertImageToBase64 = async (imageUrl) => {
-        try {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64String = reader.result.split(',')[1]; // Remove data:image/...;base64, prefix
-                    resolve(base64String);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch (error) {
-            console.error('Error converting image to base64:', error);
-            throw error;
-        }
-    };
-
-    // Convert multiple images to base64
-    const convertImagesToBase64 = async (images) => {
-        const base64Array = [];
-        for (const image of images) {
-            const base64 = await convertImageToBase64(image.gcsUrl);
-            base64Array.push(base64);
-        }
-        return base64Array;
-    };
 
     // Handle element image selection
     const handleImageSelection = useCallback((elementImage) => {
@@ -102,50 +73,30 @@ const PromptTab = ({
         
         try {
             const isTextOnly = selectedImages.length === 0;
-            let apiResult;
+            let result;
             
             if (isTextOnly) {
-                // Text-to-image generation
-                apiResult = await fetch('/api/workflows/txt2img/gen_img', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: prompt.trim(),
-                        n: numberOfImages,
-                        project_id: projectState.curProjId,
-                        asset_type: ASSET_TYPES.ELEMENT_IMAGES
-                    })
-                });
+                // Text-to-image generation using service function
+                result = await generateImage(
+                    prompt.trim(),
+                    numberOfImages,
+                    projectState.curProjId,
+                    ASSET_TYPES.ELEMENT_IMAGES
+                );
             } else {
-                // Image extension with reference images
-                const imageBase64Array = await convertImagesToBase64(selectedImages);
-                
-                apiResult = await fetch('/api/workflows/img2img/extend', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        images: imageBase64Array,
-                        prompt: prompt.trim(),
-                        n: numberOfImages,
-                        project_id: projectState.curProjId,
-                        asset_type: ASSET_TYPES.ELEMENT_IMAGES
-                    })
-                });
-            }
-            
-            if (!apiResult.ok) {
-                const errorData = await apiResult.json();
-                throw new Error(errorData.error || 'Generation failed');
-            }
-            
-            const data = await apiResult.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Generation failed');
+                // Image extension using service function
+                const imageUrls = selectedImages.map(img => img.gcsUrl);
+                result = await extendImage(
+                    imageUrls,
+                    prompt.trim(),
+                    numberOfImages,
+                    projectState.curProjId,
+                    ASSET_TYPES.ELEMENT_IMAGES
+                );
             }
             
             // Store generated images in local state (draft mode)
-            const newGeneratedImages = data.result.images.map((imageData, index) => ({
+            const newGeneratedImages = result.images.map((imageData, index) => ({
                 id: `generated_${Date.now()}_${index}`,
                 imageUrl: imageData.imageUrl,
                 revisedPrompt: imageData.revisedPrompt,
