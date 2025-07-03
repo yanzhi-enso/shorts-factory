@@ -65,41 +65,15 @@ export async function POST(request) {
             );
         }
 
-        // Call the extend function
+        // Call the extend function (send request to openAI)
         const result = await workflow.extendImage(image_urls, prompt, n);
-
-        // Upload images to GCS and replace base64 with URLs
-        const processedImages = [];
-
-        if (result?.data && Array.isArray(result.data)) {
-            // Handle multiple images from OpenAI response
-            for (const imgData of result.data) {
-                const uploadResult = await uploadBase64ToGCS(
-                    imgData.b64_json,
-                    project_id,
-                    asset_type
-                );
-
-                if (!uploadResult.success) {
-                    console.error('Failed to upload image to GCS:', uploadResult.error);
-                    return NextResponse.json(
-                        { error: `GCS upload failed: ${uploadResult.error}` },
-                        { status: 500 }
-                    );
-                }
-
-                processedImages.push({
-                    imageUrl: uploadResult.gcsUrl,
-                    revisedPrompt: imgData.revised_prompt
-                });
-            }
-        }
 
         // Return response with GCS URLs instead of base64 (clean format)
         const responseResult = {
-            images: processedImages,
+            images: result,
             format: 'png',
-            created: result.created
+            // created in ts format, eg 1713833628
+            created: new Date.now(),
         };
 
         return NextResponse.json({ success: true, result: responseResult });

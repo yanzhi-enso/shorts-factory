@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 export const REASONING_MODELS = {
   O4_MINI: "o4-mini",
   O3: "o3",
-  O3_MINI: "o3-mini",
 }
 
 // Load environment variables if not already loaded
@@ -30,11 +29,10 @@ function getOpenAIClient() {
 }
 
 // Default settings based on requirements
-const DEFAULT_ANALYSIS_MODEL = "o4-mini";
+const DEFAULT_ANALYSIS_MODEL = REASONING_MODELS.O3;
 const DEFAULT_GENERATION_MODEL = "gpt-image-1";
 const DEFAULT_GENERATION_SIZE = "1024x1536"; // Portrait
 const DEFAULT_QUALITY = "high";
-const DEFAULT_DETAIL = "high";
 const DEFAULT_OUTPUT_FORMAT = "png";
 const DEFAULT_MODERATION = "low";
 const DEFAULT_N = 1;
@@ -118,7 +116,7 @@ export class MessagePayload {
   }
 }
 
-async function analyzeImageWithOpenAI(model, instructions, userInput, options = {}) {
+async function analyzeImageWithOpenAI(model=DEFAULT_ANALYSIS_MODEL, instructions, userInput, options = {}) {
   /**
     Analyzes an image using OpenAI reasoning models
     @param {string} model - The OpenAI model to use (default: "o4-mini")
@@ -179,63 +177,10 @@ async function generateImageWithOpenAI(prompt, options = {}) {
       output_format: "png", // Always return base64
       n: options.n || DEFAULT_N,
       moderation: DEFAULT_MODERATION,
-      ...(options.output_format && { output_format: options.output_format }),
-      ...(options.user && { user: options.user })
+      ...(options.output_format && { output_format: options.output_format })
     };
 
     const result = await openaiClient.images.generate(generateOptions);
-
-    // Handle multiple images if n > 1
-    const images = result.data.map(item => ({
-      imageBase64: item.b64_json,
-      revisedPrompt: item.revised_prompt || prompt
-    }));
-
-    // Simplified response format
-    return {
-      success: true,
-      data: {
-        images: images,
-        // For backward compatibility, keep single image format
-        imageBase64: images[0].imageBase64,
-        revisedPrompt: images[0].revisedPrompt,
-        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
-        created: result.created
-      }
-    };
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
-}
-
-// Server-side utility to edit images using OpenAI
-async function editImageWithOpenAI(imageFile, maskFile, prompt, options = {}) {
-  try {
-    const openaiClient = getOpenAIClient();
-    
-    const editOptions = {
-      image: imageFile,
-      prompt: prompt,
-      model: options.model || DEFAULT_GENERATION_MODEL,
-      size: options.size || DEFAULT_GENERATION_SIZE,
-      quality: options.quality || DEFAULT_QUALITY,
-      n: options.n || DEFAULT_N,
-      moderation: options.moderation || DEFAULT_MODERATION,
-      ...(options.output_format && { output_format: options.output_format }),
-      ...(options.user && { user: options.user })
-    };
-
-    // Add mask if provided
-    if (maskFile) {
-      editOptions.mask = maskFile;
-    }
-
-    const result = await openaiClient.images.edit(editOptions);
 
     // Handle multiple images if n > 1
     const images = result.data.map(item => ({
@@ -271,11 +216,9 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
   try {
     const openaiClient = getOpenAIClient();
     
-    // Handle single image vs multiple images - API expects single file or array
-    const imageInput = images.length === 1 ? images[0] : images;
-    
+    // Always pass the images array directly to OpenAI API
     const editOptions = {
-      image: imageInput,
+      image: images,
       prompt: prompt,
       model: options.model || DEFAULT_GENERATION_MODEL,
       size: options.size || DEFAULT_GENERATION_SIZE,
@@ -321,129 +264,14 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
   }
 }
 
-// Server-side utility to create image variations using OpenAI
-async function createImageVariationWithOpenAI(imageFile, options = {}) {
-  try {
-    const openaiClient = getOpenAIClient();
-    
-    const variationOptions = {
-      image: imageFile,
-      model: options.model || DEFAULT_GENERATION_MODEL,
-      size: options.size || DEFAULT_GENERATION_SIZE,
-      quality: options.quality || DEFAULT_QUALITY,
-      n: options.n || DEFAULT_N,
-      moderation: options.moderation || DEFAULT_MODERATION,
-      ...(options.prompt && { prompt: options.prompt }),
-      ...(options.output_format && { output_format: options.output_format }),
-      ...(options.user && { user: options.user })
-    };
-
-    const result = await openaiClient.images.createVariation(variationOptions);
-
-    // Handle multiple images if n > 1
-    const images = result.data.map(item => ({
-      imageBase64: item.b64_json,
-      revisedPrompt: item.revised_prompt || options.prompt || 'Variation of provided image'
-    }));
-
-    // Simplified response format
-    return {
-      success: true,
-      data: {
-        images: images,
-        // For backward compatibility, keep single image format
-        imageBase64: images[0].imageBase64,
-        revisedPrompt: images[0].revisedPrompt,
-        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
-        created: result.created
-      }
-    };
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
-}
-
-// Helper utility to convert image URL to file object for editing/variations
-async function imageUrlToFile(imageUrl, filename = 'image.png') {
-  try {
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    // Create a file-like object that the OpenAI SDK expects
-    return new File([buffer], filename, { 
-      type: response.headers.get('content-type') || 'image/png' 
-    });
-  } catch (error) {
-    throw new Error(`Failed to convert image URL to file: ${error.message}`);
-  }
-}
-
-// Convenience function to edit image from URL
-async function editImageFromUrlWithOpenAI(imageUrl, maskUrl, prompt, options = {}) {
-  try {
-    const imageFile = await imageUrlToFile(imageUrl, 'image.png');
-    const maskFile = maskUrl ? await imageUrlToFile(maskUrl, 'mask.png') : null;
-    
-    return await editImageWithOpenAI(imageFile, maskFile, prompt, options);
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
-}
-
-// Convenience function to create variations from URL
-async function createImageVariationFromUrlWithOpenAI(imageUrl, options = {}) {
-  try {
-    const imageFile = await imageUrlToFile(imageUrl, 'image.png');
-    
-    return await createImageVariationWithOpenAI(imageFile, options);
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
-}
 
 // Export server-side utilities
 export const openaiClient = {
   // Core functions
   analyzeImageWithOpenAI,
   generateImageWithOpenAI,
-  editImageWithOpenAI,
   editImagesWithOpenAI,
-  createImageVariationWithOpenAI,
-  
-  // URL convenience functions
-  editImageFromUrlWithOpenAI,
-  createImageVariationFromUrlWithOpenAI,
   
   // Helper utilities
-  imageUrlToFile,
   transformError,
-  
-  // Configuration constants
-  DEFAULT_ANALYSIS_MODEL,
-  DEFAULT_GENERATION_MODEL,
-  DEFAULT_GENERATION_SIZE,
-  DEFAULT_QUALITY,
-  DEFAULT_DETAIL,
-  DEFAULT_OUTPUT_FORMAT,
-  DEFAULT_MODERATION,
-  DEFAULT_N
 };

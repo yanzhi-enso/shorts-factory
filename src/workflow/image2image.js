@@ -3,24 +3,50 @@ import { toFile } from 'openai';
 
 /**
  * Extends images without using a mask (outpainting/extending image boundaries)
- * @param {string[]} images - Array of image URLs
+ * @param {string[]} imageURLs - Array of image URLs
  * @param {string} prompt - Description of the extension
  * @param {number} n - Number of variations to generate (default: 1)
  * @returns {Promise<Object>} Response data from OpenAI
  */
-async function extendImage(images, prompt, n = 1) {
+async function extendImage(imageURLs, prompt, n = 1) {
     try {
         // Convert URL array to File objects with sequential naming
         const imageFiles = await Promise.all(
-            images.map((url, index) => 
-                toFile(fetch(url), `image_${index + 1}.png`)
-            )
+            imageURLs.map((url, index) => 
+                toFile(fetch(url), `image_${index + 1}.png`, {
+                type: "image/png",
+            }))
         );
         
         const response = await openaiClient.editImagesWithOpenAI(imageFiles, null, prompt, { n });
-        
         if (response.success) {
-            return response.data;
+            // Upload images to GCS and replace base64 with URLs
+            const { images } = response.data;
+            const ret = [];
+
+            // Upload image results from OpenAI to GCS
+            for (const imgData of images) {
+                const uploadResult = await uploadBase64ToGCS(
+                    imgData.imageBase64,
+                    project_id,
+                    asset_type
+                );
+
+                if (!uploadResult.success) {
+                    console.error('Failed to upload image to GCS:', uploadResult.error);
+                    return NextResponse.json(
+                        { error: `GCS upload failed: ${uploadResult.error}` },
+                        { status: 500 }
+                    );
+                }
+
+                ret.push({
+                    imageUrl: uploadResult.gcsUrl,
+                    revisedPrompt: imgData.revisedPrompt
+                });
+            }
+
+            return ret;
         } else {
             if (response?.error !== 'CONTENT_MODERATION_BLOCKED') {
                 throw new Error(response.message || 'Image extension failed');
