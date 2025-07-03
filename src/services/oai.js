@@ -4,28 +4,30 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 
 export const REASONING_MODELS = {
-  O4_MINI: "o4-mini",
-  O3: "o3",
-}
+    O4_MINI: "o4-mini",
+    O3: "o3",
+};
 
 // Load environment variables if not already loaded
-if (typeof process !== 'undefined' && !process.env.OPENAI_API_KEY) {
-  dotenv.config();
+if (typeof process !== "undefined" && !process.env.OPENAI_API_KEY) {
+    dotenv.config();
 }
 
 // Lazy initialization of OpenAI client
 let openai = null;
 
 function getOpenAIClient() {
-  if (!openai) {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OpenAI API key is not set in environment variables.");
+    if (!openai) {
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error(
+                "OpenAI API key is not set in environment variables."
+            );
+        }
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
     }
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-  return openai;
+    return openai;
 }
 
 // Default settings based on requirements
@@ -39,85 +41,115 @@ const DEFAULT_N = 1;
 
 // Helper function to transform OpenAI SDK errors to our custom format
 function transformError(error) {
-  // Network-level errors
-  if (error.code === 'ENOTFOUND' || error.code === 'EAI_NODATA') {
-    return { error: 'DNS_ERROR', message: 'Unable to resolve API endpoint' };
-  }
-  
-  if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
-    return { error: 'NETWORK_ERROR', message: 'Network connection failed' };
-  }
-
-  if (error.name === 'AbortError') {
-    return { error: 'CONNECTION_TIMEOUT', message: 'Request timed out' };
-  }
-
-  // OpenAI SDK-specific errors
-  if (error instanceof OpenAI.AuthenticationError) {
-    return { error: 'INVALID_API_KEY', message: 'OpenAI API key is invalid' };
-  }
-
-  if (error instanceof OpenAI.RateLimitError) {
-    return { error: 'RATE_LIMIT_EXCEEDED', message: 'API rate limit exceeded' };
-  }
-
-  if (error instanceof OpenAI.BadRequestError) {
-    if (error.error?.code === 'moderation_blocked') {
-      return { error: 'CONTENT_MODERATION_BLOCKED', message: 'Content blocked by OpenAI moderation' };
-    } else {
-      return { error: 'INVALID_REQUEST', message: 'Request parameters are invalid' };
+    // Network-level errors
+    if (error.code === "ENOTFOUND" || error.code === "EAI_NODATA") {
+        return {
+            error: "DNS_ERROR",
+            message: "Unable to resolve API endpoint",
+        };
     }
-  }
 
-  if (error instanceof OpenAI.PermissionDeniedError) {
-    return { error: 'CONTENT_VIOLATION', message: 'Content violates OpenAI policies' };
-  }
+    if (error.code === "ECONNREFUSED" || error.code === "ECONNRESET") {
+        return { error: "NETWORK_ERROR", message: "Network connection failed" };
+    }
 
-  if (error instanceof OpenAI.InternalServerError) {
-    return { error: 'SERVER_ERROR', message: 'OpenAI server error' };
-  }
+    if (error.name === "AbortError") {
+        return { error: "CONNECTION_TIMEOUT", message: "Request timed out" };
+    }
 
-  if (error instanceof OpenAI.APIError) {
-    return { error: 'API_ERROR', message: `OpenAI API error: ${error.message}` };
-  }
+    // OpenAI SDK-specific errors
+    if (error instanceof OpenAI.AuthenticationError) {
+        return {
+            error: "INVALID_API_KEY",
+            message: "OpenAI API key is invalid",
+        };
+    }
 
-  return { error: 'UNKNOWN_ERROR', message: error?.message || 'An unknown error occurred' };
+    if (error instanceof OpenAI.RateLimitError) {
+        return {
+            error: "RATE_LIMIT_EXCEEDED",
+            message: "API rate limit exceeded",
+        };
+    }
+
+    if (error instanceof OpenAI.BadRequestError) {
+        if (error.error?.code === "moderation_blocked") {
+            return {
+                error: "CONTENT_MODERATION_BLOCKED",
+                message: "Content blocked by OpenAI moderation",
+            };
+        } else {
+            return {
+                error: "INVALID_REQUEST",
+                message: "Request parameters are invalid",
+            };
+        }
+    }
+
+    if (error instanceof OpenAI.PermissionDeniedError) {
+        return {
+            error: "CONTENT_VIOLATION",
+            message: "Content violates OpenAI policies",
+        };
+    }
+
+    if (error instanceof OpenAI.InternalServerError) {
+        return { error: "SERVER_ERROR", message: "OpenAI server error" };
+    }
+
+    if (error instanceof OpenAI.APIError) {
+        return {
+            error: "API_ERROR",
+            message: `OpenAI API error: ${error.message}`,
+        };
+    }
+
+    return {
+        error: "UNKNOWN_ERROR",
+        message: error?.message || "An unknown error occurred",
+    };
 }
 
 export class MessagePayload {
-  constructor() {
-    this.content = [];
-  }
+    constructor() {
+        this.content = [];
+    }
 
-  addText(text, role) {
-    this.content.push({
-      role: role || "user",
-      content: text,
-    });
-  }
+    addText(text, role) {
+        this.content.push({
+            role: role || "user",
+            content: text,
+        });
+    }
 
-  addTextWithImage(text, imageUrl, role) {
-    this.content.push({
-      role: role || "user",
-      content: [
-        {
-          type: "input_text",
-          text: text,
-        }, {
-          type: "input_image",
-          image_url: imageUrl,
-        }
-      ]
-    })
-  }
+    addTextWithImage(text, imageUrl, role) {
+        this.content.push({
+            role: role || "user",
+            content: [
+                {
+                    type: "input_text",
+                    text: text,
+                },
+                {
+                    type: "input_image",
+                    image_url: imageUrl,
+                },
+            ],
+        });
+    }
 
-  output() {
-    return this.content;
-  }
+    output() {
+        return this.content;
+    }
 }
 
-async function analyzeImageWithOpenAI(model=DEFAULT_ANALYSIS_MODEL, instructions, userInput, options = {}) {
-  /**
+async function analyzeImageWithOpenAI(
+    model = DEFAULT_ANALYSIS_MODEL,
+    instructions,
+    userInput,
+    options = {}
+) {
+    /**
     Analyzes an image using OpenAI reasoning models
     @param {string} model - The OpenAI model to use (default: "o4-mini")
     @param {string} instructions - Optional instructions for the model
@@ -127,151 +159,154 @@ async function analyzeImageWithOpenAI(model=DEFAULT_ANALYSIS_MODEL, instructions
     
     @returns {Promise<Object>} - a promise of an object with success status and message
   **/
-  try {
-    // assert message payload is an instance of MessagePayload
-    if (!(userInput instanceof MessagePayload)) {
-      throw new Error("userInput must be an instance of MessagePayload");
+    try {
+        // assert message payload is an instance of MessagePayload
+        if (!(userInput instanceof MessagePayload)) {
+            throw new Error("userInput must be an instance of MessagePayload");
+        }
+
+        const openaiClient = getOpenAIClient();
+
+        // Build payload with optional instructions
+        const payload = {
+            model,
+            instructions,
+            input: userInput.output(),
+        };
+
+        // Add optional parameters
+        if (options.responseFormat) {
+            payload.response_format = options.responseFormat;
+        }
+
+        const response = await openaiClient.responses.create(payload);
+
+        // Simplified response format
+        return {
+            success: true,
+            message: response.output?.[1]?.content?.[0]?.text, // [0] is for reasoning
+        };
+    } catch (error) {
+        const transformedError = transformError(error);
+        return {
+            success: false,
+            error: transformedError.error,
+            message: transformedError.message,
+        };
     }
-
-    const openaiClient = getOpenAIClient();
-
-    // Build payload with optional instructions
-    const payload = {
-      model,
-      instructions,
-      input: userInput.output(),
-    };
-
-    // Add optional parameters
-    if (options.responseFormat) {
-      payload.response_format = options.responseFormat;
-    }
-
-    const response = await openaiClient.responses.create(payload);
-
-    // Simplified response format
-    return {
-      success: true,
-      message: response.output?.[1]?.content?.[0]?.text, // [0] is for reasoning
-    };
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
 }
 
 // Server-side utility to generate images using OpenAI GPT-Image-1
 async function generateImageWithOpenAI(prompt, options = {}) {
-  try {
-    const openaiClient = getOpenAIClient();
-    
-    const generateOptions = {
-      prompt: prompt,
-      model: options.model || DEFAULT_GENERATION_MODEL,
-      size: options.size || DEFAULT_GENERATION_SIZE,
-      quality: options.quality || DEFAULT_QUALITY,
-      output_format: "png", // Always return base64
-      n: options.n || DEFAULT_N,
-      moderation: DEFAULT_MODERATION,
-      ...(options.output_format && { output_format: options.output_format })
-    };
+    try {
+        const openaiClient = getOpenAIClient();
 
-    const result = await openaiClient.images.generate(generateOptions);
+        const generateOptions = {
+            prompt: prompt,
+            model: options.model || DEFAULT_GENERATION_MODEL,
+            size: options.size || DEFAULT_GENERATION_SIZE,
+            quality: options.quality || DEFAULT_QUALITY,
+            output_format: "png", // Always return base64
+            n: options.n || DEFAULT_N,
+            moderation: DEFAULT_MODERATION,
+            ...(options.output_format && {
+                output_format: options.output_format,
+            }),
+        };
 
-    // Handle multiple images if n > 1
-    const images = result.data.map(item => ({
-      imageBase64: item.b64_json,
-      revisedPrompt: item.revised_prompt || prompt
-    }));
+        const result = await openaiClient.images.generate(generateOptions);
 
-    // Simplified response format
-    return {
-      success: true,
-      data: {
-        images: images,
-        // For backward compatibility, keep single image format
-        imageBase64: images[0].imageBase64,
-        revisedPrompt: images[0].revisedPrompt,
-        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
-        created: result.created
-      }
-    };
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
+        // Handle multiple images if n > 1
+        const images = result.data.map((item) => ({
+            imageBase64: item.b64_json,
+            revisedPrompt: item.revised_prompt || prompt,
+        }));
+
+        // Simplified response format
+        return {
+            success: true,
+            data: {
+                images: images,
+                // For backward compatibility, keep single image format
+                imageBase64: images[0].imageBase64,
+                revisedPrompt: images[0].revisedPrompt,
+                format: options.output_format || DEFAULT_OUTPUT_FORMAT,
+                created: result.created,
+            },
+        };
+    } catch (error) {
+        const transformedError = transformError(error);
+        return {
+            success: false,
+            error: transformedError.error,
+            message: transformedError.message,
+        };
+    }
 }
 
 // Server-side utility to edit multiple images using OpenAI
 // Assumes all images are PNG format File objects
 async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
-  try {
-    const openaiClient = getOpenAIClient();
-    
-    // Always pass the images array directly to OpenAI API
-    const editOptions = {
-      image: images,
-      prompt: prompt,
-      model: options.model || DEFAULT_GENERATION_MODEL,
-      size: options.size || DEFAULT_GENERATION_SIZE,
-      quality: options.quality || DEFAULT_QUALITY,
-      n: options.n || DEFAULT_N,
-      moderation: options.moderation || DEFAULT_MODERATION,
-      ...(options.output_format && { output_format: options.output_format }),
-      ...(options.user && { user: options.user })
-    };
+    try {
+        const openaiClient = getOpenAIClient();
 
-    // Add mask if provided
-    if (mask) {
-      editOptions.mask = mask;
+        // Always pass the images array directly to OpenAI API
+        const editOptions = {
+            image: images,
+            prompt: prompt,
+            model: options.model || DEFAULT_GENERATION_MODEL,
+            size: options.size || DEFAULT_GENERATION_SIZE,
+            quality: options.quality || DEFAULT_QUALITY,
+            n: options.n || DEFAULT_N,
+            moderation: options.moderation || DEFAULT_MODERATION,
+            ...(options.output_format && {
+                output_format: options.output_format,
+            }),
+            ...(options.user && { user: options.user }),
+        };
+
+        // Add mask if provided
+        if (mask) {
+            editOptions.mask = mask;
+        }
+
+        const result = await openaiClient.images.edit(editOptions);
+
+        // Handle multiple images if n > 1
+        const resultImages = result.data.map((item) => ({
+            imageBase64: item.b64_json,
+            revisedPrompt: item.revised_prompt || prompt,
+        }));
+
+        // Simplified response format
+        return {
+            success: true,
+            data: {
+                images: resultImages,
+                // For backward compatibility, keep single image format
+                imageBase64: resultImages[0].imageBase64,
+                revisedPrompt: resultImages[0].revisedPrompt,
+                format: options.output_format || DEFAULT_OUTPUT_FORMAT,
+                created: result.created,
+            },
+        };
+    } catch (error) {
+        const transformedError = transformError(error);
+        return {
+            success: false,
+            error: transformedError.error,
+            message: transformedError.message,
+        };
     }
-
-    const result = await openaiClient.images.edit(editOptions);
-
-    // Handle multiple images if n > 1
-    const resultImages = result.data.map(item => ({
-      imageBase64: item.b64_json,
-      revisedPrompt: item.revised_prompt || prompt
-    }));
-
-    // Simplified response format
-    return {
-      success: true,
-      data: {
-        images: resultImages,
-        // For backward compatibility, keep single image format
-        imageBase64: resultImages[0].imageBase64,
-        revisedPrompt: resultImages[0].revisedPrompt,
-        format: options.output_format || DEFAULT_OUTPUT_FORMAT,
-        created: result.created
-      }
-    };
-  } catch (error) {
-    const transformedError = transformError(error);
-    return {
-      success: false,
-      error: transformedError.error,
-      message: transformedError.message
-    };
-  }
 }
-
 
 // Export server-side utilities
 export const openaiClient = {
-  // Core functions
-  analyzeImageWithOpenAI,
-  generateImageWithOpenAI,
-  editImagesWithOpenAI,
-  
-  // Helper utilities
-  transformError,
+    // Core functions
+    analyzeImageWithOpenAI,
+    generateImageWithOpenAI,
+    editImagesWithOpenAI,
+
+    // Helper utilities
+    transformError,
 };
