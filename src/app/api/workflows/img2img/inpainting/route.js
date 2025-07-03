@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { workflow } from 'workflow/image2image.js';
-import { uploadBase64ToGCS } from 'utils/gcsUpload.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
 
 export async function POST(request) {
@@ -66,43 +65,11 @@ export async function POST(request) {
         }
 
         // Call the inpainting function
-        const result = await workflow.inpaintingImage(image, mask, prompt, n);
-
-        // Upload images to GCS and replace base64 with URLs
-        const processedImages = [];
-
-        if (result?.data && Array.isArray(result.data)) {
-            // Handle multiple images from OpenAI response
-            for (const imgData of result.data) {
-                const uploadResult = await uploadBase64ToGCS(
-                    imgData.b64_json,
-                    project_id,
-                    asset_type
-                );
-
-                if (!uploadResult.success) {
-                    console.error('Failed to upload image to GCS:', uploadResult.error);
-                    return NextResponse.json(
-                        { error: `GCS upload failed: ${uploadResult.error}` },
-                        { status: 500 }
-                    );
-                }
-
-                processedImages.push({
-                    imageUrl: uploadResult.gcsUrl,
-                    revisedPrompt: imgData.revised_prompt
-                });
-            }
-        }
-
-        // Return response with GCS URLs instead of base64 (clean format)
-        const responseResult = {
-            images: processedImages,
-            format: 'png',
-            created: result.created
-        };
-
-        return NextResponse.json({ success: true, result: responseResult });
+        const images = await workflow.inpaintingImage(image, mask, prompt, n, project_id, asset_type);
+        return NextResponse.json({ 
+            success: true, 
+            result: {images, format: 'png', created: new Date.now()} }
+        );
     } catch (error) {
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {
             return NextResponse.json(

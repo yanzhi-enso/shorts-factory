@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { workflow } from 'workflow/image2image.js';
-import { uploadBase64ToGCS } from 'utils/gcsUpload.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
 
 export async function POST(request) {
@@ -66,17 +65,17 @@ export async function POST(request) {
         }
 
         // Call the extend function (send request to openAI)
-        const result = await workflow.extendImage(image_urls, prompt, n);
+        const images = await workflow.extendImage(image_urls, prompt, n, project_id, asset_type);
 
-        // Return response with GCS URLs instead of base64 (clean format)
-        const responseResult = {
-            images: result,
-            format: 'png',
-            // created in ts format, eg 1713833628
-            created: new Date.now(),
-        };
-
-        return NextResponse.json({ success: true, result: responseResult });
+        return NextResponse.json({ 
+            success: true, 
+            result: {
+                images,
+                format: 'png',
+                // created in ts format, eg 1713833628
+                created: new Date.now(),
+            }
+        });
     } catch (error) {
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {
             return NextResponse.json(

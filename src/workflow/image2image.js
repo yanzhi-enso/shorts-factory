@@ -1,4 +1,5 @@
 import { openaiClient } from '../services/oai.js';
+import { uploadBase64ToGCS } from 'utils/gcsUpload.js';
 import { toFile } from 'openai';
 
 /**
@@ -6,9 +7,11 @@ import { toFile } from 'openai';
  * @param {string[]} imageURLs - Array of image URLs
  * @param {string} prompt - Description of the extension
  * @param {number} n - Number of variations to generate (default: 1)
+ * @param {string} projectId - Project Id, used in gcs project folder path
+ * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-async function extendImage(imageURLs, prompt, n = 1) {
+async function extendImage(imageURLs, prompt, n = 1, projectId, assetType) {
     try {
         // Convert URL array to File objects with sequential naming
         const imageFiles = await Promise.all(
@@ -28,22 +31,20 @@ async function extendImage(imageURLs, prompt, n = 1) {
             for (const imgData of images) {
                 const uploadResult = await uploadBase64ToGCS(
                     imgData.imageBase64,
-                    project_id,
-                    asset_type
+                    projectId,
+                    assetType
                 );
 
-                if (!uploadResult.success) {
-                    console.error('Failed to upload image to GCS:', uploadResult.error);
-                    return NextResponse.json(
-                        { error: `GCS upload failed: ${uploadResult.error}` },
-                        { status: 500 }
-                    );
-                }
 
-                ret.push({
-                    imageUrl: uploadResult.gcsUrl,
-                    revisedPrompt: imgData.revisedPrompt
-                });
+                if (uploadResult.success) {
+                    ret.push({
+                        imageUrl: uploadResult.gcsUrl,
+                        revisedPrompt: imgData.revisedPrompt
+                    });
+                } else {
+                    // do not break the loop if one image upload is failed
+                    console.error("failed to oai result to gcs", ret.error)
+                }
             }
 
             return ret;
@@ -69,9 +70,11 @@ async function extendImage(imageURLs, prompt, n = 1) {
  * @param {string} mask - Base64 PNG string (without data URL prefix)
  * @param {string} prompt - Description of the inpainting
  * @param {number} n - Number of variations to generate (default: 1)
+ * @param {string} projectId - Project Id, used in gcs project folder path
+ * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-async function inpaintingImage(image, mask, prompt, n = 1) {
+async function inpaintingImage(image, mask, prompt, n = 1, assetType) {
     try {
         // Convert URL to File object
         const imageFile = await toFile(fetch(image), 'image_1.png');
@@ -83,7 +86,30 @@ async function inpaintingImage(image, mask, prompt, n = 1) {
         const response = await openaiClient.editImagesWithOpenAI([imageFile], maskFile, prompt, { n });
         
         if (response.success) {
-            return response.data;
+            const { images } = response.data
+            const ret = [];
+
+            if (Array.isArray(images)) {
+                // Handle multiple images from OpenAI response
+                for (const imgData of result.data) {
+                    const uploadResult = await uploadBase64ToGCS(
+                        imgData.b64_json,
+                        project_id,
+                        assetType
+                    );
+
+                    if (uploadResult.success) {
+                        ret.push({
+                            imageUrl: uploadResult.gcsUrl,
+                            revisedPrompt: imgData.revised_prompt
+                        });
+                    } else {
+                        // do not break the loop if one image upload is failed
+                        console.error("failed to oai result to gcs:", ret.error)
+                    }
+                }
+            }
+            return ret;
         } else {
             if (response?.error !== 'CONTENT_MODERATION_BLOCKED') {
                 throw new Error(response.message || 'Image inpainting failed');
