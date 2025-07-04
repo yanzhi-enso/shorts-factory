@@ -70,11 +70,11 @@ const PROJECT_ACTIONS = {
  *   generatedImages: Array[{       // All generated images for this scene
  *     id: number,                  // Generated image ID
  *     sceneId: number,             // Parent scene ID
- *     gcsUrl: string,              // Generated image URL
+ *     gcsUrls: Array[string],      // Array of generated image URLs
+ *     selectedImageIdx: number,    // Index of selected image within gcsUrls array
  *     generationSources: object|null, // Sources used for generation
  *     createdAt: string            // Creation timestamp
  *   }],
- *   selectedGeneratedImage: string|null,    // URL of selected generated image
  *   selectedGeneratedImageId: number|null,  // Selected generated image ID (DB storage reference)
  *   sceneClips: Array[{            // All generated clips for this scene
  *     id: number,                  // Generated clip ID
@@ -93,7 +93,8 @@ const PROJECT_ACTIONS = {
  * elementImages: Array[{          // All element images for the project (shared resources)
  *   id: number,                   // Element image ID
  *   projectId: string,            // Parent project ID
- *   gcsUrl: string,               // Element image URL
+ *   gcsUrls: Array[string],       // Array of element image URLs
+ *   selectedImageIdx: number,     // Index of selected image within gcsUrls array
  *   generationSources: object|null, // Sources used for generation (null for uploaded images)
  *   name: string|null,            // Optional user-defined name
  *   description: string|null,     // Optional description
@@ -136,11 +137,12 @@ const enrichScenes = async (rawScenes, sceneImagesMap) => {
         // Load generated images for this scene
         const rawGeneratedImages = await projectStorage.getRecreatedSceneImages(scene.id);
         
-        // Transform generated images to camelCase
+        // Transform generated images to camelCase and handle multi-image structure
         const generatedImages = rawGeneratedImages.map(img => ({
             id: img.id,
             sceneId: img.scene_id,
-            gcsUrl: img.gcs_url,
+            gcsUrls: img.gcs_urls,
+            selectedImageIdx: img.selected_image_idx || 0,
             generationSources: img.generation_sources,
             createdAt: img.created_at
         }));
@@ -148,9 +150,6 @@ const enrichScenes = async (rawScenes, sceneImagesMap) => {
         // Determine selected generated image (fallback to most recent if selectedGeneratedImageId is null)
         const selectedGeneratedImageId = scene.selected_generated_image_id || 
                                        (generatedImages.length > 0 ? generatedImages[0].id : null);
-        const selectedGeneratedImage = selectedGeneratedImageId 
-            ? generatedImages.find(img => img.id === selectedGeneratedImageId)?.gcsUrl || null
-            : null;
         
         // Load generated clips for this scene
         const rawSceneClips = await projectStorage.getSceneClips(scene.id);
@@ -181,7 +180,6 @@ const enrichScenes = async (rawScenes, sceneImagesMap) => {
             selectedImageId: selectedImageId,
             sceneImages: sceneImages,
             generatedImages: generatedImages,
-            selectedGeneratedImage: selectedGeneratedImage,
             selectedGeneratedImageId: selectedGeneratedImageId,
             sceneClips: sceneClips,
             selectedSceneClip: selectedSceneClip,
@@ -277,7 +275,6 @@ function projectReducer(state, action) {
                         ? { 
                             ...scene, 
                             generatedImages: [action.payload.generatedImage, ...scene.generatedImages],
-                            selectedGeneratedImage: action.payload.generatedImage.gcsUrl,
                             selectedGeneratedImageId: action.payload.generatedImage.id
                           }
                         : scene
@@ -291,7 +288,6 @@ function projectReducer(state, action) {
                     scene.id === action.payload.sceneId 
                         ? { 
                             ...scene, 
-                            selectedGeneratedImage: action.payload.imageUrl,
                             selectedGeneratedImageId: action.payload.imageId
                           }
                         : scene
@@ -507,11 +503,12 @@ export function ProjectProvider({ children }) {
             // Load element images for the project
             const rawElementImages = await projectStorage.getElementImages(projectId);
             
-            // Transform element images to camelCase
+            // Transform element images to camelCase and handle multi-image structure
             const elementImages = rawElementImages.map(img => ({
                 id: img.id,
                 projectId: img.project_id,
-                gcsUrl: img.gcs_url,
+                gcsUrls: img.gcs_urls,
+                selectedImageIdx: img.selected_image_idx || 0,
                 generationSources: img.generation_sources,
                 name: img.name,
                 description: img.description,
@@ -579,11 +576,12 @@ export function ProjectProvider({ children }) {
             // Load element images for the project
             const rawElementImages = await projectStorage.getElementImages(projectId);
             
-            // Transform element images to camelCase
+            // Transform element images to camelCase and handle multi-image structure
             const elementImages = rawElementImages.map(img => ({
                 id: img.id,
                 projectId: img.project_id,
-                gcsUrl: img.gcs_url,
+                gcsUrls: img.gcs_urls,
+                selectedImageIdx: img.selected_image_idx || 0,
                 generationSources: img.generation_sources,
                 name: img.name,
                 description: img.description,
@@ -677,12 +675,13 @@ export function ProjectProvider({ children }) {
 
     /**
      * Add a new generated image to a scene and set it as selected
+     * Supports both single URL (backward compatibility) and multiple URLs
      */
-    const addGeneratedImage = async (sceneId, gcsUrl, generationSources) => {
+    const addGeneratedImage = async (sceneId, gcsUrls, generationSources) => {
         try {
             // Add to persistent storage (returns raw DB object)
             const rawGeneratedImage = await projectStorage.addRecreatedSceneImage(
-                sceneId, gcsUrl, generationSources
+                sceneId, gcsUrls, generationSources
             );
             
             // Update scene to select this new image
@@ -694,7 +693,8 @@ export function ProjectProvider({ children }) {
             const generatedImage = {
                 id: rawGeneratedImage.id,
                 sceneId: rawGeneratedImage.scene_id,
-                gcsUrl: rawGeneratedImage.gcs_url,
+                gcsUrls: rawGeneratedImage.gcs_urls || (rawGeneratedImage.gcs_url ? [rawGeneratedImage.gcs_url] : []),
+                selectedImageIdx: rawGeneratedImage.selected_image_idx || 0,
                 generationSources: rawGeneratedImage.generation_sources,
                 createdAt: rawGeneratedImage.created_at
             };
@@ -736,9 +736,8 @@ export function ProjectProvider({ children }) {
                 type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
                 payload: { 
                     sceneId, 
-                    imageId: generatedImageId,
-                    imageUrl: generatedImage.gcsUrl 
-                } 
+                    imageId: generatedImageId
+                }
             });
             
             return { success: true };
@@ -995,7 +994,8 @@ export function ProjectProvider({ children }) {
             const elementImage = {
                 id: rawElementImage.id,
                 projectId: rawElementImage.project_id,
-                gcsUrl: rawElementImage.gcs_url,
+                gcsUrls: rawElementImage.gcs_urls,
+                selectedImageIdx: rawElementImage.selected_image_idx || 0,
                 generationSources: rawElementImage.generation_sources,
                 name: rawElementImage.name,
                 description: rawElementImage.description,
@@ -1051,7 +1051,8 @@ export function ProjectProvider({ children }) {
             const elementImage = {
                 id: rawElementImage.id,
                 projectId: rawElementImage.project_id,
-                gcsUrl: rawElementImage.gcs_url,
+                gcsUrls: rawElementImage.gcs_urls,
+                selectedImageIdx: rawElementImage.selected_image_idx || 0,
                 generationSources: rawElementImage.generation_sources,
                 name: rawElementImage.name,
                 description: rawElementImage.description,
@@ -1073,6 +1074,76 @@ export function ProjectProvider({ children }) {
         }
     };
 
+    /**
+     * Update selected image index for a generated scene image
+     */
+    const updateGeneratedImageIndex = async (sceneId, generatedImageId, selectedIndex) => {
+        try {
+            // Update in persistent storage
+            const rawGeneratedImage = await projectStorage.updateRecreatedSceneImageSelection(generatedImageId, selectedIndex);
+            
+            // Transform to JavaScript format for state
+            const updatedGeneratedImage = {
+                id: rawGeneratedImage.id,
+                sceneId: rawGeneratedImage.scene_id,
+                gcsUrls: rawGeneratedImage.gcs_urls,
+                selectedImageIdx: rawGeneratedImage.selected_image_idx || 0,
+                generationSources: rawGeneratedImage.generation_sources,
+                createdAt: rawGeneratedImage.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
+                payload: { 
+                    sceneId, 
+                    imageId: generatedImageId
+                }
+            });
+            
+            return { success: true, generatedImage: updatedGeneratedImage };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update generated image selection';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Update selected image index for an element image
+     */
+    const updateElementImageIndex = async (elementImageId, selectedIndex) => {
+        try {
+            // Update in persistent storage
+            const rawElementImage = await projectStorage.updateElementImageSelection(elementImageId, selectedIndex);
+            
+            // Transform to JavaScript format for state
+            const updatedElementImage = {
+                id: rawElementImage.id,
+                projectId: rawElementImage.project_id,
+                gcsUrls: rawElementImage.gcs_urls,
+                selectedImageIdx: rawElementImage.selected_image_idx || 0,
+                generationSources: rawElementImage.generation_sources,
+                name: rawElementImage.name,
+                description: rawElementImage.description,
+                tags: rawElementImage.tags,
+                createdAt: rawElementImage.created_at
+            };
+            
+            // Update local state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS, 
+                payload: { elementImage: updatedElementImage } 
+            });
+            
+            return { success: true, elementImage: updatedElementImage };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update element image selection';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     const value = {
         projectState,
         dispatch,
@@ -1087,6 +1158,7 @@ export function ProjectProvider({ children }) {
         updateSelectedImage,
         addGeneratedImage,
         updateSelectedGeneratedImage,
+        updateGeneratedImageIndex,
         addGeneratedClip,
         getGeneratedClips,
         updateSelectedGeneratedClip,
@@ -1096,7 +1168,8 @@ export function ProjectProvider({ children }) {
         handleElementImageUpload,
         addElementImage,
         removeElementImage,
-        updateElementImage
+        updateElementImage,
+        updateElementImageIndex
     };
     
     return (

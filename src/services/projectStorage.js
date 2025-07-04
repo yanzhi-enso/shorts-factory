@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'shorts-factory-db';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 // Table names
 const STORES = {
@@ -108,6 +108,47 @@ class ProjectStorage {
                         });
                         elementImagesStore.createIndex('project_id', 'project_id');
                         elementImagesStore.createIndex('created_at', 'created_at');
+                    }
+                }
+
+                // Migrate to multi-image structure (version 5+)
+                if (oldVersion < 5) {
+                    // Migrate RECREATED_SCENE_IMAGES: gcs_url -> gcs_urls + selected_image_idx
+                    if (db.objectStoreNames.contains(STORES.RECREATED_SCENE_IMAGES)) {
+                        const recreatedStore = transaction.objectStore(STORES.RECREATED_SCENE_IMAGES);
+                        const recreatedRequest = recreatedStore.getAll();
+                        
+                        recreatedRequest.onsuccess = () => {
+                            const records = recreatedRequest.result;
+                            records.forEach(record => {
+                                if (record.gcs_url && !record.gcs_urls) {
+                                    // Convert single URL to array format
+                                    record.gcs_urls = [record.gcs_url];
+                                    record.selected_image_idx = 0;
+                                    delete record.gcs_url;
+                                    recreatedStore.put(record);
+                                }
+                            });
+                        };
+                    }
+
+                    // Migrate ELEMENT_IMAGES: gcs_url -> gcs_urls + selected_image_idx
+                    if (db.objectStoreNames.contains(STORES.ELEMENT_IMAGES)) {
+                        const elementStore = transaction.objectStore(STORES.ELEMENT_IMAGES);
+                        const elementRequest = elementStore.getAll();
+                        
+                        elementRequest.onsuccess = () => {
+                            const records = elementRequest.result;
+                            records.forEach(record => {
+                                if (record.gcs_url && !record.gcs_urls) {
+                                    // Convert single URL to array format
+                                    record.gcs_urls = [record.gcs_url];
+                                    record.selected_image_idx = 0;
+                                    delete record.gcs_url;
+                                    elementStore.put(record);
+                                }
+                            });
+                        };
                     }
                 }
             };
@@ -401,15 +442,19 @@ class ProjectStorage {
     }
 
     /**
-     * Add a recreated scene image
+     * Add a recreated scene image (supports multiple URLs from single generation)
      */
-    async addRecreatedSceneImage(sceneId, gcsUrl, generationSources) {
+    async addRecreatedSceneImage(sceneId, gcsUrls, generationSources) {
         const tx = await this.transaction([STORES.RECREATED_SCENE_IMAGES], 'readwrite');
         const store = tx.objectStore(STORES.RECREATED_SCENE_IMAGES);
 
+        // Handle both single URL (backward compatibility) and multiple URLs
+        const urlsArray = Array.isArray(gcsUrls) ? gcsUrls : [gcsUrls];
+
         const recreatedImage = {
             scene_id: sceneId,
-            gcs_url: gcsUrl,
+            gcs_urls: urlsArray,
+            selected_image_idx: 0, // Default to first image
             generation_sources: generationSources || null,
             created_at: new Date().toISOString(),
         };
@@ -420,6 +465,38 @@ class ProjectStorage {
                 resolve({ ...recreatedImage, id: request.result });
             };
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Update selected image index for a recreated scene image
+     */
+    async updateRecreatedSceneImageSelection(imageId, selectedIndex) {
+        const tx = await this.transaction([STORES.RECREATED_SCENE_IMAGES], 'readwrite');
+        const store = tx.objectStore(STORES.RECREATED_SCENE_IMAGES);
+
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(imageId);
+            getRequest.onsuccess = () => {
+                const image = getRequest.result;
+                if (!image) {
+                    reject(new Error('Recreated scene image not found'));
+                    return;
+                }
+
+                // Validate index is within bounds
+                if (selectedIndex < 0 || selectedIndex >= image.gcs_urls.length) {
+                    reject(new Error('Selected image index out of bounds'));
+                    return;
+                }
+
+                image.selected_image_idx = selectedIndex;
+
+                const putRequest = store.put(image);
+                putRequest.onsuccess = () => resolve(image);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
         });
     }
 
@@ -472,15 +549,19 @@ class ProjectStorage {
     // ==================== ELEMENT_IMAGES TABLE OPERATIONS ====================
 
     /**
-     * Add an element image to a project
+     * Add an element image to a project (supports multiple URLs from single generation)
      */
-    async addElementImage(projectId, gcsUrl, generationSources = null, name = null, description = null, tags = null) {
+    async addElementImage(projectId, gcsUrls, generationSources = null, name = null, description = null, tags = null) {
         const tx = await this.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
         const store = tx.objectStore(STORES.ELEMENT_IMAGES);
 
+        // Handle both single URL (backward compatibility) and multiple URLs
+        const urlsArray = Array.isArray(gcsUrls) ? gcsUrls : [gcsUrls];
+
         const elementImage = {
             project_id: projectId,
-            gcs_url: gcsUrl,
+            gcs_urls: urlsArray,
+            selected_image_idx: 0, // Default to first image
             generation_sources: generationSources || null,
             name: name || null,
             description: description || null,
@@ -494,6 +575,38 @@ class ProjectStorage {
                 resolve({ ...elementImage, id: request.result });
             };
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Update selected image index for an element image
+     */
+    async updateElementImageSelection(elementImageId, selectedIndex) {
+        const tx = await this.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
+        const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(elementImageId);
+            getRequest.onsuccess = () => {
+                const elementImage = getRequest.result;
+                if (!elementImage) {
+                    reject(new Error('Element image not found'));
+                    return;
+                }
+
+                // Validate index is within bounds
+                if (selectedIndex < 0 || selectedIndex >= elementImage.gcs_urls.length) {
+                    reject(new Error('Selected image index out of bounds'));
+                    return;
+                }
+
+                elementImage.selected_image_idx = selectedIndex;
+
+                const putRequest = store.put(elementImage);
+                putRequest.onsuccess = () => resolve(elementImage);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
         });
     }
 

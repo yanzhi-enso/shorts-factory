@@ -153,12 +153,15 @@ Projects need to track current stage:
 |-------|------|-------------|-------------|
 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Auto-generated image ID |
 | `scene_id` | INTEGER | NOT NULL, FK to scenes.id | Parent scene reference |
-| `gcs_url` | TEXT | NOT NULL | URL to generated image in Google Cloud Storage |
+| `gcs_urls` | JSON | NOT NULL | Array of URLs to generated images in Google Cloud Storage |
+| `selected_image_idx` | INTEGER | DEFAULT 0 | Index of selected image in gcs_urls array (0-based) |
 | `generation_sources` | JSON | NULLABLE | Sources used for generation (prompt, images, mask) |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When image was generated |
 
 **Notes:**
-- Each generated image is independent (no versioning/attempt tracking)
+- Each generated image record can contain multiple images from a single generation request
+- `gcs_urls` is a JSON array of image URLs: `["url1", "url2", "url3"]`
+- `selected_image_idx` indicates which image in the array is currently selected (0-based index)
 - Selection state managed in SCENES table via `generated_img_id`
 - `generation_sources` JSON structure example:
   ```json
@@ -169,6 +172,7 @@ Projects need to track current stage:
   }
   ```
 - Works for both "recreated from source" and "created from scratch" scenarios
+- Supports multiple images per generation request with individual selection
 
 ### 5. SCENE_CLIPS Table ✅
 
@@ -188,10 +192,36 @@ Projects need to track current stage:
 
 ---
 
+### 6. ELEMENT_IMAGES Table ✅
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Auto-generated image ID |
+| `project_id` | UUID | NOT NULL, FK to projects.id | Parent project reference |
+| `gcs_urls` | JSON | NOT NULL | Array of URLs to element images in Google Cloud Storage |
+| `selected_image_idx` | INTEGER | DEFAULT 0 | Index of selected image in gcs_urls array (0-based) |
+| `generation_sources` | JSON | NULLABLE | Sources used for generation (prompt, images, mask) |
+| `name` | TEXT | NULLABLE | User-defined name for the element image |
+| `description` | TEXT | NULLABLE | Optional description of the element image |
+| `tags` | TEXT | NULLABLE | Optional tags for organization |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | When image was created |
+
+**Notes:**
+- Each element image record can contain multiple images from a single generation request
+- `gcs_urls` is a JSON array of image URLs: `["url1", "url2", "url3"]`
+- `selected_image_idx` indicates which image in the array is currently selected (0-based index)
+- Element images are project-level resources, not scene-specific
+- Supports both uploaded images (generation_sources = null) and AI-generated images
+- `generation_sources` stores the same structure as generated scene images
+- User can organize elements with name, description, and tags
+
+---
+
 ## Next Steps
 1. ✅ PROJECTS table defined
 2. ✅ SCENES table defined  
 3. ✅ SCENE_IMAGES table defined
 4. ✅ RECREATED_SCENE_IMAGES table defined
-5. ⏳ Define SCENE_CLIPS table schema
-6. ⏳ Add indexes and optimization considerations
+5. ✅ SCENE_CLIPS table defined
+6. ✅ ELEMENT_IMAGES table defined
+7. ⏳ Add indexes and optimization considerations
