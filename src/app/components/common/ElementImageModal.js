@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useProjectManager } from 'app/hocs/ProjectManager';
 
 const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
-  const { updateElementImage } = useProjectManager();
+  const { updateElementImage, updateElementImageIndex } = useProjectManager();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -82,6 +82,15 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
     }
   };
 
+  const handleImageSelect = async (selectedIndex) => {
+    try {
+      await updateElementImageIndex(elementImage.id, selectedIndex);
+    } catch (err) {
+      console.error('Failed to update image selection:', err);
+      setError('Failed to update image selection');
+    }
+  };
+
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div className={styles.modal}>
@@ -91,12 +100,41 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
         
         <div className={styles.imageContainer}>
           <Image
-            src={elementImage.gcsUrl}
+            src={elementImage.gcsUrls?.[elementImage.selectedImageIdx] || elementImage.gcsUrls?.[0]}
             alt={elementImage.name || 'Element image'}
             width={800}
             height={1400}
             className={styles.image}
           />
+          
+          {/* Show image selection controls if multiple images exist */}
+          {elementImage.gcsUrls?.length > 1 && (
+            <div className={styles.imageSelector}>
+              <div className={styles.imageThumbnails}>
+                {elementImage.gcsUrls.map((imageUrl, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.thumbnail} ${
+                      index === elementImage.selectedImageIdx ? styles.selected : ''
+                    }`}
+                    onClick={() => handleImageSelect(index)}
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={`Variant ${index + 1}`}
+                      width={60}
+                      height={60}
+                      className={styles.thumbnailImage}
+                    />
+                    <span className={styles.thumbnailLabel}>{index + 1}</span>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.selectorInfo}>
+                {elementImage.selectedImageIdx + 1} of {elementImage.gcsUrls.length}
+              </div>
+            </div>
+          )}
         </div>
         
         <div className={styles.formContainer}>

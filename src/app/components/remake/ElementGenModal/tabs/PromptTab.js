@@ -84,8 +84,10 @@ const PromptTab = ({
                     ASSET_TYPES.ELEMENT_IMAGES
                 );
             } else {
-                // Image extension using service function
-                const imageUrls = selectedImages.map(img => img.gcsUrl);
+                // Image extension using service function - use current selected image from multi-image structure
+                const imageUrls = selectedImages.map(img => {
+                    return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
+                });
                 result = await extendImage(
                     imageUrls,
                     prompt.trim(),
@@ -103,7 +105,9 @@ const PromptTab = ({
                 generationSources: {
                     type: isTextOnly ? 'text-to-image' : 'image-extension',
                     prompt: prompt.trim(),
-                    referenceImages: isTextOnly ? null : selectedImages.map(img => img.gcsUrl),
+                    referenceImages: isTextOnly ? null : selectedImages.map(img => {
+                        return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
+                    }),
                     revisedPrompt: imageData.revisedPrompt
                 }
             }));
@@ -179,21 +183,31 @@ const PromptTab = ({
                 {projectState.elementImages.length > 0 ? (
                     <>
                         <div className={styles.imageScrollContainer}>
-                            {projectState.elementImages.map((elementImage) => (
-                                <div
-                                    key={elementImage.id}
-                                    className={`${styles.elementImageItem} ${
-                                        isElementImageSelected(elementImage) ? styles.selected : ''
-                                    }`}
-                                    onClick={() => handleImageSelection(elementImage)}
-                                >
-                                    <img
-                                        src={elementImage.gcsUrl}
-                                        alt={elementImage.name || 'Element image'}
-                                        className={styles.elementImage}
-                                    />
-                                </div>
-                            ))}
+                            {projectState.elementImages.map((elementImage) => {
+                                // Get current image URL from the multi-image structure
+                                const currentImageUrl = elementImage.gcsUrls?.[elementImage.selectedImageIdx] || elementImage.gcsUrls?.[0];
+                                
+                                return (
+                                    <div
+                                        key={elementImage.id}
+                                        className={`${styles.elementImageItem} ${
+                                            isElementImageSelected(elementImage) ? styles.selected : ''
+                                        }`}
+                                        onClick={() => handleImageSelection(elementImage)}
+                                    >
+                                        <img
+                                            src={currentImageUrl}
+                                            alt={elementImage.name || 'Element image'}
+                                            className={styles.elementImage}
+                                        />
+                                        {elementImage.gcsUrls?.length > 1 && (
+                                            <div className={styles.imageVariantIndicator}>
+                                                {elementImage.selectedImageIdx + 1}/{elementImage.gcsUrls.length}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                         
                         <div className={styles.selectionCounter}>

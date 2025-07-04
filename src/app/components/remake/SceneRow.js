@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import SceneGenBlock from './SceneGenBlock';
@@ -23,7 +23,6 @@ const SceneRow = ({ scene, storyConfig }) => {
         sceneOrder,
         selectedImage,
         generatedImages,
-        selectedGeneratedImage,
         selectedGeneratedImageId,
     } = scene;
 
@@ -161,7 +160,6 @@ const SceneRow = ({ scene, storyConfig }) => {
                 <SceneGenBlock
                     sceneId={sceneId}
                     generatedImages={generatedImages}
-                    selectedGeneratedImage={selectedGeneratedImage}
                     selectedGeneratedImageId={selectedGeneratedImageId}
                     onImageUpload={handleImageUploadInternal}
                     onImageSelect={handleImageSelect}

@@ -47,18 +47,27 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const handleExport = async () => {
         if (isExporting) return;
 
-        // Collect all selected generated images from ProjectManager scenes
+        // Collect all selected generated images from ProjectManager scenes using new structure
         const selectedImages = selectedScenes
-            .filter((scene) => scene.selectedGeneratedImage)
-            .map((scene) => ({
-                sceneId: `Scene-${scene.sceneOrder / 100}`,
-                imageUrl: scene.selectedGeneratedImage,
-                imageType: scene.generatedImages.find(
+            .filter((scene) => {
+                // Check if scene has a selected generated image
+                const selectedImageData = scene.generatedImages?.find(
                     (img) => img.id === scene.selectedGeneratedImageId
-                )?.generationSources
-                    ? 'generated'
-                    : 'uploaded',
-            }));
+                );
+                return selectedImageData && selectedImageData.gcsUrls?.length > 0;
+            })
+            .map((scene) => {
+                const selectedImageData = scene.generatedImages.find(
+                    (img) => img.id === scene.selectedGeneratedImageId
+                );
+                const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
+                
+                return {
+                    sceneId: `Scene-${scene.sceneOrder / 100}`,
+                    imageUrl: currentImageUrl,
+                    imageType: selectedImageData.generationSources ? 'generated' : 'uploaded',
+                };
+            });
 
         if (selectedImages.length === 0) {
             alert('No images to export. Please generate or upload some images first.');
@@ -97,21 +106,29 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     };
 
     const handleNext = () => {
-        // Collect selected images for next step
+        // Collect selected images for next step using new structure
         const selectedImages = selectedScenes
-            .filter((scene) => scene.selectedGeneratedImage)
+            .filter((scene) => {
+                // Check if scene has a selected generated image
+                const selectedImageData = scene.generatedImages?.find(
+                    (img) => img.id === scene.selectedGeneratedImageId
+                );
+                return selectedImageData && selectedImageData.gcsUrls?.length > 0;
+            })
             .map((scene) => {
                 const sceneId = `Scene-${scene.sceneOrder / 100}`;
                 const selectedImageData = scene.generatedImages.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
+                const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
+                
                 return {
                     sceneId,
                     revisedPrompt:
                         selectedImageData?.generationSources?.revisedPrompt ||
                         selectedImageData?.generationSources?.prompt ||
                         '',
-                    image: scene.selectedGeneratedImage,
+                    image: currentImageUrl,
                 };
             });
 

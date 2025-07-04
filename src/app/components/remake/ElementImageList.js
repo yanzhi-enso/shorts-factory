@@ -45,13 +45,18 @@ const ElementImageList = ({ onAddElementImage }) => {
     return (
         <>
             <div className={styles.container}>
-                {elementImages.map((image) => (
-                    <ElementImageBlock
-                        key={image.id}
-                        src={image.gcsUrl}
-                        onClick={() => handleImageClick(image)}
-                    />
-                ))}
+                {elementImages.map((image) => {
+                    // Get selected idx image URL from the multi-image structure
+                    const idxImageUrl = image.gcsUrls?.[image.selectedImageIdx] || image.gcsUrls?.[0];
+                    
+                    return (
+                        <ElementImageBlock
+                            key={image.id}
+                            src={idxImageUrl}
+                            onClick={() => handleImageClick(image)}
+                        />
+                    );
+                })}
                 <ElementImageBlock src={null} onClick={onAddElementImage} />
             </div>
             

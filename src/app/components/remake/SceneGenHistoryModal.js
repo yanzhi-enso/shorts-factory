@@ -70,6 +70,9 @@ const SceneGenHistoryModal = ({
                                 ? 'Generated'
                                 : 'Uploaded';
 
+                            // Get current image URL from the multi-image structure
+                            const currentImageUrl = imageItem.gcsUrls?.[imageItem.selectedImageIdx] || imageItem.gcsUrls?.[0];
+
                             return (
                                 <div
                                     key={imageItem.id}
@@ -79,7 +82,7 @@ const SceneGenHistoryModal = ({
                                     onClick={() => handleImageClick(imageItem.id)}
                                 >
                                     <Image
-                                        src={imageItem.gcsUrl}
+                                        src={currentImageUrl}
                                         alt={`${imageType} ${index + 1}`}
                                         width={150}
                                         height={225}
@@ -88,6 +91,11 @@ const SceneGenHistoryModal = ({
                                     <div className={styles.imageLabel}>
                                         {imageType === 'Uploaded' ? '📁 Uploaded' : '🎨 Generated'}{' '}
                                         {index + 1}
+                                        {imageItem.gcsUrls?.length > 1 && (
+                                            <span className={styles.imageCount}>
+                                                {' '}({imageItem.selectedImageIdx + 1}/{imageItem.gcsUrls.length})
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );

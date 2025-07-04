@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import styles from './SceneGenBlock.module.css';
 import Image from 'next/image';
 import SceneGenHistoryModal from './SceneGenHistoryModal';
@@ -8,7 +8,6 @@ import SceneGenHistoryModal from './SceneGenHistoryModal';
 const SceneGenBlock = ({
     sceneId,
     generatedImages = [],
-    selectedGeneratedImage = null,
     selectedGeneratedImageId = null,
     onImageUpload,
     onImageSelect,
@@ -37,8 +36,15 @@ const SceneGenBlock = ({
         }
     };
 
-    const renderContent = () => {
-        if (!selectedGeneratedImage) {
+    // Find the selected image data
+    const selectedImageData = useMemo(() => {
+        return generatedImages.find(
+            (img) => img.id === selectedGeneratedImageId
+        );
+    }, [selectedGeneratedImageId])
+
+    const renderContent = useCallback(() => {
+        if (!selectedImageData) {
             return (
                 <div className={styles.emptyState}>
                     <div className={styles.emptyText}>
@@ -48,27 +54,35 @@ const SceneGenBlock = ({
             );
         }
 
-        // Determine image type based on generationSources
-        const selectedImageData = generatedImages.find(
-            (img) => img.id === selectedGeneratedImageId
-        );
+        // Get current image URL from the multi-image structure
+        const currentImageUrl = selectedImageData.gcsUrls?.[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls?.[0];
         const imageType = selectedImageData?.generationSources ? 'Generated' : 'Uploaded';
+
+        if (!currentImageUrl) {
+            return (
+                <div className={styles.emptyState}>
+                    <div className={styles.emptyText}>
+                        No image available
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <Image
-                src={selectedGeneratedImage}
+                src={currentImageUrl}
                 alt={`${sceneId} ${imageType}`}
                 width={200}
                 height={300}
                 className={styles.image}
             />
         );
-    };
+    }, [selectedGeneratedImageId, selectedImageData?.selectedImageIdx]);
 
     return (
         <>
             <div
-                className={`${styles.imageBlock} ${!selectedGeneratedImage ? styles.empty : ''} ${
+                className={`${styles.imageBlock} ${!selectedImageData ? styles.empty : ''} ${
                     styles.generated
                 }`}
                 onClick={handleClick}
