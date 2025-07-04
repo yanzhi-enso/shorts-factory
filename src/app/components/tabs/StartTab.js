@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import styles from './StartTab.module.css';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { useProjectManager } from '../../hocs/ProjectManager';
+import { useProjectManager } from '../../../hocs/ProjectManager';
 
 const StartTab = ({ onProcessComplete, onError }) => {
   const [videoUrl, setVideoUrl] = useState('');

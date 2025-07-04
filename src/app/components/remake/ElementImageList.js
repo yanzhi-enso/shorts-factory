@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 import ElementImageModal from 'app/components/common/ElementImageModal';
 import styles from './ElementImageList.module.css';
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { FaBookOpen } from 'react-icons/fa';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 import styles from './ScenesTab.module.css';
 import ImageGrid from '../scenes/ImageGrid';
 

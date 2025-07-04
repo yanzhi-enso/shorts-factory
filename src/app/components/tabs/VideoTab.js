@@ -8,7 +8,7 @@ import styles from './VideoTab.module.css';
 import VideoRow from '../video/VideoRow';
 import FullSizeImageModal from '../common/FullSizeImageModal';
 import VideoRequestManager from '../video/VideoRequestManager';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 
 const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClick }) => {
     const { projectState } = useProjectManager();

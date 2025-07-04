@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { FaUpload, FaImage, FaTimes } from 'react-icons/fa';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 import { validateImageFile } from 'utils/client/upload';
 import styles from '../ElementGenModal.module.css';
 

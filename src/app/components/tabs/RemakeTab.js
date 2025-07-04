@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
 import SceneRow from '../remake/SceneRow';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 import ElementImageList from '../remake/ElementImageList';
 import ElementGenModal from '../remake/ElementGenModal';
 

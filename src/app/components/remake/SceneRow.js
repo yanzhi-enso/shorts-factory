@@ -6,7 +6,7 @@ import RemakeImageBlock from './RemakeImageBlock';
 import SceneGenBlock from './SceneGenBlock';
 import SceneControlPanel from './SceneControlPanel';
 import { analyzeImage, generateImage } from 'services/backend';
-import { useProjectManager } from 'app/hocs/ProjectManager';
+import { useProjectManager } from 'hocs/ProjectManager';
 import { ASSET_TYPES } from 'constants/gcs';
 
 const SceneRow = ({ scene, storyConfig }) => {
