@@ -315,17 +315,68 @@ export async function updateElementImageSelection(elementImageId, selectedIndex)
 }
 
 /**
- * Remove an element image by ID
+ * Remove an element image by ID (includes GCS deletion via backend)
  */
 export async function removeElementImage(elementImageId) {
-    const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
-    const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+    // Import backend service for GCS deletion
+    const { deleteGCSAssets } = await import('../services/backend.js');
+    
+    try {
+        // Step 1: Get element image data using a separate transaction
+        const elementImage = await new Promise(async (resolve, reject) => {
+            const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readonly');
+            const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+            const getRequest = store.get(elementImageId);
+            
+            getRequest.onsuccess = () => {
+                resolve(getRequest.result);
+            };
+            getRequest.onerror = () => {
+                reject(new Error(`Failed to retrieve element image: ${getRequest.error}`));
+            };
+        });
 
-    return new Promise((resolve, reject) => {
-        const request = store.delete(elementImageId);
-        request.onsuccess = () => resolve(true);
-        request.onerror = () => reject(request.error);
-    });
+        if (!elementImage) {
+            // Element image doesn't exist - silent pass
+            console.log(`Element image ${elementImageId} not found in storage - silent pass`);
+            return true;
+        }
+
+        // Step 2: Delete from GCS storage via backend
+        if (elementImage.gcs_urls && elementImage.gcs_urls.length > 0) {
+            console.log(`Deleting ${elementImage.gcs_urls.length} GCS files for element image ${elementImageId}`);
+            
+            try {
+                await deleteGCSAssets(elementImage.gcs_urls);
+                console.log(`Successfully deleted GCS files for element image ${elementImageId}`);
+            } catch (error) {
+                // Strict error handling - if GCS deletion fails, halt the process
+                console.error(`GCS deletion failed for element image ${elementImageId}:`, error);
+                throw new Error(`Failed to delete GCS files: ${error.message}`);
+            }
+        }
+
+        // Step 3: Delete from IndexedDB using a new transaction (only if GCS deletion succeeded)
+        await new Promise(async (resolve, reject) => {
+            const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
+            const store = tx.objectStore(STORES.ELEMENT_IMAGES);
+            const deleteRequest = store.delete(elementImageId);
+            
+            deleteRequest.onsuccess = () => {
+                console.log(`Successfully removed element image ${elementImageId}`);
+                resolve(true);
+            };
+            deleteRequest.onerror = () => {
+                reject(new Error(`Failed to remove element image from IndexedDB: ${deleteRequest.error}`));
+            };
+        });
+
+        return true;
+        
+    } catch (error) {
+        console.error('Error during element image removal:', error);
+        throw new Error(`Failed to remove element image: ${error.message}`);
+    }
 }
 
 /**
