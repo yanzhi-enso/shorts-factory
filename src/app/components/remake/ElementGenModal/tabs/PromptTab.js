@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { useImageGen } from 'imageGenManager/ImageGenProvider';
 import Dropdown from 'app/components/common/Dropdown';
-import styles from '../ElementGenModal.module.css';
+import styles from './PromptTab.module.css';
 
 const PromptTab = ({ 
     name, 
