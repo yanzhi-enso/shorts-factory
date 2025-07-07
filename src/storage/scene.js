@@ -260,11 +260,13 @@ export async function addElementImage(projectId, gcsUrls, generationSources = nu
     const store = tx.objectStore(STORES.ELEMENT_IMAGES);
 
     // Handle both single URL (backward compatibility) and multiple URLs
-    const urlsArray = Array.isArray(gcsUrls) ? gcsUrls : [gcsUrls];
+    if (!Array.isArray(gcsUrls)) {
+        throw new Error('gcsUrls must be an array of URLs');
+    }
 
     const elementImage = {
         project_id: projectId,
-        gcs_urls: urlsArray,
+        gcs_urls: gcsUrls,
         selected_image_idx: 0, // Default to first image
         generation_sources: generationSources || null,
         name: name || null,

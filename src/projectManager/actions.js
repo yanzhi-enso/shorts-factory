@@ -582,25 +582,27 @@ export const createProjectActions = (dispatch, projectState) => {
         try {
             // Use centralized upload utility
             const uploadResult = await uploadImage(
-                imageFile, 
-                IMAGE_TYPE_ELEMENT, 
+                imageFile,
+                IMAGE_TYPE_ELEMENT,
                 projectState.curProjId
             );
-            
+
             if (!uploadResult.success) {
+                console.error('actions consider the upload failed', uploadResult.success);
                 return uploadResult;
             }
 
             // Store in IndexedDB as element image
-            const result = await addElementImage(
-                uploadResult.public_url, 
+            const result = await addElementImageAction(
+                [uploadResult.public_url],
                 null, // generation sources
-                metadata.name || null, 
+                metadata.name || null,
                 metadata.description || null,
                 metadata.tags || null
             );
-            
+
             if (!result.success) {
+                console.error('db saving failed', result);
                 return result;
             }
 
@@ -608,9 +610,8 @@ export const createProjectActions = (dispatch, projectState) => {
                 success: true,
                 imageId: uploadResult.image_id,
                 publicUrl: uploadResult.public_url,
-                elementImage: result.elementImage
+                elementImage: result.elementImage,
             };
-
         } catch (error) {
             console.error('Element image upload failed:', error);
             return { success: false, error: error.message };

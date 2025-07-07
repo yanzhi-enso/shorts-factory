@@ -65,8 +65,10 @@ const UploadTab = ({
                 name: name.trim() || null,
                 description: description.trim() || null
             });
+            console.log('result from upload tab:', result);
 
             if (!result.success) {
+                console.error('upload error:', result.error);
                 throw new Error(result.error);
             }
 
