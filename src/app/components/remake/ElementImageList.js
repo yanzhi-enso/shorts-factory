@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { useImageGen } from 'imageGenManager/ImageGenProvider';
 import ElementImageModal from 'app/components/remake/ElementImageModal';
 import styles from './ElementImageList.module.css';
 
@@ -25,8 +26,25 @@ const ElementImageBlock = ({ src, onClick }) => {
     );
 };
 
+const PendingImageBlock = ({ pendingItem }) => {
+    return (
+        <div className={`${styles.toolBoxBlock} ${styles.pending}`}>
+            <div className={styles.pendingContent}>
+                <div className={styles.loadingSpinner}></div>
+                <div className={styles.pendingLabel}>
+                    {pendingItem.type === 'text-to-image' ? 'Generating...' : 'Extending...'}
+                </div>
+                <div className={styles.pendingPrompt}>
+                    {pendingItem.prompt.slice(0, 30)}...
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ElementImageList = ({ onAddElementImage }) => {
     const { projectState } = useProjectManager();
+    const { pendingGenerations } = useImageGen();
     const elementImages = projectState.elementImages || [];
     
     const [selectedImage, setSelectedImage] = useState(null);
@@ -45,6 +63,7 @@ const ElementImageList = ({ onAddElementImage }) => {
     return (
         <>
             <div className={styles.container}>
+                {/* Existing element images */}
                 {elementImages.map((image) => {
                     // Get selected idx image URL from the multi-image structure
                     const idxImageUrl = image.gcsUrls?.[image.selectedImageIdx] || image.gcsUrls?.[0];
@@ -57,6 +76,16 @@ const ElementImageList = ({ onAddElementImage }) => {
                         />
                     );
                 })}
+                
+                {/* Pending generations */}
+                {pendingGenerations.map((pendingItem) => (
+                    <PendingImageBlock
+                        key={pendingItem.id}
+                        pendingItem={pendingItem}
+                    />
+                ))}
+                
+                {/* Add new element image button */}
                 <ElementImageBlock src={null} onClick={onAddElementImage} />
             </div>
             

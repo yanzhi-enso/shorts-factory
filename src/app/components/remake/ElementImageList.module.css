@@ -67,3 +67,57 @@
 .toolBoxBlock.empty:hover .plusIcon {
   color: #007bff;
 }
+
+/* Pending image block styles */
+.toolBoxBlock.pending {
+  border: 2px solid #007bff;
+  background: linear-gradient(135deg, #f8f9ff 0%, #e6f3ff 100%);
+  cursor: default;
+}
+
+.toolBoxBlock.pending:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.pendingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e3f2fd;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 4px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.pendingLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: #007bff;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.pendingPrompt {
+  font-size: 8px;
+  color: #666;
+  line-height: 1.2;
+  word-break: break-word;
+  max-width: 90px;
+}

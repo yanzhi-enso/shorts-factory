@@ -99,34 +99,30 @@ const ElementGenModal = ({
     };
 
     const getActionButton = () => {
-        switch (activeTab) {
-            case 'upload':
-                return (
-                    <button 
-                        className={`${styles.actionButton} ${!uploadState.canUpload ? styles.disabled : ''}`}
-                        onClick={uploadState.handleUpload}
-                        disabled={!uploadState.canUpload}
-                    >
-                        {uploadState.isUploading ? (
-                            <>
-                                <span className={styles.loadingSpinner}></span>
-                                Uploading...
-                            </>
-                        ) : (
-                            'Upload'
-                        )}
-                    </button>
-                );
-            case 'prompt':
-                // PromptTab manages its own buttons internally
-                return null;
-            case 'inpainting':
-            default:
-                return (
-                    <button className={styles.actionButton} disabled>
-                        Coming Soon
-                    </button>
-                );
+        if (activeTab == "upload") {
+            return (
+                <button 
+                    className={`${styles.actionButton} ${!uploadState.canUpload ? styles.disabled : ''}`}
+                    onClick={uploadState.handleUpload}
+                    disabled={!uploadState.canUpload}
+                >
+                    {uploadState.isUploading ? (
+                        <>
+                            <span className={styles.loadingSpinner}></span>
+                            Uploading...
+                        </>
+                    ) : (
+                        'Upload'
+                    )}
+                </button>
+            );
+        } else {
+            // for prompt and inpainting tab, we display generate button
+            return (
+                <button className={styles.actionButton}>
+                    Generate
+                </button>
+            );
         }
     };
 
@@ -199,7 +195,7 @@ const ElementGenModal = ({
                     <button className={styles.cancelButton} onClick={onClose}>
                         Cancel
                     </button>
-                    {getActionButton() && getActionButton()}
+                    {getActionButton()}
                 </div>
             </div>
         </div>

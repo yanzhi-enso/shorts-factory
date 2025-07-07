@@ -2,9 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { useImageGen } from 'imageGenManager/ImageGenProvider';
 import Dropdown from 'app/components/common/Dropdown';
-import { ASSET_TYPES } from 'constants/gcs';
-import { generateImage, extendImage } from 'services/backend';
 import styles from '../ElementGenModal.module.css';
 
 const PromptTab = ({ 
@@ -13,15 +12,14 @@ const PromptTab = ({
     onImageGenerated, 
     onClose 
 }) => {
-    const { projectState, addElementImage } = useProjectManager();
+    const { projectState } = useProjectManager();
+    const { startElementImageGeneration } = useImageGen();
     
     // State management
     const [selectedImages, setSelectedImages] = useState([]);
     const [prompt, setPrompt] = useState('');
     const [numberOfImages, setNumberOfImages] = useState(1);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedImages, setGeneratedImages] = useState([]);
-    const [selectedGeneratedImage, setSelectedGeneratedImage] = useState(null);
     const [generationError, setGenerationError] = useState(null);
 
     // Dropdown options for number of images
@@ -63,7 +61,7 @@ const PromptTab = ({
     }, []);
 
     // Handle generation
-    const handleGenerate = useCallback(async () => {
+    const handleGenerate = useCallback(() => {
         if (!prompt.trim() || !projectState.curProjId) {
             return;
         }
@@ -72,53 +70,16 @@ const PromptTab = ({
         setGenerationError(null);
         
         try {
-            const isTextOnly = selectedImages.length === 0;
-            let result;
-            
-            if (isTextOnly) {
-                // Text-to-image generation using service function
-                result = await generateImage(
-                    prompt.trim(),
-                    numberOfImages,
-                    projectState.curProjId,
-                    ASSET_TYPES.ELEMENT_IMAGES
-                );
-            } else {
-                // Image extension using service function - use current selected image from multi-image structure
-                const imageUrls = selectedImages.map(img => {
-                    return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
-                });
-                result = await extendImage(
-                    imageUrls,
-                    prompt.trim(),
-                    numberOfImages,
-                    projectState.curProjId,
-                    ASSET_TYPES.ELEMENT_IMAGES
-                );
-            }
-            
-            // Store generated images in local state (draft mode)
-            const newGeneratedImages = result.images.map((imageData, index) => ({
-                id: `generated_${Date.now()}_${index}`,
-                imageUrl: imageData.imageUrl,
-                revisedPrompt: imageData.revisedPrompt,
-                generationSources: {
-                    type: isTextOnly ? 'text-to-image' : 'image-extension',
-                    prompt: prompt.trim(),
-                    referenceImages: isTextOnly ? null : selectedImages.map(img => {
-                        return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
-                    }),
-                    revisedPrompt: imageData.revisedPrompt
-                }
-            }));
-            
-            setGeneratedImages(newGeneratedImages);
-            
-            // Auto-select first generated image
-            if (newGeneratedImages.length > 0) {
-                setSelectedGeneratedImage(newGeneratedImages[0]);
-            }
-            
+            startElementImageGeneration({
+                prompt: prompt.trim(),
+                selectedImages,
+                numberOfImages,
+                name,
+                description
+            });
+
+            onClose();
+
         } catch (error) {
             console.error('Generation failed:', error);
             if (error.message === 'CONTENT_MODERATION_BLOCKED') {
@@ -129,43 +90,8 @@ const PromptTab = ({
         } finally {
             setIsGenerating(false);
         }
-    }, [prompt, selectedImages, numberOfImages, projectState.curProjId]);
+    }, [prompt, selectedImages, numberOfImages, name, description, projectState.curProjId, startElementImageGeneration, onClose]);
 
-    // Handle saving selected generated image
-    const handleSave = useCallback(async () => {
-        if (!selectedGeneratedImage) {
-            return;
-        }
-
-        try {
-            const result = await addElementImage(
-                selectedGeneratedImage.imageUrl,
-                selectedGeneratedImage.generationSources,
-                name.trim() || null,
-                description.trim() || null
-            );
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-
-            // Success - trigger callback and close modal
-            if (onImageGenerated) {
-                onImageGenerated(result.elementImage);
-            }
-
-            onClose();
-
-        } catch (error) {
-            console.error('Save failed:', error);
-            setGenerationError(error.message || 'Failed to save image. Please try again.');
-        }
-    }, [selectedGeneratedImage, addElementImage, name, description, onImageGenerated, onClose]);
-
-    // Handle generated image selection
-    const handleGeneratedImageSelection = useCallback((generatedImage) => {
-        setSelectedGeneratedImage(generatedImage);
-    }, []);
 
     // Check if an element image is selected
     const isElementImageSelected = useCallback((elementImage) => {
@@ -260,71 +186,15 @@ const PromptTab = ({
             </div>
 
             {/* Generate Button */}
-            {generatedImages.length === 0 && (
-                <div className={styles.generateSection}>
-                    <button
-                        className={styles.generateButton}
-                        onClick={handleGenerate}
-                        disabled={!prompt.trim() || isGenerating}
-                    >
-                        {isGenerating ? 'Generating...' : 'Generate'}
-                    </button>
-                </div>
-            )}
-
-            {/* Generated Images Preview */}
-            {generatedImages.length > 0 && (
-                <div className={styles.previewSection}>
-                    <label className={styles.sectionLabel}>
-                        Generated Images (select one to save):
-                    </label>
-                    
-                    <div className={styles.generatedImagesGrid}>
-                        {generatedImages.map((generatedImage) => (
-                            <div
-                                key={generatedImage.id}
-                                className={styles.generatedImageItem}
-                            >
-                                <img
-                                    src={generatedImage.imageUrl}
-                                    alt="Generated image"
-                                    className={`${styles.generatedImageThumbnail} ${
-                                        selectedGeneratedImage?.id === generatedImage.id ? styles.selected : ''
-                                    }`}
-                                    onClick={() => handleGeneratedImageSelection(generatedImage)}
-                                />
-                                <input
-                                    type="radio"
-                                    name="generatedImage"
-                                    checked={selectedGeneratedImage?.id === generatedImage.id}
-                                    onChange={() => handleGeneratedImageSelection(generatedImage)}
-                                    className={styles.radioSelector}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <div className={styles.saveSection}>
-                        <button
-                            className={styles.saveButton}
-                            onClick={handleSave}
-                            disabled={!selectedGeneratedImage}
-                        >
-                            Save Selected
-                        </button>
-                        <button
-                            className={styles.regenerateButton}
-                            onClick={() => {
-                                setGeneratedImages([]);
-                                setSelectedGeneratedImage(null);
-                                setGenerationError(null);
-                            }}
-                        >
-                            Generate New
-                        </button>
-                    </div>
-                </div>
-            )}
+            <div className={styles.generateSection}>
+                <button
+                    className={styles.generateButton}
+                    onClick={handleGenerate}
+                    disabled={!prompt.trim() || isGenerating}
+                >
+                    {isGenerating ? 'Generating...' : 'Generate'}
+                </button>
+            </div>
 
             {/* Error Message */}
             {generationError && (

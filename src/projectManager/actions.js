@@ -620,11 +620,13 @@ export const createProjectActions = (dispatch, projectState) => {
     /**
      * Add a new element image to the project
      */
-    const addElementImageAction = async (gcsUrl, generationSources = null, name = null, description = null, tags = null) => {
+    const addElementImageAction = async (
+        gcsUrls, generationSources = null, name = null, description = null, tags = null
+    ) => {
         try {
             // Add to persistent storage first (returns raw DB object)
             const rawElementImage = await addElementImage(
-                projectState.curProjId, gcsUrl, generationSources, name, description, tags
+                projectState.curProjId, gcsUrls, generationSources, name, description, tags
             );
             
             // Transform to JavaScript format for state
