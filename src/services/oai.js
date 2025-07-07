@@ -257,11 +257,9 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
             model: options.model || DEFAULT_GENERATION_MODEL,
             size: options.size || DEFAULT_GENERATION_SIZE,
             quality: options.quality || DEFAULT_QUALITY,
+            output_format: 'png', // Always return base64
             n: options.n || DEFAULT_N,
             moderation: options.moderation || DEFAULT_MODERATION,
-            ...(options.output_format && {
-                output_format: options.output_format,
-            }),
             ...(options.user && { user: options.user }),
         };
 

@@ -67,21 +67,22 @@ async function extendImage(imageURLs, prompt, n = 1, projectId, assetType) {
 /**
  * Performs image inpainting using a mask to fill/modify specific areas
  * @param {string} image_gcs_url - Single image URL
- * @param {string} mask - Base64 PNG string (without data URL prefix)
+ * @param {string} mask - Base64 PNG string (data URL format with prefix)
  * @param {string} prompt - Description of the inpainting
  * @param {number} n - Number of variations to generate (default: 1)
  * @param {string} projectId - Project Id, used in gcs project folder path
  * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, assetType) {
+async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projectId, assetType) {
     try {
         // Convert URL to File object
-        const imageFile = await toFile(fetch(image_gcs_url), 'image_1.png');
+        const imageFile = await toFile(fetch(image_gcs_url), 'image_1.png', { type: 'image/png' });
 
-        // Convert base64 PNG to File object (mask is pure base64 without URL prefix)
-        const maskBuffer = Buffer.from(mask, 'base64');
-        const maskFile = await toFile(maskBuffer, 'mask.png');
+        // Convert base64 PNG to File object (mask comes as data URL with prefix)
+        const base64Data = mask.replace(/^data:image\/png;base64,/, '');
+        const maskBuffer = Buffer.from(base64Data, 'base64');
+        const maskFile = await toFile(maskBuffer, 'mask.png', { type: 'image/png' });
 
         const response = await openaiClient.editImagesWithOpenAI([imageFile], maskFile, prompt, {
             n,
@@ -93,21 +94,21 @@ async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, assetType) {
 
             if (Array.isArray(images)) {
                 // Handle multiple images from OpenAI response
-                for (const imgData of result.data) {
+                for (const imgData of images) {
                     const uploadResult = await uploadBase64ToGCS(
-                        imgData.b64_json,
-                        project_id,
+                        imgData.imageBase64,
+                        projectId,
                         assetType
                     );
 
                     if (uploadResult.success) {
                         ret.push({
                             imageUrl: uploadResult.gcsUrl,
-                            revisedPrompt: imgData.revised_prompt,
+                            revisedPrompt: imgData.revisedPrompt,
                         });
                     } else {
                         // do not break the loop if one image upload is failed
-                        console.error('failed to oai result to gcs:', ret.error);
+                        console.error('failed to upload oai result to gcs:', uploadResult.error);
                     }
                 }
             }

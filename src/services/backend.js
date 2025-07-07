@@ -255,6 +255,24 @@ export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projec
             );
         }
 
+        // Validate mask format (should be data URL with PNG format)
+        if (!mask || typeof mask !== 'string') {
+            throw new Error('Mask is required and must be a base64 string');
+        }
+
+        if (!mask.startsWith('data:image/png;base64,')) {
+            throw new Error('Mask must be a PNG image in data URL format');
+        }
+
+        // Validate mask size (approximate check for 50MB limit)
+        const base64Data = mask.replace(/^data:image\/png;base64,/, '');
+        const sizeInBytes = (base64Data.length * 3) / 4;
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        
+        if (sizeInMB > 50) {
+            throw new Error(`Mask file size (${sizeInMB.toFixed(2)}MB) exceeds OpenAI's 50MB limit`);
+        }
+
         const response = await fetch('/api/workflows/img2img/inpainting', {
             method: 'POST',
             headers: {
