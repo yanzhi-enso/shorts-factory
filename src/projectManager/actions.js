@@ -9,7 +9,27 @@
  */
 
 import { useCallback } from 'react';
-import projectStorage from 'services/projectStorage';
+import { 
+    createProjectFromGCS, 
+    getProject, 
+    getAllProjects, 
+    updateProject 
+} from '../storage/project.js';
+import { 
+    getScenesByProject, 
+    getProjectSceneImages, 
+    getElementImages, 
+    updateScene, 
+    addRecreatedSceneImage, 
+    addElementImage, 
+    removeElementImage, 
+    updateElementImage, 
+    updateRecreatedSceneImageSelection, 
+    updateElementImageSelection
+} from '../storage/scene.js';
+import { 
+    addSceneClip 
+} from '../storage/clip.js';
 import { 
     validateProjectExists, isStageAdvancement
 } from 'utils/client/projectValidation';
@@ -66,7 +86,7 @@ export const createProjectActions = (dispatch, projectState) => {
             const fileData = await fileListResponse.json();
             
             // Store project data in IndexedDB and get structured data
-            const projectData = await projectStorage.createProjectFromGCS(
+            const projectData = await createProjectFromGCS(
                 data.project_id, 
                 videoUrl, 
                 fileData.files
@@ -124,7 +144,7 @@ export const createProjectActions = (dispatch, projectState) => {
             }
 
             // Load project from IndexedDB
-            const project = await projectStorage.getProject(projectId);
+            const project = await getProject(projectId);
             // [TODO] - handle case where project is not found in local storage
             // load the scene image and redirect user to scenes tab no matter what
             // stage the url is suggesting
@@ -138,8 +158,8 @@ export const createProjectActions = (dispatch, projectState) => {
             }
 
             // Load scenes and scene images
-            const scenes = await projectStorage.getScenesByProject(projectId);
-            const sceneImagesData = await projectStorage.getProjectSceneImages(projectId);
+            const scenes = await getScenesByProject(projectId);
+            const sceneImagesData = await getProjectSceneImages(projectId);
             
             // Organize scene images by scene ID
             const sceneImagesMap = {};
@@ -151,7 +171,7 @@ export const createProjectActions = (dispatch, projectState) => {
             const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
             // Load element images for the project
-            const rawElementImages = await projectStorage.getElementImages(projectId);
+            const rawElementImages = await getElementImages(projectId);
             
             // Transform element images to camelCase and handle multi-image structure
             const elementImages = rawElementImages.map(transformElementImageToJS);
@@ -196,13 +216,13 @@ export const createProjectActions = (dispatch, projectState) => {
      */
     const loadProject = async (projectId) => {
         try {
-            const project = await projectStorage.getProject(projectId);
+            const project = await getProject(projectId);
             if (!project) {
                 throw new Error('Project not found');
             }
 
-            const scenes = await projectStorage.getScenesByProject(projectId);
-            const sceneImagesData = await projectStorage.getProjectSceneImages(projectId);
+            const scenes = await getScenesByProject(projectId);
+            const sceneImagesData = await getProjectSceneImages(projectId);
             
             // Organize scene images by scene ID
             const sceneImagesMap = {};
@@ -214,7 +234,7 @@ export const createProjectActions = (dispatch, projectState) => {
             const enrichedScenes = await enrichScenes(scenes, sceneImagesMap);
 
             // Load element images for the project
-            const rawElementImages = await projectStorage.getElementImages(projectId);
+            const rawElementImages = await getElementImages(projectId);
             
             // Transform element images to camelCase and handle multi-image structure
             const elementImages = rawElementImages.map(transformElementImageToJS);
@@ -239,9 +259,9 @@ export const createProjectActions = (dispatch, projectState) => {
     /**
      * Get all stored projects for listing
      */
-    const getAllProjects = async () => {
+    const getAllProjectsAction = async () => {
         try {
-            const projects = await projectStorage.getAllProjects();
+            const projects = await getAllProjects();
             return { success: true, projects };
         } catch (err) {
             const errorMessage = err.message || 'Failed to load projects';
@@ -263,7 +283,7 @@ export const createProjectActions = (dispatch, projectState) => {
     const updateSceneSelection = async (sceneId, isSelected) => {
         try {
             // Update in persistent storage first
-            await projectStorage.updateScene(sceneId, { is_selected: isSelected });
+            await updateScene(sceneId, { is_selected: isSelected });
             
             // Update in local state second
             dispatch({ 
@@ -287,7 +307,7 @@ export const createProjectActions = (dispatch, projectState) => {
             // Update in persistent storage first (still uses selected_image_id)
             // Note: in db, selected image is stored as selected_image_id
             // selectedImage is just a convenience for UI
-            await projectStorage.updateScene(sceneId, { selected_image_id: image.id });
+            await updateScene(sceneId, { selected_image_id: image.id });
             
             // Update in local state second (uses selectedImage URL)
             dispatch({ 
@@ -310,12 +330,12 @@ export const createProjectActions = (dispatch, projectState) => {
     const addGeneratedImage = async (sceneId, gcsUrls, generationSources) => {
         try {
             // Add to persistent storage first (returns raw DB object)
-            const rawGeneratedImage = await projectStorage.addRecreatedSceneImage(
+            const rawGeneratedImage = await addRecreatedSceneImage(
                 sceneId, gcsUrls, generationSources
             );
             
             // Update scene to select this new image
-            await projectStorage.updateScene(sceneId, { 
+            await updateScene(sceneId, { 
                 selected_generated_image_id: rawGeneratedImage.id 
             });
             
@@ -350,7 +370,7 @@ export const createProjectActions = (dispatch, projectState) => {
             }
             
             // Update in persistent storage first
-            await projectStorage.updateScene(sceneId, { 
+            await updateScene(sceneId, { 
                 selected_generated_image_id: generatedImageId 
             });
             
@@ -386,7 +406,7 @@ export const createProjectActions = (dispatch, projectState) => {
             };
             
             // Update in persistent storage first
-            await projectStorage.updateProject(projectState.curProjId, { settings: updatedProject.settings });
+            await updateProject(projectState.curProjId, { settings: updatedProject.settings });
             
             // Update in local state second
             dispatch({ 
@@ -411,12 +431,12 @@ export const createProjectActions = (dispatch, projectState) => {
     const addGeneratedClip = async (sceneId, gcsUrl, generationSources) => {
         try {
             // Add to persistent storage first (returns raw DB object)
-            const rawSceneClip = await projectStorage.addSceneClip(
+            const rawSceneClip = await addSceneClip(
                 sceneId, gcsUrl, generationSources
             );
             
             // Update scene to select this new clip
-            await projectStorage.updateScene(sceneId, { 
+            await updateScene(sceneId, { 
                 selected_clip_id: rawSceneClip.id 
             });
             
@@ -467,7 +487,7 @@ export const createProjectActions = (dispatch, projectState) => {
             }
             
             // Update in persistent storage first
-            await projectStorage.updateScene(scene.id, { 
+            await updateScene(scene.id, { 
                 selected_clip_id: sceneClipId 
             });
             
@@ -500,7 +520,7 @@ export const createProjectActions = (dispatch, projectState) => {
             // Use utility function for stage comparison
             if (isStageAdvancement(currentStage, newStage)) {
                 // Update in persistent storage first
-                await projectStorage.updateProject(projectState.curProjId, { stage: newStage });
+                await updateProject(projectState.curProjId, { stage: newStage });
                 
                 // Update in local state second
                 dispatch({ 
@@ -600,10 +620,10 @@ export const createProjectActions = (dispatch, projectState) => {
     /**
      * Add a new element image to the project
      */
-    const addElementImage = async (gcsUrl, generationSources = null, name = null, description = null, tags = null) => {
+    const addElementImageAction = async (gcsUrl, generationSources = null, name = null, description = null, tags = null) => {
         try {
             // Add to persistent storage first (returns raw DB object)
-            const rawElementImage = await projectStorage.addElementImage(
+            const rawElementImage = await addElementImage(
                 projectState.curProjId, gcsUrl, generationSources, name, description, tags
             );
             
@@ -627,10 +647,10 @@ export const createProjectActions = (dispatch, projectState) => {
     /**
      * Remove an element image from the project
      */
-    const removeElementImage = async (elementImageId) => {
+    const removeElementImageAction = async (elementImageId) => {
         try {
             // Remove from persistent storage first
-            await projectStorage.removeElementImage(elementImageId);
+            await removeElementImage(elementImageId);
             
             // Update local state second
             dispatch({ 
@@ -649,10 +669,10 @@ export const createProjectActions = (dispatch, projectState) => {
     /**
      * Update element image metadata (name, description, tags)
      */
-    const updateElementImage = async (elementImageId, updates) => {
+    const updateElementImageAction = async (elementImageId, updates) => {
         try {
             // Update in persistent storage first (returns raw DB object)
-            const rawElementImage = await projectStorage.updateElementImage(elementImageId, updates);
+            const rawElementImage = await updateElementImage(elementImageId, updates);
             
             // Transform to JavaScript format for state
             const elementImage = transformElementImageToJS(rawElementImage);
@@ -677,7 +697,7 @@ export const createProjectActions = (dispatch, projectState) => {
     const updateGeneratedImageIndex = async (sceneId, generatedImageId, selectedIndex) => {
         try {
             // Update in persistent storage first
-            const rawGeneratedImage = await projectStorage.updateRecreatedSceneImageSelection(generatedImageId, selectedIndex);
+            const rawGeneratedImage = await updateRecreatedSceneImageSelection(generatedImageId, selectedIndex);
             
             // Transform to JavaScript format for state
             const updatedGeneratedImage = transformGeneratedImageToJS(rawGeneratedImage);
@@ -705,7 +725,7 @@ export const createProjectActions = (dispatch, projectState) => {
     const updateElementImageIndex = async (elementImageId, selectedIndex) => {
         try {
             // Update in persistent storage first
-            const rawElementImage = await projectStorage.updateElementImageSelection(elementImageId, selectedIndex);
+            const rawElementImage = await updateElementImageSelection(elementImageId, selectedIndex);
             
             // Transform to JavaScript format for state
             const updatedElementImage = transformElementImageToJS(rawElementImage);
@@ -730,7 +750,7 @@ export const createProjectActions = (dispatch, projectState) => {
         initializeFromUrl,
         resetProject,
         loadProject,
-        getAllProjects,
+        getAllProjects: getAllProjectsAction,
         clearError,
         updateSceneSelection,
         updateSelectedImage,
@@ -744,9 +764,9 @@ export const createProjectActions = (dispatch, projectState) => {
         updateStage,
         handleSceneImageUpload,
         handleElementImageUpload,
-        addElementImage,
-        removeElementImage,
-        updateElementImage,
+        addElementImage: addElementImageAction,
+        removeElementImage: removeElementImageAction,
+        updateElementImage: updateElementImageAction,
         updateElementImageIndex
     };
 };

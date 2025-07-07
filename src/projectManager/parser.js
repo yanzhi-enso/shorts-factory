@@ -8,7 +8,8 @@
  * - All internal JS properties use camelCase, DB persistence uses snake_case
  */
 
-import projectStorage from 'services/projectStorage';
+import { getRecreatedSceneImages } from '../storage/scene.js';
+import { getSceneClips } from '../storage/clip.js';
 
 /**
  * Transform scene image from snake_case DB format to camelCase JS format
@@ -164,7 +165,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
         const sceneImages = rawSceneImages.map(transformSceneImageToJS);
         
         // Load generated images for this scene
-        const rawGeneratedImages = await projectStorage.getRecreatedSceneImages(scene.id);
+        const rawGeneratedImages = await getRecreatedSceneImages(scene.id);
         
         // Transform generated images to camelCase and handle multi-image structure
         const generatedImages = rawGeneratedImages.map(transformGeneratedImageToJS);
@@ -174,7 +175,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
                                        (generatedImages.length > 0 ? generatedImages[0].id : null);
         
         // Load generated clips for this scene
-        const rawSceneClips = await projectStorage.getSceneClips(scene.id);
+        const rawSceneClips = await getSceneClips(scene.id);
         
         // Transform scene clips to camelCase
         const sceneClips = rawSceneClips.map(transformSceneClipToJS);
