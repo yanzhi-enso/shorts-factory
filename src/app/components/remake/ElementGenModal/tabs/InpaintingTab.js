@@ -29,17 +29,17 @@ import styles from './InpaintingTab.module.css';
  * - Perfect pixel-to-pixel correspondence with original image
  * - Maintains image quality without scaling artifacts
  *
- * TODO - FUTURE INTEGRATION:
- * - Generated images will be automatically assigned to selected element image's gcsUrls field
- * - Backend API integration with existing inpainting endpoint
- * - Error handling and loading states
+ * INTEGRATION COMPLETE:
+ * ✅ Generated images are automatically assigned to selected element image's gcsUrls field
+ * ✅ Backend API integration with existing inpainting endpoint
+ * ✅ Error handling and loading states
  *
  * ========================================================================
  */
 
 const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
     const { projectState } = useProjectManager();
-    const { startInpaintingGeneration } = useImageGen(); // TODO: Function needs to be implemented
+    const { startInpaintingGeneration } = useImageGen();
 
     // Display constants (UI size)
     const DISPLAY_WIDTH = 512;
@@ -77,12 +77,15 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
     }, []);
 
     // Handle single image selection
-    const handleImageSelection = useCallback((elementImage) => {
-        setSelectedImage(elementImage);
-        loadImageToCanvas(elementImage);
-        // Clear any existing mask when switching images
-        clearMask();
-    }, [clearMask]);
+    const handleImageSelection = useCallback(
+        (elementImage) => {
+            setSelectedImage(elementImage);
+            loadImageToCanvas(elementImage);
+            // Clear any existing mask when switching images
+            clearMask();
+        },
+        [clearMask]
+    );
 
     // Load and display image on canvas
     const loadImageToCanvas = useCallback((elementImage) => {
@@ -204,63 +207,79 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
         [brushSize, canvasScale, originalImageDimensions]
     );
 
-
     // Extract mask data at native resolution for API calls
     const getMaskImageData = useCallback(() => {
         const canvas = maskCanvasRef.current;
         if (!canvas || !originalImageDimensions) return null;
 
         const ctx = canvas.getContext('2d');
-        return ctx.getImageData(0, 0, originalImageDimensions.width, originalImageDimensions.height);
+        return ctx.getImageData(
+            0,
+            0,
+            originalImageDimensions.width,
+            originalImageDimensions.height
+        );
     }, [originalImageDimensions]);
 
-    // Convert mask to base64 for API transmission
+    // Convert mask to base64 for API transmission with proper alpha channel
     const getMaskAsBase64 = useCallback(() => {
         const canvas = maskCanvasRef.current;
         if (!canvas || !originalImageDimensions) return null;
 
-        // Create a temporary canvas with solid white mask for better API compatibility
+        // Create a temporary canvas for OpenAI-compatible mask
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = originalImageDimensions.width;
         tempCanvas.height = originalImageDimensions.height;
         const tempCtx = tempCanvas.getContext('2d');
 
-        // Fill with black background
-        tempCtx.fillStyle = 'black';
-        tempCtx.fillRect(0, 0, originalImageDimensions.width, originalImageDimensions.height);
-
-        // Draw the mask with solid white
+        // Get the current mask data
         const maskImageData = getMaskImageData();
-        if (maskImageData) {
-            const data = maskImageData.data;
-            const solidMaskData = tempCtx.createImageData(originalImageDimensions.width, originalImageDimensions.height);
-            
-            // Convert semi-transparent white to solid white
-            for (let i = 0; i < data.length; i += 4) {
-                const alpha = data[i + 3];
-                if (alpha > 0) {
-                    // White pixel for mask area
-                    solidMaskData.data[i] = 255;     // R
-                    solidMaskData.data[i + 1] = 255; // G
-                    solidMaskData.data[i + 2] = 255; // B
-                    solidMaskData.data[i + 3] = 255; // A
-                } else {
-                    // Black pixel for non-mask area
-                    solidMaskData.data[i] = 0;       // R
-                    solidMaskData.data[i + 1] = 0;   // G
-                    solidMaskData.data[i + 2] = 0;   // B
-                    solidMaskData.data[i + 3] = 255; // A
-                }
+        if (!maskImageData) return null;
+
+        // Create new image data for OpenAI-compatible mask
+        const openaiMaskData = tempCtx.createImageData(
+            originalImageDimensions.width,
+            originalImageDimensions.height
+        );
+        const data = maskImageData.data;
+
+        // Convert to OpenAI format: transparent areas = inpaint, opaque areas = preserve
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+
+            if (alpha > 0) {
+                // Areas that were painted (semi-transparent white) -> make transparent for inpainting
+                openaiMaskData.data[i] = 0; // R
+                openaiMaskData.data[i + 1] = 0; // G
+                openaiMaskData.data[i + 2] = 0; // B
+                openaiMaskData.data[i + 3] = 0; // A - Transparent (will be inpainted)
+            } else {
+                // Areas that were not painted -> make opaque white to preserve
+                openaiMaskData.data[i] = 255; // R
+                openaiMaskData.data[i + 1] = 255; // G
+                openaiMaskData.data[i + 2] = 255; // B
+                openaiMaskData.data[i + 3] = 255; // A - Opaque (will be preserved)
             }
-            
-            tempCtx.putImageData(solidMaskData, 0, 0);
         }
 
-        return tempCanvas.toDataURL('image/png');
+        tempCtx.putImageData(openaiMaskData, 0, 0);
+
+        // Validate file size (OpenAI requires < 50MB)
+        const base64String = tempCanvas.toDataURL('image/png');
+        const sizeInBytes = (base64String.length * 3) / 4; // Approximate base64 to bytes conversion
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+
+        if (sizeInMB > 50) {
+            throw new Error(
+                `Mask file size (${sizeInMB.toFixed(2)}MB) exceeds OpenAI's 50MB limit`
+            );
+        }
+
+        return base64String;
     }, [originalImageDimensions, getMaskImageData]);
 
-    // Handle generation (UI only - no actual API call)
-    const handleGenerate = useCallback(() => {
+    // Handle generation with actual API call
+    const handleGenerate = useCallback(async () => {
         if (!selectedImage || !hasDrawnMask || !prompt.trim()) {
             return;
         }
@@ -268,22 +287,51 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
         setIsGenerating(true);
         setGenerationError(null);
 
-        // Get mask data for API call
-        const maskBase64 = getMaskAsBase64();
+        try {
+            // Get mask data for API call
+            const maskBase64 = getMaskAsBase64();
 
-        // Simulate generation delay for UI demonstration
-        setTimeout(() => {
+            if (!maskBase64) {
+                throw new Error('Failed to generate mask data');
+            }
+
+            const selectedImageUrl =
+                selectedImage.gcsUrls?.[selectedImage.selectedImageIdx] ||
+                selectedImage.gcsUrls?.[0];
+
+            // Call the inpainting generation function
+            await startInpaintingGeneration(
+                selectedImageUrl,
+                maskBase64,
+                prompt.trim(),
+                3, // for now we always generate 3 images
+                name,
+                description
+            );
+
+            // Success - clear the form and mask
+            setPrompt('');
+            clearMask();
             setIsGenerating(false);
-            console.log('TODO: Implement inpainting generation with:', {
-                selectedImage: selectedImage.id,
-                prompt: prompt.trim(),
-                numberOfImages: 3,
-                hasDrawnMask,
-                originalImageDimensions,
-                maskBase64: maskBase64 ? `${maskBase64.substring(0, 50)}...` : null, // Truncated for logging
-            });
-        }, 2000);
-    }, [selectedImage, hasDrawnMask, prompt, originalImageDimensions, getMaskAsBase64]);
+
+            // Optionally close modal or show success message
+            if (onImageGenerated) {
+                onImageGenerated();
+            }
+        } catch (error) {
+            console.error('Inpainting generation failed:', error);
+            setGenerationError(error.message || 'Failed to generate inpainted images');
+            setIsGenerating(false);
+        }
+    }, [
+        selectedImage,
+        hasDrawnMask,
+        prompt,
+        getMaskAsBase64,
+        startInpaintingGeneration,
+        clearMask,
+        onImageGenerated,
+    ]);
 
     // Check if image is selected
     const isImageSelected = useCallback(
@@ -346,6 +394,16 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
                         ? 'Paint areas to inpaint (white areas will be replaced):'
                         : 'Canvas (select an image above to start editing):'}
                 </label>
+
+                {selectedImage && (
+                    <div className={styles.maskInstructions}>
+                        <div className={styles.instructionText}>
+                            💡 <strong>Mask Instructions:</strong> Paint over the areas you want to
+                            replace. The mask will be automatically converted to OpenAI's required
+                            format with proper alpha channel transparency.
+                        </div>
+                    </div>
+                )}
 
                 {/* Canvas Container */}
                 <div className={styles.canvasContainer}>

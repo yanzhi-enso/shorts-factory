@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
@@ -32,11 +32,13 @@ const PendingImageBlock = ({ pendingItem }) => {
             <div className={styles.pendingContent}>
                 <div className={styles.loadingSpinner}></div>
                 <div className={styles.pendingLabel}>
-                    {pendingItem.type === 'text-to-image' ? 'Generating...' : 'Extending...'}
+                    {pendingItem.type === 'text-to-image'
+                        ? 'Generating...'
+                        : pendingItem.type === 'image-extension'
+                        ? 'Extending...'
+                        : 'Inpainting...'}
                 </div>
-                <div className={styles.pendingPrompt}>
-                    {pendingItem.prompt.slice(0, 30)}...
-                </div>
+                <div className={styles.pendingPrompt}>{pendingItem.prompt.slice(0, 30)}...</div>
             </div>
         </div>
     );
@@ -46,7 +48,7 @@ const ElementImageList = ({ onAddElementImage }) => {
     const { projectState } = useProjectManager();
     const { pendingGenerations } = useImageGen();
     const elementImages = projectState.elementImages || [];
-    
+
     const [selectedImage, setSelectedImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -60,14 +62,19 @@ const ElementImageList = ({ onAddElementImage }) => {
         setSelectedImage(null);
     };
 
+    useEffect(() => {
+        console.log('pending image block updated, current length:', pendingGenerations.length);
+    }, [pendingGenerations]);
+
     return (
         <>
             <div className={styles.container}>
                 {/* Existing element images */}
                 {elementImages.map((image) => {
                     // Get selected idx image URL from the multi-image structure
-                    const idxImageUrl = image.gcsUrls?.[image.selectedImageIdx] || image.gcsUrls?.[0];
-                    
+                    const idxImageUrl =
+                        image.gcsUrls?.[image.selectedImageIdx] || image.gcsUrls?.[0];
+
                     return (
                         <ElementImageBlock
                             key={image.id}
@@ -76,19 +83,16 @@ const ElementImageList = ({ onAddElementImage }) => {
                         />
                     );
                 })}
-                
+
                 {/* Pending generations */}
                 {pendingGenerations.map((pendingItem) => (
-                    <PendingImageBlock
-                        key={pendingItem.id}
-                        pendingItem={pendingItem}
-                    />
+                    <PendingImageBlock key={pendingItem.id} pendingItem={pendingItem} />
                 ))}
-                
+
                 {/* Add new element image button */}
                 <ElementImageBlock src={null} onClick={onAddElementImage} />
             </div>
-            
+
             <ElementImageDetailsModal
                 isOpen={isModalOpen}
                 elementImage={selectedImage}
