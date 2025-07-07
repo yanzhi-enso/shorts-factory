@@ -6,7 +6,7 @@ import VideoBlock from './VideoBlock';
 import VideoHistoryModal from './VideoHistoryModal';
 import RemakeImageBlock from '../remake/RemakeImageBlock';
 import VideoControlPanel from './VideoControlPanel';
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 import { analyzeImageForVideo } from 'services/backend';
 
 const VideoRow = ({

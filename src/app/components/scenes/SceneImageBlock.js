@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './SceneImageBlock.module.css';
 import Image from 'next/image';
 
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 
 // original scene image block. Display the scene that's extracted from the video
 

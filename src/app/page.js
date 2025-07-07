@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import styles from './page.module.css';
 import TabManager from './components/TabManager';
-import { ProjectProvider } from '../hocs/ProjectManager';
+import { ProjectProvider } from 'projectManager/useProjectManager';
 
 export default function Home() {
     return (

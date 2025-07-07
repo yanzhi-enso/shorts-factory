@@ -1,6 +1,14 @@
-'use client';
+/**
+ * Project Manager Actions
+ * 
+ * IMPORTANT: All state-changing functions follow this pattern:
+ * 1. Update persistent storage first
+ * 2. Update local state second
+ * 
+ * This ensures data consistency and proper error handling.
+ */
 
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { useCallback } from 'react';
 import projectStorage from 'services/projectStorage';
 import { 
     validateProjectExists, isStageAdvancement
@@ -8,375 +16,22 @@ import {
 import { 
     uploadImage, IMAGE_TYPE_ELEMENT, IMAGE_TYPE_GENERATED_SCENE
 } from 'utils/client/upload';
-
-// Initial state for the project manager
-const initialState = {
-    curProjId: null,
-    currentProject: null,    // Full project object from storage
-    scenes: [],              // Scene objects with proper structure
-    elementImages: [],       // Element images for current project (project-level resources)
-    loading: false,
-    error: null
-};
-
-// Action types
-const PROJECT_ACTIONS = {
-    CREATE_PROJECT_START: 'CREATE_PROJECT_START',
-    CREATE_PROJECT_SUCCESS: 'CREATE_PROJECT_SUCCESS',
-    CREATE_PROJECT_ERROR: 'CREATE_PROJECT_ERROR',
-    LOAD_PROJECT_SUCCESS: 'LOAD_PROJECT_SUCCESS',
-    RESET_PROJECT: 'RESET_PROJECT',
-    SET_ERROR: 'SET_ERROR',
-    CLEAR_ERROR: 'CLEAR_ERROR',
-    UPDATE_SCENE_SELECTION: 'UPDATE_SCENE_SELECTION',
-    UPDATE_SCENE_IMAGE_SELECTION: 'UPDATE_SCENE_IMAGE_SELECTION',
-    ADD_GENERATED_IMAGE_SUCCESS: 'ADD_GENERATED_IMAGE_SUCCESS',
-    UPDATE_GENERATED_IMAGE_SELECTION: 'UPDATE_GENERATED_IMAGE_SELECTION',
-    ADD_GENERATED_CLIP_SUCCESS: 'ADD_GENERATED_CLIP_SUCCESS',
-    UPDATE_GENERATED_CLIP_SELECTION: 'UPDATE_GENERATED_CLIP_SELECTION',
-    ADD_ELEMENT_IMAGE_SUCCESS: 'ADD_ELEMENT_IMAGE_SUCCESS',
-    REMOVE_ELEMENT_IMAGE_SUCCESS: 'REMOVE_ELEMENT_IMAGE_SUCCESS',
-    UPDATE_ELEMENT_IMAGE_SUCCESS: 'UPDATE_ELEMENT_IMAGE_SUCCESS',
-    UPDATE_PROJECT_STAGE: 'UPDATE_PROJECT_STAGE'
-};
+import { PROJECT_ACTIONS } from './constants';
+import { 
+    enrichScenes, 
+    organizeSceneImagesBySceneId, 
+    transformElementImageToJS,
+    transformGeneratedImageToJS,
+    transformSceneClipToJS
+} from './parser';
 
 /**
- * ENRICHED SCENE STRUCTURE DOCUMENTATION
- * 
- * The ProjectManager transforms raw database scenes into enriched scenes for easier consumption by UI components.
- * This hides database schema complexity and provides a more product-logic focused data structure.
- * 
- * Raw DB Structure (from projectStorage):
- * - scenes: Array of scene objects with selected_image_id and selected_generated_image_id (foreign key references)
- * - sceneImages: Separate array of all scene images across all scenes
- * - recreatedSceneImages: Separate array of all generated images across all scenes
- * - elementImages: Separate array of all element images for the project (project-level resources)
- * 
- * Enriched Structure (provided by ProjectManager):
- * {
- *   id: number,                    // Scene ID
- *   projectId: string,             // Parent project ID
- *   sceneOrder: number,            // Ordering for display (gap-based: 100, 200, 300...)
- *   isSelected: boolean,           // Whether user selected this scene for processing
- *   selectedImage: string|null,    // URL of selected original image (transformed from selected_image_id)
- *   selectedImageId: number|null,  // Selected original image ID (DB storage reference)
- *   sceneImages: Array[{           // All original images belonging to this scene
- *     id: number,                  // Image ID
- *     sceneId: number,             // Parent scene ID
- *     gcsUrl: string,              // Image URL
- *     imageOrder: number,          // Order within scene
- *     createdAt: string            // Creation timestamp
- *   }],
- *   generatedImages: Array[{       // All generated images for this scene
- *     id: number,                  // Generated image ID
- *     sceneId: number,             // Parent scene ID
- *     gcsUrls: Array[string],      // Array of generated image URLs
- *     selectedImageIdx: number,    // Index of selected image within gcsUrls array
- *     generationSources: object|null, // Sources used for generation
- *     createdAt: string            // Creation timestamp
- *   }],
- *   selectedGeneratedImageId: number|null,  // Selected generated image ID (DB storage reference)
- *   sceneClips: Array[{            // All generated clips for this scene
- *     id: number,                  // Generated clip ID
- *     sceneId: number,             // Parent scene ID
- *     gcsUrl: string,              // Generated clip URL
- *     generationSources: object|null, // Sources used for generation
- *     createdAt: string            // Creation timestamp
- *   }],
- *   selectedSceneClip: string|null,         // URL of selected generated clip
- *   selectedSceneClipId: number|null,       // Selected generated clip ID (DB storage reference)
- *   settings: object,              // Scene-specific configuration
- *   createdAt: string              // Scene creation timestamp
- * }
- * 
- * Project-Level Element Images (separate from scenes):
- * elementImages: Array[{          // All element images for the project (shared resources)
- *   id: number,                   // Element image ID
- *   projectId: string,            // Parent project ID
- *   gcsUrls: Array[string],       // Array of element image URLs
- *   selectedImageIdx: number,     // Index of selected image within gcsUrls array
- *   generationSources: object|null, // Sources used for generation (null for uploaded images)
- *   name: string|null,            // Optional user-defined name
- *   description: string|null,     // Optional description
- *   tags: string|null,            // Optional tags for organization
- *   createdAt: string             // Creation timestamp
- * }]
- * 
- * Key Transformations:
- * 1. selected_image_id → selectedImage (ID reference → actual URL string)
- * 2. selected_generated_image_id → selectedGeneratedImage (ID reference → actual URL string)
- * 3. Separate sceneImages array → embedded sceneImages per scene
- * 4. Separate recreatedSceneImages array → embedded generatedImages per scene
- * 5. Separate elementImages array → project-level elementImages (not scene-specific)
- * 6. All internal JS properties use camelCase, DB persistence still uses snake_case
+ * Creates all project action functions
+ * @param {Function} dispatch - Redux dispatch function
+ * @param {Object} projectState - Current project state
+ * @returns {Object} Object containing all action functions
  */
-
-/**
- * Private helper to enrich raw scenes with embedded scene images, generated images, scene clips, and resolved selected URLs
- * Transforms snake_case DB properties to camelCase for internal JavaScript use
- */
-const enrichScenes = async (rawScenes, sceneImagesMap) => {
-    const enrichedScenes = [];
-    
-    for (const scene of rawScenes) {
-        const rawSceneImages = sceneImagesMap[scene.id] || [];
-        const selectedImageId = scene.selected_image_id || rawSceneImages[0]?.id || null;
-        const selectedImage = selectedImageId 
-            ? rawSceneImages.find(img => img.id === selectedImageId)?.gcs_url || null
-            : null;
-        
-        // Transform scene images to camelCase
-        const sceneImages = rawSceneImages.map(img => ({
-            id: img.id,
-            sceneId: img.scene_id,
-            gcsUrl: img.gcs_url,
-            imageOrder: img.image_order,
-            createdAt: img.created_at
-        }));
-        
-        // Load generated images for this scene
-        const rawGeneratedImages = await projectStorage.getRecreatedSceneImages(scene.id);
-        
-        // Transform generated images to camelCase and handle multi-image structure
-        const generatedImages = rawGeneratedImages.map(img => ({
-            id: img.id,
-            sceneId: img.scene_id,
-            gcsUrls: img.gcs_urls,
-            selectedImageIdx: img.selected_image_idx || 0,
-            generationSources: img.generation_sources,
-            createdAt: img.created_at
-        }));
-        
-        // Determine selected generated image (fallback to most recent if selectedGeneratedImageId is null)
-        const selectedGeneratedImageId = scene.selected_generated_image_id || 
-                                       (generatedImages.length > 0 ? generatedImages[0].id : null);
-        
-        // Load generated clips for this scene
-        const rawSceneClips = await projectStorage.getSceneClips(scene.id);
-        
-        // Transform scene clips to camelCase
-        const sceneClips = rawSceneClips.map(clip => ({
-            id: clip.id,
-            sceneId: clip.scene_id,
-            gcsUrl: clip.gcs_url,
-            generationSources: clip.generation_sources,
-            createdAt: clip.created_at
-        }));
-        
-        // Determine selected scene clip (fallback to most recent if selectedSceneClipId is null)
-        const selectedSceneClipId = scene.selected_clip_id || 
-                                  (sceneClips.length > 0 ? sceneClips[0].id : null);
-        const selectedSceneClip = selectedSceneClipId 
-            ? sceneClips.find(clip => clip.id === selectedSceneClipId)?.gcsUrl || null
-            : null;
-        
-        // Transform scene properties to camelCase and add all fields
-        enrichedScenes.push({
-            id: scene.id,
-            projectId: scene.project_id,
-            sceneOrder: scene.scene_order,
-            isSelected: scene.is_selected,
-            selectedImage: selectedImage,
-            selectedImageId: selectedImageId,
-            sceneImages: sceneImages,
-            generatedImages: generatedImages,
-            selectedGeneratedImageId: selectedGeneratedImageId,
-            sceneClips: sceneClips,
-            selectedSceneClip: selectedSceneClip,
-            selectedSceneClipId: selectedSceneClipId,
-            settings: scene.settings,
-            createdAt: scene.created_at
-        });
-    }
-    
-    return enrichedScenes;
-};
-
-// Reducer function
-function projectReducer(state, action) {
-    switch (action.type) {
-        case PROJECT_ACTIONS.CREATE_PROJECT_START:
-            return {
-                ...state,
-                loading: true,
-                error: null
-            };
-        
-        case PROJECT_ACTIONS.CREATE_PROJECT_SUCCESS:
-            return {
-                ...state,
-                loading: false,
-                error: null,
-                curProjId: action.payload.project.id,
-                currentProject: action.payload.project,
-                scenes: action.payload.scenes,
-            };
-        
-        case PROJECT_ACTIONS.CREATE_PROJECT_ERROR:
-            return {
-                ...state,
-                loading: false,
-                error: action.payload
-            };
-        
-        case PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS:
-            return {
-                ...state,
-                loading: false,
-                error: null,
-                curProjId: action.payload.project.id,
-                currentProject: action.payload.project,
-                scenes: action.payload.scenes,
-                elementImages: action.payload.elementImages || [],
-            };
-        
-        case PROJECT_ACTIONS.RESET_PROJECT:
-            return {
-                ...initialState
-            };
-        
-        case PROJECT_ACTIONS.SET_ERROR:
-            return {
-                ...state,
-                error: action.payload
-            };
-        
-        case PROJECT_ACTIONS.CLEAR_ERROR:
-            return {
-                ...state,
-                error: null
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_SCENE_SELECTION:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { ...scene, isSelected: action.payload.isSelected }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { ...scene, selectedImage: action.payload.imageUrl }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.ADD_GENERATED_IMAGE_SUCCESS:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            generatedImages: [action.payload.generatedImage, ...scene.generatedImages],
-                            selectedGeneratedImageId: action.payload.generatedImage.id
-                          }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            selectedGeneratedImageId: action.payload.imageId
-                          }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.ADD_GENERATED_CLIP_SUCCESS:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            sceneClips: [action.payload.generatedClip, ...scene.sceneClips],
-                            selectedSceneClip: action.payload.generatedClip.gcsUrl,
-                            selectedSceneClipId: action.payload.generatedClip.id
-                          }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_GENERATED_CLIP_SELECTION:
-            return {
-                ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            selectedSceneClip: action.payload.clipUrl,
-                            selectedSceneClipId: action.payload.clipId
-                          }
-                        : scene
-                )
-            };
-        
-        case PROJECT_ACTIONS.ADD_ELEMENT_IMAGE_SUCCESS:
-            return {
-                ...state,
-                elementImages: [action.payload.elementImage, ...state.elementImages]
-            };
-        
-        case PROJECT_ACTIONS.REMOVE_ELEMENT_IMAGE_SUCCESS:
-            return {
-                ...state,
-                elementImages: state.elementImages.filter(img => img.id !== action.payload.elementImageId)
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS:
-            return {
-                ...state,
-                elementImages: state.elementImages.map(img => 
-                    img.id === action.payload.elementImage.id 
-                        ? action.payload.elementImage
-                        : img
-                )
-            };
-        
-        case PROJECT_ACTIONS.UPDATE_PROJECT_STAGE:
-            return {
-                ...state,
-                currentProject: {
-                    ...state.currentProject,
-                    stage: action.payload.stage
-                }
-            };
-        
-        default:
-            return state;
-    }
-}
-
-// Create the context
-const ProjectContext = createContext(undefined);
-
-// Custom hook to use the project context
-export function useProjectManager() {
-    const context = useContext(ProjectContext);
-    
-    if (context === undefined) {
-        throw new Error('useProjectManager must be used within a ProjectProvider');
-    }
-    
-    return context;
-}
-
-// Provider component
-export function ProjectProvider({ children }) {
-    const [projectState, dispatch] = useReducer(projectReducer, initialState);
-    
+export const createProjectActions = (dispatch, projectState) => {
     /**
      * Create a new project from video URL
      */
@@ -420,12 +75,7 @@ export function ProjectProvider({ children }) {
             console.log('Project stored successfully in IndexedDB:', data.project_id);
             
             // Organize scene images by scene ID for enrichment
-            const sceneImagesMap = {};
-            projectData.scenes.forEach(scene => {
-                sceneImagesMap[scene.id] = projectData.sceneImages.filter(
-                    img => img.scene_id === scene.id
-                );
-            });
+            const sceneImagesMap = organizeSceneImagesBySceneId(projectData.scenes, projectData.sceneImages);
             
             // Enrich scenes with embedded images and selected image URL
             const enrichedScenes = await enrichScenes(projectData.scenes, sceneImagesMap);
@@ -504,17 +154,7 @@ export function ProjectProvider({ children }) {
             const rawElementImages = await projectStorage.getElementImages(projectId);
             
             // Transform element images to camelCase and handle multi-image structure
-            const elementImages = rawElementImages.map(img => ({
-                id: img.id,
-                projectId: img.project_id,
-                gcsUrls: img.gcs_urls,
-                selectedImageIdx: img.selected_image_idx || 0,
-                generationSources: img.generation_sources,
-                name: img.name,
-                description: img.description,
-                tags: img.tags,
-                createdAt: img.created_at
-            }));
+            const elementImages = rawElementImages.map(transformElementImageToJS);
 
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
@@ -577,17 +217,7 @@ export function ProjectProvider({ children }) {
             const rawElementImages = await projectStorage.getElementImages(projectId);
             
             // Transform element images to camelCase and handle multi-image structure
-            const elementImages = rawElementImages.map(img => ({
-                id: img.id,
-                projectId: img.project_id,
-                gcsUrls: img.gcs_urls,
-                selectedImageIdx: img.selected_image_idx || 0,
-                generationSources: img.generation_sources,
-                name: img.name,
-                description: img.description,
-                tags: img.tags,
-                createdAt: img.created_at
-            }));
+            const elementImages = rawElementImages.map(transformElementImageToJS);
 
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
@@ -632,10 +262,10 @@ export function ProjectProvider({ children }) {
      */
     const updateSceneSelection = async (sceneId, isSelected) => {
         try {
-            // Update in persistent storage
+            // Update in persistent storage first
             await projectStorage.updateScene(sceneId, { is_selected: isSelected });
             
-            // Update in local state
+            // Update in local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_SCENE_SELECTION, 
                 payload: { sceneId, isSelected } 
@@ -654,12 +284,12 @@ export function ProjectProvider({ children }) {
      */
     const updateSelectedImage = async (sceneId, image) => {
         try {
-            // Update in persistent storage (still uses selected_image_id)
+            // Update in persistent storage first (still uses selected_image_id)
             // Note: in db, selected image is stored as selected_image_id
             // selectedImage is just a convenience for UI
             await projectStorage.updateScene(sceneId, { selected_image_id: image.id });
             
-            // Update in local state (uses selectedImage URL)
+            // Update in local state second (uses selectedImage URL)
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION, 
                 payload: { sceneId, imageUrl: image.gcsUrl } 
@@ -675,11 +305,11 @@ export function ProjectProvider({ children }) {
 
     /**
      * Add a new generated image to a scene and set it as selected
-     * Supports both single URL (backward compatibility) and multiple URLs
+     * GeneratedImages only support gcs_urls (array format)
      */
     const addGeneratedImage = async (sceneId, gcsUrls, generationSources) => {
         try {
-            // Add to persistent storage (returns raw DB object)
+            // Add to persistent storage first (returns raw DB object)
             const rawGeneratedImage = await projectStorage.addRecreatedSceneImage(
                 sceneId, gcsUrls, generationSources
             );
@@ -690,16 +320,9 @@ export function ProjectProvider({ children }) {
             });
             
             // Transform to JavaScript format for state
-            const generatedImage = {
-                id: rawGeneratedImage.id,
-                sceneId: rawGeneratedImage.scene_id,
-                gcsUrls: rawGeneratedImage.gcs_urls || (rawGeneratedImage.gcs_url ? [rawGeneratedImage.gcs_url] : []),
-                selectedImageIdx: rawGeneratedImage.selected_image_idx || 0,
-                generationSources: rawGeneratedImage.generation_sources,
-                createdAt: rawGeneratedImage.created_at
-            };
+            const generatedImage = transformGeneratedImageToJS(rawGeneratedImage);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.ADD_GENERATED_IMAGE_SUCCESS, 
                 payload: { sceneId, generatedImage } 
@@ -718,7 +341,7 @@ export function ProjectProvider({ children }) {
      */
     const updateSelectedGeneratedImage = async (sceneId, generatedImageId) => {
         try {
-            // Find the generated image to get its URL
+            // Find the generated image to validate it exists
             const scene = projectState.scenes.find(s => s.id === sceneId);
             const generatedImage = scene?.generatedImages.find(img => img.id === generatedImageId);
             
@@ -726,12 +349,12 @@ export function ProjectProvider({ children }) {
                 throw new Error('Generated image not found');
             }
             
-            // Update in persistent storage
+            // Update in persistent storage first
             await projectStorage.updateScene(sceneId, { 
                 selected_generated_image_id: generatedImageId 
             });
             
-            // Update in local state
+            // Update in local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
                 payload: { 
@@ -762,10 +385,10 @@ export function ProjectProvider({ children }) {
                 }
             };
             
-            // Update in persistent storage
+            // Update in persistent storage first
             await projectStorage.updateProject(projectState.curProjId, { settings: updatedProject.settings });
             
-            // Update in local state
+            // Update in local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
                 payload: {
@@ -787,7 +410,7 @@ export function ProjectProvider({ children }) {
      */
     const addGeneratedClip = async (sceneId, gcsUrl, generationSources) => {
         try {
-            // Add to persistent storage (returns raw DB object)
+            // Add to persistent storage first (returns raw DB object)
             const rawSceneClip = await projectStorage.addSceneClip(
                 sceneId, gcsUrl, generationSources
             );
@@ -798,15 +421,9 @@ export function ProjectProvider({ children }) {
             });
             
             // Transform to JavaScript format for state
-            const generatedClip = {
-                id: rawSceneClip.id,
-                sceneId: rawSceneClip.scene_id,
-                gcsUrl: rawSceneClip.gcs_url,
-                generationSources: rawSceneClip.generation_sources,
-                createdAt: rawSceneClip.created_at
-            };
+            const generatedClip = transformSceneClipToJS(rawSceneClip);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.ADD_GENERATED_CLIP_SUCCESS, 
                 payload: { sceneId, generatedClip } 
@@ -849,12 +466,12 @@ export function ProjectProvider({ children }) {
                 throw new Error('Scene clip not found');
             }
             
-            // Update in persistent storage
+            // Update in persistent storage first
             await projectStorage.updateScene(scene.id, { 
                 selected_clip_id: sceneClipId 
             });
             
-            // Update in local state
+            // Update in local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_GENERATED_CLIP_SELECTION, 
                 payload: { 
@@ -882,10 +499,10 @@ export function ProjectProvider({ children }) {
             
             // Use utility function for stage comparison
             if (isStageAdvancement(currentStage, newStage)) {
-                // Update in persistent storage
+                // Update in persistent storage first
                 await projectStorage.updateProject(projectState.curProjId, { stage: newStage });
                 
-                // Update in local state
+                // Update in local state second
                 dispatch({ 
                     type: PROJECT_ACTIONS.UPDATE_PROJECT_STAGE, 
                     payload: { stage: newStage } 
@@ -985,25 +602,15 @@ export function ProjectProvider({ children }) {
      */
     const addElementImage = async (gcsUrl, generationSources = null, name = null, description = null, tags = null) => {
         try {
-            // Add to persistent storage (returns raw DB object)
+            // Add to persistent storage first (returns raw DB object)
             const rawElementImage = await projectStorage.addElementImage(
                 projectState.curProjId, gcsUrl, generationSources, name, description, tags
             );
             
             // Transform to JavaScript format for state
-            const elementImage = {
-                id: rawElementImage.id,
-                projectId: rawElementImage.project_id,
-                gcsUrls: rawElementImage.gcs_urls,
-                selectedImageIdx: rawElementImage.selected_image_idx || 0,
-                generationSources: rawElementImage.generation_sources,
-                name: rawElementImage.name,
-                description: rawElementImage.description,
-                tags: rawElementImage.tags,
-                createdAt: rawElementImage.created_at
-            };
+            const elementImage = transformElementImageToJS(rawElementImage);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.ADD_ELEMENT_IMAGE_SUCCESS, 
                 payload: { elementImage } 
@@ -1022,10 +629,10 @@ export function ProjectProvider({ children }) {
      */
     const removeElementImage = async (elementImageId) => {
         try {
-            // Remove from persistent storage
+            // Remove from persistent storage first
             await projectStorage.removeElementImage(elementImageId);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.REMOVE_ELEMENT_IMAGE_SUCCESS, 
                 payload: { elementImageId } 
@@ -1044,23 +651,13 @@ export function ProjectProvider({ children }) {
      */
     const updateElementImage = async (elementImageId, updates) => {
         try {
-            // Update in persistent storage (returns raw DB object)
+            // Update in persistent storage first (returns raw DB object)
             const rawElementImage = await projectStorage.updateElementImage(elementImageId, updates);
             
             // Transform to JavaScript format for state
-            const elementImage = {
-                id: rawElementImage.id,
-                projectId: rawElementImage.project_id,
-                gcsUrls: rawElementImage.gcs_urls,
-                selectedImageIdx: rawElementImage.selected_image_idx || 0,
-                generationSources: rawElementImage.generation_sources,
-                name: rawElementImage.name,
-                description: rawElementImage.description,
-                tags: rawElementImage.tags,
-                createdAt: rawElementImage.created_at
-            };
+            const elementImage = transformElementImageToJS(rawElementImage);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS, 
                 payload: { elementImage } 
@@ -1079,20 +676,13 @@ export function ProjectProvider({ children }) {
      */
     const updateGeneratedImageIndex = async (sceneId, generatedImageId, selectedIndex) => {
         try {
-            // Update in persistent storage
+            // Update in persistent storage first
             const rawGeneratedImage = await projectStorage.updateRecreatedSceneImageSelection(generatedImageId, selectedIndex);
             
             // Transform to JavaScript format for state
-            const updatedGeneratedImage = {
-                id: rawGeneratedImage.id,
-                sceneId: rawGeneratedImage.scene_id,
-                gcsUrls: rawGeneratedImage.gcs_urls,
-                selectedImageIdx: rawGeneratedImage.selected_image_idx || 0,
-                generationSources: rawGeneratedImage.generation_sources,
-                createdAt: rawGeneratedImage.created_at
-            };
+            const updatedGeneratedImage = transformGeneratedImageToJS(rawGeneratedImage);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
                 payload: { 
@@ -1114,23 +704,13 @@ export function ProjectProvider({ children }) {
      */
     const updateElementImageIndex = async (elementImageId, selectedIndex) => {
         try {
-            // Update in persistent storage
+            // Update in persistent storage first
             const rawElementImage = await projectStorage.updateElementImageSelection(elementImageId, selectedIndex);
             
             // Transform to JavaScript format for state
-            const updatedElementImage = {
-                id: rawElementImage.id,
-                projectId: rawElementImage.project_id,
-                gcsUrls: rawElementImage.gcs_urls,
-                selectedImageIdx: rawElementImage.selected_image_idx || 0,
-                generationSources: rawElementImage.generation_sources,
-                name: rawElementImage.name,
-                description: rawElementImage.description,
-                tags: rawElementImage.tags,
-                createdAt: rawElementImage.created_at
-            };
+            const updatedElementImage = transformElementImageToJS(rawElementImage);
             
-            // Update local state
+            // Update local state second
             dispatch({ 
                 type: PROJECT_ACTIONS.UPDATE_ELEMENT_IMAGE_SUCCESS, 
                 payload: { elementImage: updatedElementImage } 
@@ -1144,10 +724,8 @@ export function ProjectProvider({ children }) {
         }
     };
 
-    const value = {
-        projectState,
-        dispatch,
-        // Methods
+    // Return all action functions
+    return {
         createProject,
         initializeFromUrl,
         resetProject,
@@ -1171,13 +749,4 @@ export function ProjectProvider({ children }) {
         updateElementImage,
         updateElementImageIndex
     };
-    
-    return (
-        <ProjectContext.Provider value={value}>
-            {children}
-        </ProjectContext.Provider>
-    );
-}
-
-// Export the context as well for advanced use cases
-export { ProjectContext, PROJECT_ACTIONS };
+};

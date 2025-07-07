@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './ImageGrid.module.css';
 import ImageSelectionModal from './ImageSelectionModal';
 import SceneImageBlock from './SceneImageBlock';

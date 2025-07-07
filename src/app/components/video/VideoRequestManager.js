@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateVideo, getVideoTaskStatus, KlingThrottleError } from 'services/backend';
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 
 const VideoRequestManager = ({ children, onError, ...props }) => {
     const { projectState } = useProjectManager();

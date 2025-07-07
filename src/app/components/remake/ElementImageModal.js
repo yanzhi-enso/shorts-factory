@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ElementImageModal.module.css';
 import Image from 'next/image';
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 
 const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
   console.log("elementImage:", elementImage)

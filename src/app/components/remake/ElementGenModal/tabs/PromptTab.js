@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { useProjectManager } from 'hocs/ProjectManager';
+import { useProjectManager } from 'projectManager/useProjectManager';
 import Dropdown from 'app/components/common/Dropdown';
 import { ASSET_TYPES } from 'constants/gcs';
 import { generateImage, extendImage } from 'services/backend';
