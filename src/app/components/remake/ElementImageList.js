@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { useImageGen } from 'imageGenManager/ImageGenProvider';
-import ElementImageModal from 'app/components/remake/ElementImageModal';
+import ElementImageDetailsModal from 'app/components/remake/ElementImageDetailsModal';
 import styles from './ElementImageList.module.css';
 
 const ElementImageBlock = ({ src, onClick }) => {
@@ -89,7 +89,7 @@ const ElementImageList = ({ onAddElementImage }) => {
                 <ElementImageBlock src={null} onClick={onAddElementImage} />
             </div>
             
-            <ElementImageModal
+            <ElementImageDetailsModal
                 isOpen={isModalOpen}
                 elementImage={selectedImage}
                 onClose={handleCloseModal}

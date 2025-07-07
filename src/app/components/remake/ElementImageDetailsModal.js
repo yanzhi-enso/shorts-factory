@@ -1,20 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import styles from './ElementImageModal.module.css';
+import styles from './ElementImageDetailsModal.module.css';
 import Image from 'next/image';
 import { useProjectManager } from 'projectManager/useProjectManager';
 
-const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
-  console.log("elementImage:", elementImage)
-  console.log("elementImage gcs url list length:", elementImage?.gcsUrls?.length)
-  const { updateElementImage, updateElementImageIndex } = useProjectManager();
+const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
+  const { updateElementImage, updateElementImageIndex, removeElementImage } = useProjectManager();
 
-
-  
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [imgIdx, setImgIdx] = useState(0)
 
@@ -69,7 +66,7 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
 
     if (imgIdx != elementImage.selectedImageIdx) {
       try {
-        await updateElementImageIndex(elementImage.id, selectedIndex);
+        await updateElementImageIndex(elementImage.id, imgIdx);
       } catch (err) {
         console.error('Failed to update image selection:', err);
         setError('Failed to update image selection');
@@ -108,12 +105,31 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
     setImgIdx(selectedIndex)
   };
 
+  const handleDelete = async () => {
+    if (isDeleting || isLoading) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const result = await removeElementImage(elementImage.id);
+      
+      if (result.success) {
+        onClose();
+      } else {
+        setError(result.error || 'Failed to delete image');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setError('Failed to delete image');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!elementImage) {
     return <></>
   }
-
-  console.log("elementImage is not null:", elementImage)
-  console.log("elementImage gcs urls:", elementImage.gcsUrls)
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -123,42 +139,30 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
         </button>
         
         <div className={styles.imageContainer}>
-          <Image
+          <div className={styles.imageSelector}>
+            {elementImage.gcsUrls.map((imageUrl, index) => (
+              <div
+                key={index}
+                className={`${styles.thumbnail} ${
+                  index === imgIdx ? styles.selected : ''
+                }`}
+                onClick={() => handleImageSelect(index)}
+              >
+                <Image
+                  src={imageUrl}
+                  alt={`Variant ${index + 1}`}
+                  width={60}
+                  height={60}
+                  className={styles.thumbnailImage}
+                />
+              </div>
+            ))}
+          </div>
+          <img
             src={elementImage.gcsUrls?.[imgIdx]}
             alt={elementImage.name || 'Element image'}
-            width={800}
-            height={1400}
             className={styles.image}
           />
-          
-          {/* Show image selection controls if multiple images exist */}
-          {elementImage.gcsUrls?.length > 1 && (
-            <div className={styles.imageSelector}>
-              <div className={styles.imageThumbnails}>
-                {elementImage.gcsUrls.map((imageUrl, index) => (
-                  <div
-                    key={index}
-                    className={`${styles.thumbnail} ${
-                      index === elementImage.selectedImageIdx ? styles.selected : ''
-                    }`}
-                    onClick={() => handleImageSelect(index)}
-                  >
-                    <Image
-                      src={imageUrl}
-                      alt={`Variant ${index + 1}`}
-                      width={60}
-                      height={60}
-                      className={styles.thumbnailImage}
-                    />
-                    <span className={styles.thumbnailLabel}>{index + 1}</span>
-                  </div>
-                ))}
-              </div>
-              <div className={styles.selectorInfo}>
-                {elementImage.selectedImageIdx + 1} of {elementImage.gcsUrls.length}
-              </div>
-            </div>
-          )}
         </div>
         
         <div className={styles.formContainer}>
@@ -198,8 +202,15 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
           
           <div className={styles.buttonContainer}>
             <button
+              onClick={handleDelete}
+              disabled={isDeleting || isLoading}
+              className={`${styles.deleteButton} ${isDeleting ? styles.loading : ''}`}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+            <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || isDeleting}
               className={`${styles.saveButton} ${isLoading ? styles.loading : ''}`}
             >
               {isLoading ? 'Saving...' : 'Save'}
@@ -211,4 +222,4 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
   );
 };
 
-export default ElementImageModal;
+export default ElementImageDetailsModal;
