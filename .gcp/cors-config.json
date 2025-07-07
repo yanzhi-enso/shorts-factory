@@ -1,8 +1,0 @@
-[
-  {
-    "origin": ["http://localhost:3000", "https://shorts.v01s.com"],
-    "method": ["PUT", "POST"],
-    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "Origin"],
-    "maxAgeSeconds": 3600
-  }
-]

@@ -1,8 +1,8 @@
 [
   {
     "origin": ["https://shorts.v01s.com", "http://localhost:3000"],
-    "method": ["GET", "HEAD"],
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "method": ["GET", "HEAD", "PUT", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "Origin"],
     "maxAgeSeconds": 3600
   }
 ]
