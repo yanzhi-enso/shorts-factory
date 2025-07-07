@@ -240,7 +240,7 @@ export async function extendImage(imageUrls, prompt, n = 1, projectId, assetType
     }
 }
 
-export async function inpaintingImage(image, mask, prompt, n = 1, projectId, assetType) {
+export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projectId, assetType) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -250,31 +250,32 @@ export async function inpaintingImage(image, mask, prompt, n = 1, projectId, ass
         // Validate assetType
         const validAssetTypes = Object.values(ASSET_TYPES);
         if (!assetType || !validAssetTypes.includes(assetType)) {
-            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
+            throw new Error(
+                `Asset type is required and must be one of: ${validAssetTypes.join(', ')}`
+            );
         }
 
-        const response = await fetch(
-            '/api/workflows/img2img/inpainting', {
+        const response = await fetch('/api/workflows/img2img/inpainting', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                image,
+                image_gcs_url,
                 mask,
                 prompt,
                 n,
                 project_id: projectId,
-                asset_type: assetType
-            })
+                asset_type: assetType,
+            }),
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to inpaint image');
         }
-        
+
         return data.result;
     } catch (error) {
         console.error('Error inpainting image:', error);

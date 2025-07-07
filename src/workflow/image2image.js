@@ -66,7 +66,7 @@ async function extendImage(imageURLs, prompt, n = 1, projectId, assetType) {
 
 /**
  * Performs image inpainting using a mask to fill/modify specific areas
- * @param {string} image - Single image URL
+ * @param {string} image_gcs_url - Single image URL
  * @param {string} mask - Base64 PNG string (without data URL prefix)
  * @param {string} prompt - Description of the inpainting
  * @param {number} n - Number of variations to generate (default: 1)
@@ -74,19 +74,21 @@ async function extendImage(imageURLs, prompt, n = 1, projectId, assetType) {
  * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-async function inpaintingImage(image, mask, prompt, n = 1, assetType) {
+async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, assetType) {
     try {
         // Convert URL to File object
-        const imageFile = await toFile(fetch(image), 'image_1.png');
-        
+        const imageFile = await toFile(fetch(image_gcs_url), 'image_1.png');
+
         // Convert base64 PNG to File object (mask is pure base64 without URL prefix)
         const maskBuffer = Buffer.from(mask, 'base64');
         const maskFile = await toFile(maskBuffer, 'mask.png');
-        
-        const response = await openaiClient.editImagesWithOpenAI([imageFile], maskFile, prompt, { n });
-        
+
+        const response = await openaiClient.editImagesWithOpenAI([imageFile], maskFile, prompt, {
+            n,
+        });
+
         if (response.success) {
-            const { images } = response.data
+            const { images } = response.data;
             const ret = [];
 
             if (Array.isArray(images)) {
@@ -101,11 +103,11 @@ async function inpaintingImage(image, mask, prompt, n = 1, assetType) {
                     if (uploadResult.success) {
                         ret.push({
                             imageUrl: uploadResult.gcsUrl,
-                            revisedPrompt: imgData.revised_prompt
+                            revisedPrompt: imgData.revised_prompt,
                         });
                     } else {
                         // do not break the loop if one image upload is failed
-                        console.error("failed to oai result to gcs:", ret.error)
+                        console.error('failed to oai result to gcs:', ret.error);
                     }
                 }
             }

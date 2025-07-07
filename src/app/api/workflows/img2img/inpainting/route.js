@@ -7,14 +7,11 @@ export async function POST(request) {
         const body = await request.json();
 
         // Extract camelCase parameters from HTTP payload
-        const { image, mask, prompt, n = 1, project_id, asset_type } = body;
+        const { image_gcs_url, mask, prompt, n = 1, project_id, asset_type } = body;
 
         // Validate required parameter - image
-        if (!image) {
-            return NextResponse.json(
-                { error: 'image is required' },
-                { status: 400 }
-            );
+        if (!image_gcs_url) {
+            return NextResponse.json({ error: 'image is required' }, { status: 400 });
         }
 
         // Validate required parameter - mask
@@ -65,7 +62,14 @@ export async function POST(request) {
         }
 
         // Call the inpainting function
-        const images = await workflow.inpaintingImage(image, mask, prompt, n, project_id, asset_type);
+        const images = await workflow.inpaintingImage(
+            image_gcs_url,
+            mask,
+            prompt,
+            n,
+            project_id,
+            asset_type
+        );
         return NextResponse.json({ 
             success: true, 
             result: {images, format: 'png', created: new Date.now()} }
