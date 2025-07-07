@@ -6,12 +6,17 @@ import Image from 'next/image';
 import { useProjectManager } from 'hocs/ProjectManager';
 
 const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
+  console.log("elementImage:", elementImage)
+  console.log("elementImage gcs url list length:", elementImage?.gcsUrls?.length)
   const { updateElementImage, updateElementImageIndex } = useProjectManager();
+
+
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [imgIdx, setImgIdx] = useState(0)
 
   // Initialize form fields when modal opens or element image changes
   useEffect(() => {
@@ -41,6 +46,12 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (elementImage && elementImage.selectedImageIdx != imgIdx) {
+      setImgIdx(elementImage.selectedImageIdx)
+    }
+  }, [elementImage])
+
   if (!isOpen || !elementImage) return null;
 
   const handleOverlayClick = (e) => {
@@ -50,10 +61,20 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
   };
 
   const handleSave = async () => {
+    //[todo] save index img selection
     if (isLoading) return;
 
     setIsLoading(true);
     setError(null);
+
+    if (imgIdx != elementImage.selectedImageIdx) {
+      try {
+        await updateElementImageIndex(elementImage.id, selectedIndex);
+      } catch (err) {
+        console.error('Failed to update image selection:', err);
+        setError('Failed to update image selection');
+      }
+    }
 
     try {
       const updates = {
@@ -83,13 +104,16 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
   };
 
   const handleImageSelect = async (selectedIndex) => {
-    try {
-      await updateElementImageIndex(elementImage.id, selectedIndex);
-    } catch (err) {
-      console.error('Failed to update image selection:', err);
-      setError('Failed to update image selection');
-    }
+    // this only change the index in modal, not the persistent storage
+    setImgIdx(selectedIndex)
   };
+
+  if (!elementImage) {
+    return <></>
+  }
+
+  console.log("elementImage is not null:", elementImage)
+  console.log("elementImage gcs urls:", elementImage.gcsUrls)
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -100,7 +124,7 @@ const ElementImageModal = ({ isOpen, elementImage, onClose }) => {
         
         <div className={styles.imageContainer}>
           <Image
-            src={elementImage.gcsUrls?.[elementImage.selectedImageIdx] || elementImage.gcsUrls?.[0]}
+            src={elementImage.gcsUrls?.[imgIdx]}
             alt={elementImage.name || 'Element image'}
             width={800}
             height={1400}
