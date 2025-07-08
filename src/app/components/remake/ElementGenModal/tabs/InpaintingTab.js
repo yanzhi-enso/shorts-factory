@@ -395,16 +395,6 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
                         : 'Canvas (select an image above to start editing):'}
                 </label>
 
-                {selectedImage && (
-                    <div className={styles.maskInstructions}>
-                        <div className={styles.instructionText}>
-                            💡 <strong>Mask Instructions:</strong> Paint over the areas you want to
-                            replace. The mask will be automatically converted to OpenAI's required
-                            format with proper alpha channel transparency.
-                        </div>
-                    </div>
-                )}
-
                 {/* Canvas Container */}
                 <div className={styles.canvasContainer}>
                     {/* Background canvas for image */}

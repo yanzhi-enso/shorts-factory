@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { FaUpload, FaImage, FaTimes } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { validateImageFile } from 'utils/client/upload';
-import styles from '../ElementGenModal.module.css';
+import styles from './UploadTab.module.css';
 
 const UploadTab = ({ 
     name, 
