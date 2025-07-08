@@ -7,10 +7,9 @@ import Dropdown from 'app/components/common/Dropdown';
 import styles from './PromptTab.module.css';
 
 const PromptTab = ({ 
-    name, 
-    description, 
     onImageGenerated, 
-    onClose 
+    onClose,
+    onSwitchToMetadata 
 }) => {
     const { projectState } = useProjectManager();
     const { startElementImageGeneration } = useImageGen();
@@ -70,15 +69,20 @@ const PromptTab = ({
         setGenerationError(null);
         
         try {
-            startElementImageGeneration({
+            const result = startElementImageGeneration({
                 prompt: prompt.trim(),
                 selectedImages,
                 numberOfImages,
-                name,
-                description
+                name: null,
+                description: null
             });
 
-            onClose();
+            // Switch to metadata mode with generation context
+            onSwitchToMetadata({
+                operationType: 'generation',
+                pendingGenerationId: result.generationId,
+                elementImageId: null
+            });
 
         } catch (error) {
             console.error('Generation failed:', error);
@@ -87,10 +91,9 @@ const PromptTab = ({
             } else {
                 setGenerationError(error.message || 'Failed to generate images. Please try again.');
             }
-        } finally {
             setIsGenerating(false);
         }
-    }, [prompt, selectedImages, numberOfImages, name, description, projectState.curProjId, startElementImageGeneration, onClose]);
+    }, [prompt, selectedImages, numberOfImages, projectState.curProjId, startElementImageGeneration, onSwitchToMetadata]);
 
 
     // Check if an element image is selected

@@ -37,7 +37,7 @@ import styles from './InpaintingTab.module.css';
  * ========================================================================
  */
 
-const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
+const InpaintingTab = ({ onImageGenerated, onClose, onSwitchToMetadata }) => {
     const { projectState } = useProjectManager();
     const { startInpaintingGeneration } = useImageGen();
 
@@ -279,7 +279,7 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
     }, [originalImageDimensions, getMaskImageData]);
 
     // Handle generation with actual API call
-    const handleGenerate = useCallback(async () => {
+    const handleGenerate = useCallback(() => {
         if (!selectedImage || !hasDrawnMask || !prompt.trim()) {
             return;
         }
@@ -300,24 +300,22 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
                 selectedImage.gcsUrls?.[0];
 
             // Call the inpainting generation function
-            await startInpaintingGeneration(
+            const result = startInpaintingGeneration(
                 selectedImageUrl,
                 maskBase64,
                 prompt.trim(),
                 3, // for now we always generate 3 images
-                name,
-                description
+                null,
+                null
             );
 
-            // Success - clear the form and mask
-            setPrompt('');
-            clearMask();
-            setIsGenerating(false);
+            // Switch to metadata mode with generation context
+            onSwitchToMetadata({
+                operationType: 'generation',
+                pendingGenerationId: result.generationId,
+                elementImageId: null
+            });
 
-            // Optionally close modal or show success message
-            if (onImageGenerated) {
-                onImageGenerated();
-            }
         } catch (error) {
             console.error('Inpainting generation failed:', error);
             setGenerationError(error.message || 'Failed to generate inpainted images');
@@ -329,8 +327,7 @@ const InpaintingTab = ({ name, description, onImageGenerated, onClose }) => {
         prompt,
         getMaskAsBase64,
         startInpaintingGeneration,
-        clearMask,
-        onImageGenerated,
+        onSwitchToMetadata,
     ]);
 
     // Check if image is selected

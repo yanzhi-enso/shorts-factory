@@ -7,11 +7,9 @@ import { validateImageFile } from 'utils/client/upload';
 import styles from './UploadTab.module.css';
 
 const UploadTab = ({ 
-    name, 
-    description, 
     onImageGenerated, 
     onClose,
-    onUploadStateChange 
+    onSwitchToMetadata 
 }) => {
     const { projectState, handleElementImageUpload } = useProjectManager();
     
@@ -62,8 +60,8 @@ const UploadTab = ({
         try {
             // Use centralized upload function from ProjectManager
             const result = await handleElementImageUpload(selectedFile, {
-                name: name.trim() || null,
-                description: description.trim() || null
+                name: null,
+                description: null
             });
             console.log('result from upload tab:', result);
 
@@ -72,13 +70,19 @@ const UploadTab = ({
                 throw new Error(result.error);
             }
 
-            // Success - trigger callback and close modal
+            // Success - trigger callback
             if (onImageGenerated) {
                 onImageGenerated(result.elementImage);
             }
 
             resetUploadState();
-            onClose();
+
+            // Switch to metadata mode with upload context
+            onSwitchToMetadata({
+                operationType: 'upload',
+                pendingGenerationId: null,
+                elementImageId: result.elementImage.id
+            });
 
         } catch (error) {
             console.error('Image upload failed:', error);
@@ -90,24 +94,10 @@ const UploadTab = ({
         selectedFile,
         projectState.curProjId,
         handleElementImageUpload,
-        name,
-        description,
         onImageGenerated,
         resetUploadState,
-        onClose
+        onSwitchToMetadata
     ]);
-
-    // Notify parent about upload state changes
-    React.useEffect(() => {
-        if (onUploadStateChange) {
-            onUploadStateChange({
-                hasFile: !!selectedFile,
-                isUploading,
-                canUpload: !!selectedFile && !isUploading,
-                handleUpload
-            });
-        }
-    }, [selectedFile, isUploading, onUploadStateChange, handleUpload]);
 
     // Drag and drop handlers
     const handleDragEnter = useCallback((e) => {
@@ -217,6 +207,19 @@ const UploadTab = ({
                 {uploadError && (
                     <div className={styles.errorMessage}>
                         {uploadError}
+                    </div>
+                )}
+                
+                {/* Upload Button */}
+                {selectedFile && (
+                    <div className={styles.uploadSection}>
+                        <button
+                            className={styles.uploadButton}
+                            onClick={handleUpload}
+                            disabled={!selectedFile || isUploading}
+                        >
+                            {isUploading ? 'Uploading...' : 'Upload'}
+                        </button>
                     </div>
                 )}
                 
