@@ -54,6 +54,7 @@ const InpaintingTab = ({ onImageGenerated, onClose, onSwitchToMetadata }) => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationError, setGenerationError] = useState(null);
+    const [mousePosition, setMousePosition] = useState(null);
 
     // Canvas refs and dimensions
     const backgroundCanvasRef = useRef(null);
@@ -153,28 +154,6 @@ const InpaintingTab = ({ onImageGenerated, onClose, onSwitchToMetadata }) => {
         img.src = imageUrl;
     }, []);
 
-    // Mouse event handlers for drawing
-    const handleMouseDown = useCallback(
-        (e) => {
-            if (!selectedImage) return;
-            setIsDrawing(true);
-            drawAtPoint(e);
-        },
-        [selectedImage, brushSize]
-    );
-
-    const handleMouseMove = useCallback(
-        (e) => {
-            if (!isDrawing || !selectedImage) return;
-            drawAtPoint(e);
-        },
-        [isDrawing, selectedImage, brushSize]
-    );
-
-    const handleMouseUp = useCallback(() => {
-        setIsDrawing(false);
-    }, []);
-
     // Draw mask at mouse position
     const drawAtPoint = useCallback(
         (e) => {
@@ -206,6 +185,56 @@ const InpaintingTab = ({ onImageGenerated, onClose, onSwitchToMetadata }) => {
         },
         [brushSize, canvasScale, originalImageDimensions]
     );
+
+    // Mouse position tracking for custom cursor
+    const updateMousePosition = useCallback((e) => {
+        if (!selectedImage) return;
+        const canvas = maskCanvasRef.current;
+        if (!canvas) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        setMousePosition({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+    }, [selectedImage]);
+
+    // Mouse event handlers for drawing
+    const handleMouseDown = useCallback(
+        (e) => {
+            if (!selectedImage) return;
+            setIsDrawing(true);
+            updateMousePosition(e);
+            drawAtPoint(e);
+        },
+        [selectedImage, updateMousePosition, drawAtPoint]
+    );
+
+    const handleMouseMove = useCallback(
+        (e) => {
+            if (!selectedImage) return;
+            updateMousePosition(e);
+            if (isDrawing) {
+                drawAtPoint(e);
+            }
+        },
+        [isDrawing, selectedImage, updateMousePosition, drawAtPoint]
+    );
+
+    const handleMouseUp = useCallback(() => {
+        setIsDrawing(false);
+    }, []);
+
+    const handleMouseEnter = useCallback((e) => {
+        if (selectedImage) {
+            updateMousePosition(e);
+        }
+    }, [selectedImage, updateMousePosition]);
+
+    const handleMouseLeave = useCallback(() => {
+        setIsDrawing(false);
+        setMousePosition(null);
+    }, []);
 
     // Extract mask data at native resolution for API calls
     const getMaskImageData = useCallback(() => {
@@ -339,155 +368,193 @@ const InpaintingTab = ({ onImageGenerated, onClose, onSwitchToMetadata }) => {
     );
 
     return (
-        <div className={styles.tabContent}>
-            {/* Element Image Selection Section */}
-            <div className={styles.referenceImagesSection}>
-                <label className={styles.sectionLabel}>
-                    Select Image to Edit (single selection):
-                </label>
+        <div className={styles.container}>
+            {/* Three Column Layout */}
+            <div className={styles.threeColumnLayout}>
+                {/* Left Column - Element Images */}
+                <div className={styles.leftColumn}>
+                    <div className={styles.elementImagesColumn}>
+                        <label className={styles.sectionLabel}>
+                            Select Image to Edit:
+                        </label>
 
-                {projectState.elementImages.length > 0 ? (
-                    <div className={styles.imageScrollContainer}>
-                        {projectState.elementImages.map((elementImage) => {
-                            const currentImageUrl =
-                                elementImage.gcsUrls?.[elementImage.selectedImageIdx] ||
-                                elementImage.gcsUrls?.[0];
-                            const isSelected = isImageSelected(elementImage);
+                        {projectState.elementImages.length > 0 ? (
+                            <div className={styles.verticalImageList}>
+                                {projectState.elementImages.map((elementImage) => {
+                                    const currentImageUrl =
+                                        elementImage.gcsUrls?.[elementImage.selectedImageIdx] ||
+                                        elementImage.gcsUrls?.[0];
+                                    const isSelected = isImageSelected(elementImage);
 
-                            return (
-                                <div
-                                    key={elementImage.id}
-                                    className={`${styles.elementImageItem} ${
-                                        isSelected ? styles.selected : ''
-                                    }`}
-                                    onClick={() => handleImageSelection(elementImage)}
-                                >
-                                    <img
-                                        src={currentImageUrl}
-                                        alt={elementImage.name || 'Element image'}
-                                        className={styles.elementImage}
-                                    />
-                                    {elementImage.gcsUrls?.length > 1 && (
-                                        <div className={styles.imageVariantIndicator}>
-                                            {elementImage.selectedImageIdx + 1}/
-                                            {elementImage.gcsUrls.length}
+                                    return (
+                                        <div
+                                            key={elementImage.id}
+                                            className={`${styles.elementImageItem} ${
+                                                isSelected ? styles.selected : ''
+                                            }`}
+                                            onClick={() => handleImageSelection(elementImage)}
+                                        >
+                                            <img
+                                                src={currentImageUrl}
+                                                alt={elementImage.name || 'Element image'}
+                                                className={styles.elementImage}
+                                            />
+                                            {elementImage.gcsUrls?.length > 1 && (
+                                                <div className={styles.imageVariantIndicator}>
+                                                    {elementImage.selectedImageIdx + 1}/
+                                                    {elementImage.gcsUrls.length}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className={styles.noImagesMessage}>
+                                No element images available. Upload some images first to edit.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Center Column - Canvas */}
+                <div className={styles.centerColumn}>
+                    <div className={styles.canvasSection}>
+                        <label className={styles.sectionLabel}>
+                            {selectedImage
+                                ? 'Paint areas to inpaint (white areas will be replaced):'
+                                : 'Canvas (select an image to start editing):'}
+                        </label>
+
+                        {/* Canvas Container */}
+                        <div className={styles.canvasContainer}>
+                            {/* Background canvas for image */}
+                            <canvas
+                                ref={backgroundCanvasRef}
+                                className={styles.backgroundCanvas}
+                                style={canvasDisplayStyle}
+                            />
+
+                            {/* Mask canvas for drawing */}
+                            <canvas
+                                ref={maskCanvasRef}
+                                className={styles.maskCanvas}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUp}
+                                onMouseEnter={handleMouseEnter}
+                                onMouseLeave={handleMouseLeave}
+                                style={{
+                                    ...canvasDisplayStyle,
+                                    cursor: selectedImage ? 'none' : 'not-allowed',
+                                    pointerEvents: selectedImage ? 'auto' : 'none',
+                                }}
+                            />
+
+                            {/* Custom brush cursor */}
+                            {selectedImage && (
+                                <div
+                                    className={styles.customCursor}
+                                    style={{
+                                        width: `${BRUSH_SIZES[brushSize] * 2}px`,
+                                        height: `${BRUSH_SIZES[brushSize] * 2}px`,
+                                        display: isDrawing || mousePosition ? 'block' : 'none',
+                                        left: mousePosition ? `${mousePosition.x - BRUSH_SIZES[brushSize]}px` : '0px',
+                                        top: mousePosition ? `${mousePosition.y - BRUSH_SIZES[brushSize]}px` : '0px',
+                                    }}
+                                />
+                            )}
+
+                            {/* Empty state overlay */}
+                            {!selectedImage && (
+                                <div className={styles.canvasEmptyState}>
+                                    <div className={styles.emptyStateIcon}>🎨</div>
+                                    <div className={styles.emptyStateText}>
+                                        Select an image to start editing
+                                    </div>
                                 </div>
-                            );
-                        })}
+                            )}
+                        </div>
+
+                        {/* Clear Mask Button */}
+                        <div className={styles.canvasActions}>
+                            <button
+                                className={styles.clearMaskButton}
+                                onClick={clearMask}
+                                disabled={!hasDrawnMask || isGenerating}
+                            >
+                                Clear Mask
+                            </button>
+                        </div>
                     </div>
-                ) : (
-                    <div className={styles.noImagesMessage}>
-                        No element images available. Upload some images first to edit.
-                    </div>
-                )}
-            </div>
+                </div>
 
-            {/* Canvas Section - Always visible */}
-            <div className={styles.canvasSection}>
-                <label className={styles.sectionLabel}>
-                    {selectedImage
-                        ? 'Paint areas to inpaint (white areas will be replaced):'
-                        : 'Canvas (select an image above to start editing):'}
-                </label>
-
-                {/* Canvas Container */}
-                <div className={styles.canvasContainer}>
-                    {/* Background canvas for image */}
-                    <canvas
-                        ref={backgroundCanvasRef}
-                        className={styles.backgroundCanvas}
-                        style={canvasDisplayStyle}
-                    />
-
-                    {/* Mask canvas for drawing */}
-                    <canvas
-                        ref={maskCanvasRef}
-                        className={styles.maskCanvas}
-                        onMouseDown={handleMouseDown}
-                        onMouseMove={handleMouseMove}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp}
-                        style={{
-                            ...canvasDisplayStyle,
-                            cursor: selectedImage ? 'crosshair' : 'not-allowed',
-                            pointerEvents: selectedImage ? 'auto' : 'none',
-                        }}
-                    />
-
-                    {/* Empty state overlay */}
-                    {!selectedImage && (
-                        <div className={styles.canvasEmptyState}>
-                            <div className={styles.emptyStateIcon}>🎨</div>
-                            <div className={styles.emptyStateText}>
-                                Select an image above to start editing
+                {/* Right Column - Controls */}
+                <div className={styles.rightColumn}>
+                    <div className={styles.controlsPanel}>
+                        {/* Brush Size Section */}
+                        <div className={styles.brushSection}>
+                            <label className={styles.sectionLabel}>Brush Size:</label>
+                            <div className={styles.brushSizeRadios}>
+                                {['Small', 'Medium', 'Large'].map((size, index) => (
+                                    <label key={size} className={styles.brushSizeRadio}>
+                                        <input
+                                            type="radio"
+                                            name="brushSize"
+                                            value={index}
+                                            checked={brushSize === index}
+                                            onChange={() => setBrushSize(index)}
+                                            disabled={!selectedImage || isGenerating}
+                                        />
+                                        <div className={styles.radioContent}>
+                                            <div 
+                                                className={styles.brushPreview}
+                                                style={{
+                                                    width: `${BRUSH_SIZES[index] * 2}px`,
+                                                    height: `${BRUSH_SIZES[index] * 2}px`,
+                                                }}
+                                            />
+                                            <span className={styles.brushLabel}>
+                                                {size} ({BRUSH_SIZES[index]}px)
+                                            </span>
+                                        </div>
+                                    </label>
+                                ))}
                             </div>
                         </div>
-                    )}
-                </div>
 
-                {/* Canvas Controls */}
-                <div className={styles.canvasControls}>
-                    <div className={styles.brushControls}>
-                        <label className={styles.controlLabel}>Brush Size:</label>
-                        <div className={styles.brushSizeOptions}>
-                            {['Small', 'Medium', 'Large'].map((size, index) => (
-                                <button
-                                    key={size}
-                                    className={`${styles.brushSizeButton} ${
-                                        brushSize === index ? styles.active : ''
-                                    }`}
-                                    onClick={() => setBrushSize(index)}
-                                    disabled={!selectedImage || isGenerating}
-                                >
-                                    {size}
-                                </button>
-                            ))}
+                        {/* Prompt Section */}
+                        <div className={styles.promptSection}>
+                            <label htmlFor='inpaintPrompt' className={styles.sectionLabel}>
+                                Inpainting Prompt *
+                            </label>
+                            <textarea
+                                id='inpaintPrompt'
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder='Describe what you want to generate in the painted areas...'
+                                className={styles.promptTextarea}
+                                rows={4}
+                                disabled={isGenerating}
+                            />
                         </div>
-                    </div>
 
-                    <div className={styles.canvasActions}>
-                        <button
-                            className={styles.clearMaskButton}
-                            onClick={clearMask}
-                            disabled={!hasDrawnMask || isGenerating}
-                        >
-                            Clear Mask
-                        </button>
+                        {/* Generate Section */}
+                        <div className={styles.generateSection}>
+                            <button
+                                className={styles.generateButton}
+                                onClick={handleGenerate}
+                                disabled={!selectedImage || !hasDrawnMask || !prompt.trim() || isGenerating}
+                            >
+                                {isGenerating ? 'Generating Images...' : 'Generate'}
+                            </button>
+                        </div>
+
+                        {/* Error Message */}
+                        {generationError && <div className={styles.errorMessage}>{generationError}</div>}
                     </div>
                 </div>
             </div>
-
-            {/* Prompt Section */}
-            <div className={styles.promptSection}>
-                <label htmlFor='inpaintPrompt' className={styles.sectionLabel}>
-                    Inpainting Prompt *
-                </label>
-                <textarea
-                    id='inpaintPrompt'
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder='Describe what you want to generate in the painted areas...'
-                    className={styles.promptTextarea}
-                    rows={4}
-                    disabled={isGenerating}
-                />
-            </div>
-
-            {/* Generate Section */}
-            <div className={styles.generateSection}>
-                <button
-                    className={styles.generateButton}
-                    onClick={handleGenerate}
-                    disabled={!selectedImage || !hasDrawnMask || !prompt.trim() || isGenerating}
-                >
-                    {isGenerating ? 'Generating Images...' : 'Generate'}
-                </button>
-            </div>
-
-            {/* Error Message */}
-            {generationError && <div className={styles.errorMessage}>{generationError}</div>}
         </div>
     );
 };

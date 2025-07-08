@@ -103,108 +103,118 @@ const PromptTab = ({
 
     return (
         <div className={styles.tabContent}>
-            {/* Reference Images Section */}
-            <div className={styles.referenceImagesSection}>
-                <label className={styles.sectionLabel}>
-                    Reference Images (tap to select, max 10):
-                </label>
-                
-                {projectState.elementImages.length > 0 ? (
-                    <>
-                        <div className={styles.imageScrollContainer}>
-                            {projectState.elementImages.map((elementImage) => {
-                                // Get current image URL from the multi-image structure
-                                const currentImageUrl = elementImage.gcsUrls?.[elementImage.selectedImageIdx] || elementImage.gcsUrls?.[0];
-                                
-                                return (
-                                    <div
-                                        key={elementImage.id}
-                                        className={`${styles.elementImageItem} ${
-                                            isElementImageSelected(elementImage) ? styles.selected : ''
-                                        }`}
-                                        onClick={() => handleImageSelection(elementImage)}
-                                    >
-                                        <img
-                                            src={currentImageUrl}
-                                            alt={elementImage.name || 'Element image'}
-                                            className={styles.elementImage}
-                                        />
-                                        {elementImage.gcsUrls?.length > 1 && (
-                                            <div className={styles.imageVariantIndicator}>
-                                                {elementImage.selectedImageIdx + 1}/{elementImage.gcsUrls.length}
+            {/* Two Column Layout */}
+            <div className={styles.twoColumnLayout}>
+                {/* Left Column - Element Images */}
+                <div className={styles.leftColumn}>
+                    <div className={styles.elementImagesColumn}>
+                        <label className={styles.sectionLabel}>
+                            Reference Images (select up to 10):
+                        </label>
+
+                        {projectState.elementImages.length > 0 ? (
+                            <>
+                                <div className={styles.verticalImageList}>
+                                    {projectState.elementImages.map((elementImage) => {
+                                        // Get current image URL from the multi-image structure
+                                        const currentImageUrl = elementImage.gcsUrls?.[elementImage.selectedImageIdx] || elementImage.gcsUrls?.[0];
+                                        
+                                        return (
+                                            <div
+                                                key={elementImage.id}
+                                                className={`${styles.elementImageItem} ${
+                                                    isElementImageSelected(elementImage) ? styles.selected : ''
+                                                }`}
+                                                onClick={() => handleImageSelection(elementImage)}
+                                            >
+                                                <img
+                                                    src={currentImageUrl}
+                                                    alt={elementImage.name || 'Element image'}
+                                                    className={styles.elementImage}
+                                                />
+                                                {elementImage.gcsUrls?.length > 1 && (
+                                                    <div className={styles.imageVariantIndicator}>
+                                                        {elementImage.selectedImageIdx + 1}/{elementImage.gcsUrls.length}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        
-                        <div className={styles.selectionCounter}>
-                            <span>Selected: {selectedImages.length}/10</span>
-                            {selectedImages.length > 0 && (
-                                <button
-                                    className={styles.clearAllButton}
-                                    onClick={handleClearAll}
-                                    disabled={isGenerating}
-                                >
-                                    Clear All
-                                </button>
-                            )}
-                        </div>
-                    </>
-                ) : (
-                    <div className={styles.noImagesMessage}>
-                        No element images available. Upload some images first to use as references.
+                                        );
+                                    })}
+                                </div>
+                                
+                                <div className={styles.selectionCounter}>
+                                    <span>Selected: {selectedImages.length}/10</span>
+                                    {selectedImages.length > 0 && (
+                                        <button
+                                            className={styles.clearAllButton}
+                                            onClick={handleClearAll}
+                                            disabled={isGenerating}
+                                        >
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.noImagesMessage}>
+                                No element images available. Upload some images first to use as references.
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
-
-            {/* Prompt Input Section */}
-            <div className={styles.promptSection}>
-                <label htmlFor="prompt" className={styles.sectionLabel}>
-                    Text Prompt *
-                </label>
-                <textarea
-                    id="prompt"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe the element you want to generate..."
-                    className={styles.promptTextarea}
-                    rows={4}
-                    disabled={isGenerating}
-                />
-            </div>
-
-            {/* Generation Options */}
-            <div className={styles.optionsSection}>
-                <label className={styles.sectionLabel}>
-                    Number of images to generate:
-                </label>
-                <Dropdown
-                    value={numberOfImages}
-                    onChange={setNumberOfImages}
-                    options={numberOptions}
-                    disabled={isGenerating}
-                />
-            </div>
-
-            {/* Generate Button */}
-            <div className={styles.generateSection}>
-                <button
-                    className={styles.generateButton}
-                    onClick={handleGenerate}
-                    disabled={!prompt.trim() || isGenerating}
-                >
-                    {isGenerating ? 'Generating...' : 'Generate'}
-                </button>
-            </div>
-
-            {/* Error Message */}
-            {generationError && (
-                <div className={styles.errorMessage}>
-                    {generationError}
                 </div>
-            )}
+
+                {/* Right Column - Prompt Input Area */}
+                <div className={styles.rightColumn}>
+                    <div className={styles.promptInputPanel}>
+                        {/* Prompt Input Section */}
+                        <div className={styles.promptSection}>
+                            <label htmlFor="prompt" className={styles.sectionLabel}>
+                                Text Prompt *
+                            </label>
+                            <textarea
+                                id="prompt"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Describe the element you want to generate..."
+                                className={styles.promptTextarea}
+                                rows={6}
+                                disabled={isGenerating}
+                            />
+                        </div>
+
+                        {/* Generation Options */}
+                        <div className={styles.optionsSection}>
+                            <label className={styles.sectionLabel}>
+                                Number of images to generate:
+                            </label>
+                            <Dropdown
+                                value={numberOfImages}
+                                onChange={setNumberOfImages}
+                                options={numberOptions}
+                                disabled={isGenerating}
+                            />
+                        </div>
+
+                        {/* Generate Button */}
+                        <div className={styles.generateSection}>
+                            <button
+                                className={styles.generateButton}
+                                onClick={handleGenerate}
+                                disabled={!prompt.trim() || isGenerating}
+                            >
+                                {isGenerating ? 'Generating...' : 'Generate'}
+                            </button>
+                        </div>
+
+                        {/* Error Message */}
+                        {generationError && (
+                            <div className={styles.errorMessage}>
+                                {generationError}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

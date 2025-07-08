@@ -1,8 +1,3 @@
-/* ========================================================================
-   UPLOAD TAB STYLES
-   ======================================================================== */
-
-/* Tab Content */
 .tabContent {
   height: 100%;
   display: flex;
@@ -13,12 +8,15 @@
 .uploadContainer {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 20px;
   height: 100%;
 }
 
 /* Drop Zone */
 .dropZone {
+  width: 400px;
+  height: 500px;
   border: 2px dashed #d0d7de;
   border-radius: 8px;
   padding: 40px 20px;
