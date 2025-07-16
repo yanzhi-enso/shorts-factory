@@ -10,35 +10,39 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const promptPath = path.resolve(__dirname, '../prompts/img2text.txt');
-const videoPromptPath = path.resolve(__dirname, '../prompts/img2video.txt');
+const promptPath = path.resolve(__dirname, 'prompts/img2text.txt');
+const videoPromptPath = path.resolve(__dirname, 'prompts/img2video.txt');
 
-export async function analysisImage(
-    imageUrl, storyContext, globalChangeRequest, sceneDescription
+export async function analysisImageForImagePrompt(
+    imageUrl,
+    storyContext,
+    globalChangeRequest,
+    sceneDescription
 ) {
     // Read the file content into systemPrompt
     const systemPrompt = fs.readFileSync(promptPath, 'utf8');
 
-    const userInput = new MessagePayload()
+    const userInput = new MessagePayload();
 
     if (storyContext) {
-        userInput.addText("## Story Context:\n" + storyContext);
+        userInput.addText('## Story Context:\n' + storyContext);
     }
 
     if (globalChangeRequest) {
-        userInput.addText("## Global Change Request:\n" + globalChangeRequest);
+        userInput.addText('## Global Change Request:\n' + globalChangeRequest);
     }
 
     if (sceneDescription) {
-        userInput.addTextWithImage(
-            "## Scene Description:\n" + sceneDescription, imageUrl);
+        userInput.addTextWithImage('## Scene Description:\n' + sceneDescription, imageUrl);
     } else {
-        userInput.addTextWithImage("This is the image", imageUrl);
+        userInput.addTextWithImage('This is the image', imageUrl);
     }
 
     // Now you can use promptContent in your analysis
     const response = await openaiClient.analyzeImageWithOpenAI(
-        REASONING_MODELS.O4_MINI, systemPrompt, userInput, 
+        REASONING_MODELS.O4_MINI,
+        systemPrompt,
+        userInput
     );
 
     // Handle both success and error cases
@@ -49,33 +53,37 @@ export async function analysisImage(
     }
 }
 
-export async function analyzeImageForVideo(
-    imageUrl, sceneImagePrompt, storyContext, sceneDescription
+export async function analyzeImageForVideoPrompt(
+    imageUrl,
+    sceneImagePrompt,
+    storyContext,
+    sceneDescription
 ) {
     // Read the video prompt file content into systemPrompt
     const systemPrompt = fs.readFileSync(videoPromptPath, 'utf8');
 
-    const userInput = new MessagePayload()
+    const userInput = new MessagePayload();
 
-    userInput.addText("## Scene Image Prompt:\n" + sceneImagePrompt);
+    userInput.addText('## Scene Image Prompt:\n' + sceneImagePrompt);
 
     if (storyContext) {
-        userInput.addText("## Story Context:\n" + storyContext);
+        userInput.addText('## Story Context:\n' + storyContext);
     }
 
     if (sceneDescription) {
-        userInput.addTextWithImage(
-            "## Scene Description:\n" + sceneDescription, imageUrl);
+        userInput.addTextWithImage('## Scene Description:\n' + sceneDescription, imageUrl);
     } else {
         userInput.addTextWithImage(
-            "Give an educated guess and create a prompt for this scene",
+            'Give an educated guess and create a prompt for this scene',
             imageUrl
         );
     }
 
     // Use video-specific prompting for Kling AI video generation
     const response = await openaiClient.analyzeImageWithOpenAI(
-        REASONING_MODELS.O4_MINI, systemPrompt, userInput, 
+        REASONING_MODELS.O4_MINI,
+        systemPrompt,
+        userInput
     );
 
     // Handle both success and error cases
