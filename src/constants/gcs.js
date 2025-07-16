@@ -27,3 +27,16 @@ export const ASSET_TYPES = {
     GENERATED_SCENE_IMAGES: 'GENERATED_SCENE_IMAGES',
     CLIPS: 'CLIPS'
 };
+
+/**
+ * Get asset folder name from asset type
+ * @param {string} assetType - Asset type (ELEMENT_IMAGES, GENERATED_SCENE_IMAGES, CLIPS)
+ * @returns {string} Folder name
+ * @throws {Error} If asset type is invalid
+ */
+export function getAssetFolder(assetType) {
+    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
+        throw new Error(`Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`);
+    }
+    return GCS_CONFIG.FOLDERS[assetType];
+}

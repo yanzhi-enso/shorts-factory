@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const promptPath = path.resolve(__dirname, '../prompts/img2text.txt');
 const videoPromptPath = path.resolve(__dirname, '../prompts/img2video.txt');
 
-async function analysisImage(
+export async function analysisImage(
     imageUrl, storyContext, globalChangeRequest, sceneDescription
 ) {
     // Read the file content into systemPrompt
@@ -49,7 +49,7 @@ async function analysisImage(
     }
 }
 
-async function analyzeImageForVideo(
+export async function analyzeImageForVideo(
     imageUrl, sceneImagePrompt, storyContext, sceneDescription
 ) {
     // Read the video prompt file content into systemPrompt
@@ -84,26 +84,4 @@ async function analyzeImageForVideo(
     } else {
         throw new Error(response.message || 'Video prompt analysis failed');
     }
-}
-
-async function generateImage(prompt, n = 1) {
-    // Call the OpenAI service to generate images
-    const response = await openaiClient.generateImageWithOpenAI(prompt, { n });
-    
-    // Handle both success and error cases
-    if (response.success) {
-        return response.data;
-    } else {
-        if (response?.error !== 'CONTENT_MODERATION_BLOCKED') {
-            throw new Error(response.message || 'Image generation failed');
-        } else {
-            throw new Error('CONTENT_MODERATION_BLOCKED');
-        }
-    }
-}
-
-export const workflow = {
-    analysisImage,
-    analyzeImageForVideo,
-    generateImage
 }
