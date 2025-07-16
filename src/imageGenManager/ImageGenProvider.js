@@ -68,100 +68,104 @@ export const ImageGenProvider = ({ children }) => {
         stateRef.current = state;
     }, [state]);
 
-    const executeElementGeneration = useCallback(async (
-        generationId,
-        isTextOnly,
-        prompt,
-        selectedImages,
-        numberOfImages,
-        projectId,
-        name,
-        description
-    ) => {
-        try {
-            let result;
+    const executeElementGeneration = useCallback(
+        async (
+            generationId,
+            isTextOnly,
+            prompt,
+            selectedImages,
+            numberOfImages,
+            projectId,
+            name,
+            description
+        ) => {
+            try {
+                let result;
 
-            if (isTextOnly) {
-                // Text-to-image generation
-                result = await generateImage(
-                    prompt.trim(),
-                    numberOfImages,
-                    projectId,
-                    ASSET_TYPES.ELEMENT_IMAGES
-                );
-            } else {
-                // Image extension
-                const imageUrls = selectedImages.map((img) => {
-                    return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
-                });
-                result = await extendImage(
-                    imageUrls,
-                    prompt.trim(),
-                    numberOfImages,
-                    projectId,
-                    ASSET_TYPES.ELEMENT_IMAGES
-                );
-            }
-
-            // Collect all generated image URLs
-            const allImageUrls = result.images.map((imageData) => imageData.imageUrl);
-
-            // Create generation sources using the first image's revised prompt (they should be similar)
-            const generationSources = {
-                type: isTextOnly ? 'text-to-image' : 'image-extension',
-                prompt: prompt.trim(),
-                referenceImages: isTextOnly
-                    ? null
-                    : selectedImages.map((img) => {
-                          return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
-                      }),
-                revisedPrompt: result.images[0]?.revisedPrompt,
-            };
-
-            // Add single element image with all variants
-            const elementImageResult = await addElementImage(
-                allImageUrls, // All generated images as variants
-                generationSources,
-                name?.trim() || null,
-                description?.trim() || null
-            );
-
-            // Check if there's pending metadata for this generation
-            // Access current state via ref to avoid stale closure
-            const currentPendingItem = stateRef.current.pendingGenerations.find(gen => gen.id === generationId);
-            if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
-                try {
-                    await updateElementImage(elementImageResult.elementImage.id, currentPendingItem.pendingMetadata);
-                } catch (error) {
-                    console.error('Failed to apply pending metadata:', error);
-                    // Continue even if metadata application fails
+                if (isTextOnly) {
+                    // Text-to-image generation
+                    result = await generateImage(
+                        prompt.trim(),
+                        null, // by default, backend use portrait
+                        numberOfImages,
+                        projectId,
+                        ASSET_TYPES.ELEMENT_IMAGES
+                    );
+                } else {
+                    // Image extension
+                    const images = selectedImages.map((img) => {
+                        return { url: img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0] };
+                    });
+                    result = await extendImage(
+                        images,
+                        prompt.trim(),
+                        null, // by default, backend use portrait
+                        numberOfImages,
+                        projectId,
+                        ASSET_TYPES.ELEMENT_IMAGES
+                    );
                 }
+
+                // Collect all generated image URLs
+                const allImageUrls = result.images.map((imageData) => imageData.imageUrl);
+
+                // Create generation sources using the first image's revised prompt (they should be similar)
+                const generationSources = {
+                    type: isTextOnly ? 'text-to-image' : 'image-extension',
+                    prompt: prompt.trim(),
+                    referenceImages: isTextOnly
+                        ? null
+                        : selectedImages.map((img) => {
+                              return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
+                          }),
+                    revisedPrompt: result.images[0]?.revisedPrompt,
+                };
+
+                // Add single element image with all variants
+                const elementImageResult = await addElementImage(
+                    allImageUrls, // All generated images as variants
+                    generationSources,
+                    name?.trim() || null,
+                    description?.trim() || null
+                );
+
+                // Check if there's pending metadata for this generation
+                // Access current state via ref to avoid stale closure
+                const currentPendingItem = stateRef.current.pendingGenerations.find(
+                    (gen) => gen.id === generationId
+                );
+                if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
+                    try {
+                        await updateElementImage(
+                            elementImageResult.elementImage.id,
+                            currentPendingItem.pendingMetadata
+                        );
+                    } catch (error) {
+                        console.error('Failed to apply pending metadata:', error);
+                        // Continue even if metadata application fails
+                    }
+                }
+
+                // Remove from pending state
+                dispatch({
+                    type: IMAGE_GEN_ACTIONS.GENERATION_SUCCESS,
+                    payload: { id: generationId },
+                });
+            } catch (error) {
+                console.error('Element image generation failed:', error);
+
+                // Update pending item with error state
+                dispatch({
+                    type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
+                    payload: { id: generationId, error: error.message },
+                });
             }
-
-            // Remove from pending state
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.GENERATION_SUCCESS,
-                payload: { id: generationId },
-            });
-        } catch (error) {
-            console.error('Element image generation failed:', error);
-
-            // Update pending item with error state
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
-                payload: { id: generationId, error: error.message },
-            });
-        }
-    }, [addElementImage, updateElementImage]);
+        },
+        [addElementImage, updateElementImage]
+    );
 
     const startElementImageGeneration = useCallback(
-        ({
-            prompt,
-            selectedImages = [],
-            numberOfImages = 1,
-            name = null,
-            description = null,
-        }) => {
+        ({ prompt, selectedImages = [], numberOfImages = 1, name = null, description = null }) => {
             if (!prompt.trim() || !projectState.curProjId) {
                 throw new Error('Prompt and project ID are required');
             }
@@ -209,74 +213,81 @@ export const ImageGenProvider = ({ children }) => {
         [projectState.curProjId, executeElementGeneration]
     );
 
-    const executeInpainting = useCallback(async (
-        generationId,
-        inputImageUrl,
-        maskImage,
-        prompt,
-        numberOfImages,
-        projectId,
-        name,
-        description
-    ) => {
-        try {
-            // Call inpainting API
-            const result = await inpaintingImage(
-                inputImageUrl,
-                maskImage,
-                prompt.trim(),
-                numberOfImages,
-                projectId,
-                ASSET_TYPES.ELEMENT_IMAGES
-            );
-            console.log('inpainting result:', result);
+    const executeInpainting = useCallback(
+        async (
+            generationId,
+            inputImageUrl,
+            maskImage,
+            prompt,
+            numberOfImages,
+            projectId,
+            name,
+            description
+        ) => {
+            try {
+                // Call inpainting API
+                const result = await inpaintingImage(
+                    inputImageUrl,
+                    maskImage,
+                    prompt.trim(),
+                    null, // by default, backend use portrait
+                    numberOfImages,
+                    projectId,
+                    ASSET_TYPES.ELEMENT_IMAGES
+                );
 
-            // Collect all generated image URLs
-            const newImageUrls = result.images.map((imageData) => imageData.imageUrl);
-            console.log('new image urls:', newImageUrls);
+                // Collect all generated image URLs
+                const newImageUrls = result.images.map((imageData) => imageData.imageUrl);
 
-            // Create generation sources for tracking
-            const generationSources = {
-                type: 'inpainting',
-                prompt: prompt.trim(),
-                originalImage: inputImageUrl,
-                revisedPrompt: result.images[0]?.revisedPrompt,
-            };
+                // Create generation sources for tracking
+                const generationSources = {
+                    type: 'inpainting',
+                    prompt: prompt.trim(),
+                    originalImage: inputImageUrl,
+                    revisedPrompt: result.images[0]?.revisedPrompt,
+                };
 
-            const elementImageResult = await addElementImage(
-                newImageUrls, // All generated images as variants
-                generationSources,
-                name?.trim() || null,
-                description?.trim() || null
-            );
+                const elementImageResult = await addElementImage(
+                    newImageUrls, // All generated images as variants
+                    generationSources,
+                    name?.trim() || null,
+                    description?.trim() || null
+                );
 
-            // Check if there's pending metadata for this generation
-            // Access current state via ref to avoid stale closure
-            const currentPendingItem = stateRef.current.pendingGenerations.find(gen => gen.id === generationId);
-            if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
-                try {
-                    await updateElementImage(elementImageResult.elementImage.id, currentPendingItem.pendingMetadata);
-                } catch (error) {
-                    console.error('Failed to apply pending metadata:', error);
-                    // Continue even if metadata application fails
+                // Check if there's pending metadata for this generation
+                // Access current state via ref to avoid stale closure
+                const currentPendingItem = stateRef.current.pendingGenerations.find(
+                    (gen) => gen.id === generationId
+                );
+                if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
+                    try {
+                        await updateElementImage(
+                            elementImageResult.elementImage.id,
+                            currentPendingItem.pendingMetadata
+                        );
+                    } catch (error) {
+                        console.error('Failed to apply pending metadata:', error);
+                        // Continue even if metadata application fails
+                    }
                 }
+
+                // Remove from pending state
+                dispatch({
+                    type: IMAGE_GEN_ACTIONS.GENERATION_SUCCESS,
+                    payload: { id: generationId },
+                });
+            } catch (error) {
+                console.error('Inpainting generation failed:', error);
+
+                // Update pending item with error state
+                dispatch({
+                    type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
+                    payload: { id: generationId, error: error.message },
+                });
             }
-
-            // Remove from pending state
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.GENERATION_SUCCESS,
-                payload: { id: generationId },
-            });
-        } catch (error) {
-            console.error('Inpainting generation failed:', error);
-
-            // Update pending item with error state
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
-                payload: { id: generationId, error: error.message },
-            });
-        }
-    }, [addElementImage, updateElementImage]);
+        },
+        [addElementImage, updateElementImage]
+    );
 
     const startInpaintingGeneration = useCallback(
         (

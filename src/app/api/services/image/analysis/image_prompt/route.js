@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { workflow } from 'workflow/text2image.js';
+import { analysisImageForImagePrompt } from 'workflow/analysis_image';
 
 export async function POST(request) {
     try {
@@ -7,7 +7,7 @@ export async function POST(request) {
 
         // Extract camelCase parameters from HTTP payload
         const {
-            imageUrl, storyDescription, sceneImagePrompt, sceneDescription
+            imageUrl, storyContext, globalChangeRequest, sceneDescription
         } = body;
 
         // Validate required parameter
@@ -18,14 +18,17 @@ export async function POST(request) {
             );
         }
 
-        // Call the video analysis function
-        const result = await workflow.analyzeImageForVideo(
-            imageUrl, sceneImagePrompt, storyDescription, sceneDescription
+        // Call the analysis function
+        const result = await analysisImageForImagePrompt(
+            imageUrl,
+            storyContext,
+            globalChangeRequest,
+            sceneDescription
         );
 
         return NextResponse.json({ success: true, result });
     } catch (error) {
-        console.error('Error analyzing image for video:', error);
+        console.error('Error analyzing image:', error);
         return NextResponse.json(
             { error: error.message },
             { status: 500 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { workflow } from 'workflow/image2image.js';
+import { inpaintingImage } from 'workflow/image_gen.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
 
 export async function POST(request) {
@@ -7,7 +7,7 @@ export async function POST(request) {
         const body = await request.json();
 
         // Extract camelCase parameters from HTTP payload
-        const { image_gcs_url, mask, prompt, n = 1, project_id, asset_type } = body;
+        const { image_gcs_url, mask, prompt, size, project_id, asset_type, n = 1 } = body;
 
         // Validate required parameter - image
         if (!image_gcs_url) {
@@ -16,21 +16,14 @@ export async function POST(request) {
 
         // Validate required parameter - mask
         if (!mask) {
-            return NextResponse.json(
-                { error: 'mask is required' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'mask is required' }, { status: 400 });
         }
 
         // Validate required parameter - prompt
         if (!prompt) {
-            return NextResponse.json(
-                { error: 'prompt is required' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
         }
 
-        // Validate required parameters
         if (!project_id) {
             return NextResponse.json(
                 { error: 'project_id is required' },
@@ -62,30 +55,29 @@ export async function POST(request) {
         }
 
         // Call the inpainting function
-        const images = await workflow.inpaintingImage(
+        const images = await inpaintingImage(
             image_gcs_url,
             mask,
             prompt,
+            size,
             n,
             project_id,
             asset_type
         );
-        return NextResponse.json({ 
-            success: true, 
-            result: {images, format: 'png', created: new Date.now()} }
-        );
+        return NextResponse.json({
+            success: true,
+            data: {
+                images,
+                format: 'png',
+                created: new Date().toISOString(),
+            },
+        });
     } catch (error) {
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {
-            return NextResponse.json(
-                { error: 'CONTENT_MODERATION_BLOCKED' },
-                { status: 403 }
-            );
+            return NextResponse.json({ error: 'CONTENT_MODERATION_BLOCKED' }, { status: 403 });
         } else {
             console.error('Error inpainting image:', error);
-            return NextResponse.json(
-                { error: error.message },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: error.message }, { status: 500 });
         }
     }
 }

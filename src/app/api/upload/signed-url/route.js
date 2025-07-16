@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSignedURL } from '../../../../utils/gcsUpload.js';
+import { createSignedURL } from 'services/gcs.js';
 
 export async function POST(request) {
   try {

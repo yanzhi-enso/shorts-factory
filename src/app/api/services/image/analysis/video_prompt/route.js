@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { workflow } from 'workflow/text2image.js';
+import { analyzeImageForVideoPrompt } from 'workflow/analysis_image';
 
 export async function POST(request) {
     try {
@@ -7,7 +7,7 @@ export async function POST(request) {
 
         // Extract camelCase parameters from HTTP payload
         const {
-            imageUrl, storyContext, globalChangeRequest, sceneDescription
+            imageUrl, storyDescription, sceneImagePrompt, sceneDescription
         } = body;
 
         // Validate required parameter
@@ -18,14 +18,14 @@ export async function POST(request) {
             );
         }
 
-        // Call the analysis function
-        const result = await workflow.analysisImage(
-            imageUrl, storyContext, globalChangeRequest, sceneDescription
+        // Call the video analysis function
+        const result = await analyzeImageForVideoPrompt(
+            imageUrl, sceneImagePrompt, storyDescription, sceneDescription
         );
 
         return NextResponse.json({ success: true, result });
     } catch (error) {
-        console.error('Error analyzing image:', error);
+        console.error('Error analyzing image for video:', error);
         return NextResponse.json(
             { error: error.message },
             { status: 500 }
@@ -34,3 +34,4 @@ export async function POST(request) {
 }
 
 export const dynamic = 'force-dynamic';
+

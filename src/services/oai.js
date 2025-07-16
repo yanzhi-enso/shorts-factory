@@ -155,14 +155,14 @@ async function analyzeImageWithOpenAI(
     @param {string} instructions - Optional instructions for the model
     @param {MessagePayload} userInput - User input text to provide context
     @param {Object} options - Additional options
-      @param {string} options.responseFormat - Optional response format
+    @param {string} options.responseFormat - Optional response format
     
     @returns {Promise<Object>} - a promise of an object with success status and message
   **/
     try {
         // assert message payload is an instance of MessagePayload
         if (!(userInput instanceof MessagePayload)) {
-            throw new Error("userInput must be an instance of MessagePayload");
+            throw new Error('userInput must be an instance of MessagePayload');
         }
 
         const openaiClient = getOpenAIClient();
@@ -206,7 +206,7 @@ async function generateImageWithOpenAI(prompt, options = {}) {
             model: options.model || DEFAULT_GENERATION_MODEL,
             size: options.size || DEFAULT_GENERATION_SIZE,
             quality: options.quality || DEFAULT_QUALITY,
-            output_format: "png", // Always return base64
+            output_format: 'png', // Always return base64
             n: options.n || DEFAULT_N,
             moderation: DEFAULT_MODERATION,
             ...(options.output_format && {
@@ -216,20 +216,16 @@ async function generateImageWithOpenAI(prompt, options = {}) {
 
         const result = await openaiClient.images.generate(generateOptions);
 
-        // Handle multiple images if n > 1
+        // return is always an array even if n = 1
         const images = result.data.map((item) => ({
             imageBase64: item.b64_json,
             revisedPrompt: item.revised_prompt || prompt,
         }));
 
-        // Simplified response format
         return {
             success: true,
             data: {
                 images: images,
-                // For backward compatibility, keep single image format
-                imageBase64: images[0].imageBase64,
-                revisedPrompt: images[0].revisedPrompt,
                 format: options.output_format || DEFAULT_OUTPUT_FORMAT,
                 created: result.created,
             },
@@ -246,14 +242,14 @@ async function generateImageWithOpenAI(prompt, options = {}) {
 
 // Server-side utility to edit multiple images using OpenAI
 // Assumes all images are PNG format File objects
-async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
+async function editImagesWithOpenAI(image, mask, prompt, options = {}) {
     try {
         const openaiClient = getOpenAIClient();
 
         // Always pass the images array directly to OpenAI API
         const editOptions = {
-            image: images,
-            prompt: prompt,
+            image,
+            prompt,
             model: options.model || DEFAULT_GENERATION_MODEL,
             size: options.size || DEFAULT_GENERATION_SIZE,
             quality: options.quality || DEFAULT_QUALITY,
@@ -270,25 +266,22 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
 
         const result = await openaiClient.images.edit(editOptions);
 
-        // Handle multiple images if n > 1
-        const resultImages = result.data.map((item) => ({
+        // return is always an array even if n = 1
+        const output_images = result.data.map((item) => ({
             imageBase64: item.b64_json,
             revisedPrompt: item.revised_prompt || prompt,
         }));
 
-        // Simplified response format
         return {
             success: true,
             data: {
-                images: resultImages,
-                // For backward compatibility, keep single image format
-                imageBase64: resultImages[0].imageBase64,
-                revisedPrompt: resultImages[0].revisedPrompt,
+                images: output_images,
                 format: options.output_format || DEFAULT_OUTPUT_FORMAT,
                 created: result.created,
             },
         };
     } catch (error) {
+        console.error("oai error:", error)
         const transformedError = transformError(error);
         return {
             success: false,

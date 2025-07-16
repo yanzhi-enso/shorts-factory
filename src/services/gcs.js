@@ -1,6 +1,6 @@
 import { Storage } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
-import { GCS_CONFIG } from "../constants/gcs.js";
+import { GCS_CONFIG, getAssetFolder } from "constants/gcs.js";
 
 // Initialize Google Cloud Storage client
 const storage = new Storage();
@@ -14,7 +14,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Generate GCS file path following the project structure
  * @param {string} projectId - Project ID
- * @param {string} folder - Folder name (generated_img or clips)
+ * @param {string} folder - Folder name (generated_scene_images or clips)
  * @param {string} fileId - Unique file ID
  * @param {string} extension - File extension (.png, .mp4)
  * @returns {string} GCS file path
@@ -44,16 +44,18 @@ export async function uploadBase64ToGCS(
     projectId,
     assetType
 ) {
-    // Validate asset type
-    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
+    // Validate asset type and get folder
+    let folder;
+    try {
+        folder = getAssetFolder(assetType);
+    } catch (error) {
         return {
             success: false,
-            error: `Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`
+            error: error.message
         };
     }
 
     const fileId = randomUUID();
-    const folder = GCS_CONFIG.FOLDERS[assetType];
     
     // Determine content type and file extension based on asset type
     const contentType = assetType === 'CLIPS' ? GCS_CONFIG.CONTENT_TYPES.VIDEO : GCS_CONFIG.CONTENT_TYPES.IMAGE;
@@ -118,16 +120,18 @@ export async function downloadAndUploadToGCS(
     projectId,
     assetType
 ) {
-    // Validate asset type
-    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
+    // Validate asset type and get folder
+    let folder;
+    try {
+        folder = getAssetFolder(assetType);
+    } catch (error) {
         return {
             success: false,
-            error: `Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`
+            error: error.message
         };
     }
 
     const fileId = randomUUID();
-    const folder = GCS_CONFIG.FOLDERS[assetType];
     
     // Determine content type and file extension based on asset type
     const contentType = assetType === 'CLIPS' ? GCS_CONFIG.CONTENT_TYPES.VIDEO : GCS_CONFIG.CONTENT_TYPES.IMAGE;
@@ -222,23 +226,10 @@ export function replaceUrlsInResponse(obj, urlMapping) {
 
 
 /**
- * Get asset folder name from asset type
- * @param {string} assetType - Asset type (ELEMENT_IMAGES, GENERATED_IMAGES, CLIPS)
- * @returns {string} Folder name
- * @throws {Error} If asset type is invalid
- */
-function getAssetFolder(assetType) {
-    if (!assetType || !GCS_CONFIG.FOLDERS[assetType]) {
-        throw new Error(`Invalid asset type: ${assetType}. Valid types: ${Object.keys(GCS_CONFIG.FOLDERS).join(', ')}`);
-    }
-    return GCS_CONFIG.FOLDERS[assetType];
-}
-
-/**
  * Create a Signed URL from GCS bucket
  * @param {string} projectId - Project ID
  * @param {string} assetType - Asset type (ELEMENT_IMAGES, GENERATED_IMAGES, CLIPS)
- * @returns {Promise<{success: boolean, signed_url?: string, public_url?: string, image_id?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, signed_url?: string, public_url?: string, file_id?: string, error?: string}>}
  */
 export async function createSignedURL(projectId, assetType) {
     try {
@@ -246,14 +237,14 @@ export async function createSignedURL(projectId, assetType) {
         if (!projectId) {
             return {
                 success: false,
-                error: 'Missing project_id parameter'
+                error: 'Missing project_id parameter',
             };
         }
 
         if (!assetType) {
             return {
                 success: false,
-                error: 'Missing asset_type parameter'
+                error: 'Missing asset_type parameter',
             };
         }
 
@@ -264,16 +255,21 @@ export async function createSignedURL(projectId, assetType) {
         } catch (error) {
             return {
                 success: false,
-                error: error.message
+                error: error.message,
             };
         }
 
-        // Generate unique image ID
-        const imageId = randomUUID();
+        // Generate unique file ID
+        const fileId = randomUUID();
 
-        // Create GCS file path following the pattern: {project_id}/{folder}/{image_id}.png
-        const fileName = generateGCSPath(projectId, folderName, imageId, GCS_CONFIG.FILE_EXTENSIONS.IMAGE);
-        
+        // Create GCS file path following the pattern: {project_id}/{folder}/{fileId}.png
+        const fileName = generateGCSPath(
+            projectId,
+            folderName,
+            fileId,
+            GCS_CONFIG.FILE_EXTENSIONS.IMAGE
+        );
+
         // Generate signed URL for PUT operation (15 minutes expiration)
         const file = bucket.file(fileName);
         const [signedUrl] = await file.getSignedUrl({
@@ -282,19 +278,18 @@ export async function createSignedURL(projectId, assetType) {
             expires: Date.now() + 15 * 60 * 1000, // 15 minutes
             contentType: GCS_CONFIG.CONTENT_TYPES.IMAGE,
         });
-        
+
         // Generate public URL
         const publicUrl = getPublicGCSUrl(fileName);
-        
+
         console.log(`Generated signed URL for ${fileName}`);
-        
+
         return {
             success: true,
             signed_url: signedUrl,
             public_url: publicUrl,
-            image_id: imageId
+            file_id: fileId,
         };
-        
     } catch (error) {
         console.error('Error generating signed URL:', error);
         return {
