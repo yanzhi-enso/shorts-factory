@@ -29,7 +29,7 @@ export async function analyzeImage(
 ) {
     try {
         const response = await fetch(
-            '/api/workflows/txt2img/img_analysis', {
+            '/api/services/image/analysis/image_prompt', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export async function analyzeImageForVideo(
 ) {
     try {
         const response = await fetch(
-            '/api/workflows/txt2img/video_prompt', {
+            '/api/services/image/analysis/video_prompt', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export async function analyzeImageForVideo(
     }
 }
 
-export async function generateImage(prompt, n = 1, projectId, assetType) {
+export async function generateImage(prompt, size = null, n = 1, projectId, assetType) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -103,13 +103,14 @@ export async function generateImage(prompt, n = 1, projectId, assetType) {
         }
 
         const response = await fetch(
-            '/api/workflows/txt2img/gen_img', {
+            '/api/services/image/txt2img', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 prompt,
+                size,
                 n,
                 project_id: projectId,
                 asset_type: assetType
@@ -119,10 +120,14 @@ export async function generateImage(prompt, n = 1, projectId, assetType) {
         const data = await response.json();
         
         if (!response.ok) {
+            // Handle content moderation error specifically
+            if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
+                throw new Error('CONTENT_MODERATION_BLOCKED');
+            }
             throw new Error(data.error || 'Failed to generate image');
         }
         
-        return data.result;
+        return data.data.images;
     } catch (error) {
         console.error('Error generating image:', error);
         throw error;
@@ -131,7 +136,7 @@ export async function generateImage(prompt, n = 1, projectId, assetType) {
 
 export async function generateVideo(imageBase64, prompt, options = {}) {
     try {
-        const response = await fetch('/api/services/kling/video', {
+        const response = await fetch('/api/services/video', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -140,33 +145,36 @@ export async function generateVideo(imageBase64, prompt, options = {}) {
                 model_name: 'kling-v2-1',
                 image: imageBase64,
                 prompt,
-                ...options
-            })
+                ...options,
+            }),
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             const errorMessage = data.error || 'Failed to generate video';
-            
+
             // Check for throttling error (429 status)
-            if (response.status === 429 && errorMessage.includes('parallel task over resource pack limit')) {
+            if (
+                response.status === 429 &&
+                errorMessage.includes('parallel task over resource pack limit')
+            ) {
                 // Don't log throttling errors as they are expected
                 throw new KlingThrottleError(errorMessage);
             }
-            
+
             // Log other errors normally
             console.error('Error generating video:', errorMessage);
             throw new KlingError(errorMessage, response.status);
         }
-        
+
         return data;
     } catch (error) {
         // Re-throw custom errors without additional logging
         if (error instanceof KlingError) {
             throw error;
         }
-        
+
         // Log and wrap unexpected errors
         console.error('Error generating video:', error);
         throw error;
@@ -179,19 +187,22 @@ export async function getVideoTaskStatus(taskId, projectId) {
             throw new Error('Project ID is required for video task status');
         }
 
-        const response = await fetch(`/api/services/kling/video/${taskId}?project_id=${encodeURIComponent(projectId)}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
+        const response = await fetch(
+            `/api/services/video/${taskId}?project_id=${encodeURIComponent(projectId)}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             }
-        });
+        );
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to get video task status');
         }
-        
+
         return data;
     } catch (error) {
         console.error('Error getting video task status:', error);
@@ -199,7 +210,7 @@ export async function getVideoTaskStatus(taskId, projectId) {
     }
 }
 
-export async function extendImage(imageUrls, prompt, n = 1, projectId, assetType) {
+export async function extendImage(images, prompt, size = null, n = 1, projectId, assetType) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -213,14 +224,15 @@ export async function extendImage(imageUrls, prompt, n = 1, projectId, assetType
         }
 
         const response = await fetch(
-            '/api/workflows/img2img/extend', {
+            '/api/services/image/extend', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                image_urls: imageUrls,
+                images,
                 prompt,
+                size,
                 n,
                 project_id: projectId,
                 asset_type: assetType
@@ -230,17 +242,21 @@ export async function extendImage(imageUrls, prompt, n = 1, projectId, assetType
         const data = await response.json();
         
         if (!response.ok) {
+            // Handle content moderation error specifically
+            if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
+                throw new Error('CONTENT_MODERATION_BLOCKED');
+            }
             throw new Error(data.error || 'Failed to extend image');
         }
         
-        return data.result;
+        return data.data.images;
     } catch (error) {
         console.error('Error extending image:', error);
         throw error;
     }
 }
 
-export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projectId, assetType) {
+export async function inpaintingImage(image_gcs_url, mask, prompt, size = null, n = 1, projectId, assetType) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -273,7 +289,7 @@ export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projec
             throw new Error(`Mask file size (${sizeInMB.toFixed(2)}MB) exceeds OpenAI's 50MB limit`);
         }
 
-        const response = await fetch('/api/workflows/img2img/inpainting', {
+        const response = await fetch('/api/services/image/inpainting', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -282,6 +298,7 @@ export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projec
                 image_gcs_url,
                 mask,
                 prompt,
+                size,
                 n,
                 project_id: projectId,
                 asset_type: assetType,
@@ -291,10 +308,14 @@ export async function inpaintingImage(image_gcs_url, mask, prompt, n = 1, projec
         const data = await response.json();
 
         if (!response.ok) {
+            // Handle content moderation error specifically
+            if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
+                throw new Error('CONTENT_MODERATION_BLOCKED');
+            }
             throw new Error(data.error || 'Failed to inpaint image');
         }
 
-        return data.result;
+        return data.data.images;
     } catch (error) {
         console.error('Error inpainting image:', error);
         throw error;
