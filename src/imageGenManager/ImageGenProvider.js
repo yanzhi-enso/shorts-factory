@@ -94,7 +94,7 @@ export const ImageGenProvider = ({ children }) => {
                 } else {
                     // Image extension
                     const images = selectedImages.map((img) => {
-                        return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
+                        return { url: img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0] };
                     });
                     result = await extendImage(
                         images,
