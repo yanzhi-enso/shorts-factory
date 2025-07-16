@@ -38,9 +38,18 @@ export async function generateImage(prompt, size, n = 1, project_id, asset_type)
     return processedImages.filter(image => image !== null);
 }
 
+function base64ToBlob(base64, mimeType = 'image/png') {
+    const byteString = atob(base64.split(',')[1]); // Remove data URL prefix
+    const arrayBuffer = new Uint8Array(byteString.length);
+    for (let i = 0; i < byteString.length; i++) {
+        arrayBuffer[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([arrayBuffer], { type: mimeType });
+}
+
 /**
  * Extends images without using a mask (outpainting/extending image boundaries)
- * @param {object[]} images - Array of objects that contains image URL or base64 strings to extend
+ * @param {object[]} srcImages - Array of objects that contains image URL or base64 strings to extend
  * @param {string} prompt - Description of the extension
  * @param {string} size - The size of the generated images (e.g., "1024x1024").
  * @param {number} n - Number of variations to generate (default: 1)
@@ -48,19 +57,20 @@ export async function generateImage(prompt, size, n = 1, project_id, asset_type)
  * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-export async function extendImage(images, prompt, size, n = 1, projectId, assetType) {
+export async function extendImage(srcImages, prompt, size, n = 1, projectId, assetType) {
     try {
-        // Convert URL array to File objects with sequential naming
+        // Convert image object array to File objects with sequential naming
         const imageFiles = await Promise.all(
-            images.map(async (image, index) => {
+            srcImages.map(async (image, index) => {
                 if (image.url) {
                     return toFile(fetch(image.url), `image_${index + 1}.png`, {
                         type: 'image/png',
                     });
                 } else if (image.base64) {
-                    const base64Data = image.base64.replace(/^data:image\/png;base64,/, '');
-                    const buffer = Buffer.from(base64Data, 'base64');
-                    return toFile(buffer, `image_${index + 1}.png`, { type: 'image/png' });
+                    const blob = base64ToBlob(image.base64)
+                    return new File([blob], 'image.png', { type: 'image/png' });
+                } else {
+                    throw new Error("image object format is invalid, idx:", index);
                 }
             })
         );
@@ -98,6 +108,7 @@ export async function extendImage(images, prompt, size, n = 1, projectId, assetT
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {
             throw error;
         }
+        console.error("failed to extend image in the workflow:", error)
         throw new Error(`Image extension failed: ${error.message}`);
     }
 }

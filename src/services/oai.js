@@ -242,14 +242,14 @@ async function generateImageWithOpenAI(prompt, options = {}) {
 
 // Server-side utility to edit multiple images using OpenAI
 // Assumes all images are PNG format File objects
-async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
+async function editImagesWithOpenAI(image, mask, prompt, options = {}) {
     try {
         const openaiClient = getOpenAIClient();
 
         // Always pass the images array directly to OpenAI API
         const editOptions = {
-            image: images,
-            prompt: prompt,
+            image,
+            prompt,
             model: options.model || DEFAULT_GENERATION_MODEL,
             size: options.size || DEFAULT_GENERATION_SIZE,
             quality: options.quality || DEFAULT_QUALITY,
@@ -267,7 +267,7 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
         const result = await openaiClient.images.edit(editOptions);
 
         // return is always an array even if n = 1
-        const images = result.data.map((item) => ({
+        const output_images = result.data.map((item) => ({
             imageBase64: item.b64_json,
             revisedPrompt: item.revised_prompt || prompt,
         }));
@@ -275,12 +275,13 @@ async function editImagesWithOpenAI(images, mask, prompt, options = {}) {
         return {
             success: true,
             data: {
-                images,
+                images: output_images,
                 format: options.output_format || DEFAULT_OUTPUT_FORMAT,
                 created: result.created,
             },
         };
     } catch (error) {
+        console.error("oai error:", error)
         const transformedError = transformError(error);
         return {
             success: false,
