@@ -40,7 +40,7 @@ export async function generateImage(prompt, size, n = 1, project_id, asset_type)
 
 /**
  * Extends images without using a mask (outpainting/extending image boundaries)
- * @param {string[]} imageURLs - Array of image URLs
+ * @param {object[]} images - Array of objects that contains image URL or base64 strings to extend
  * @param {string} prompt - Description of the extension
  * @param {string} size - The size of the generated images (e.g., "1024x1024").
  * @param {number} n - Number of variations to generate (default: 1)
@@ -48,43 +48,51 @@ export async function generateImage(prompt, size, n = 1, project_id, asset_type)
  * @param {string} assetType - type (element, scene and etc) of the asset, used in gcs project folder path
  * @returns {Promise<Object>} Response data from OpenAI
  */
-export async function extendImage(imageURLs, prompt, size, n = 1, projectId, assetType) {
+export async function extendImage(images, prompt, size, n = 1, projectId, assetType) {
     try {
         // Convert URL array to File objects with sequential naming
         const imageFiles = await Promise.all(
-            imageURLs.map((url, index) => 
-                toFile(fetch(url), `image_${index + 1}.png`, {
-                type: "image/png",
-            }))
+            images.map(async (image, index) => {
+                if (image.url) {
+                    return toFile(fetch(image.url), `image_${index + 1}.png`, {
+                        type: 'image/png',
+                    });
+                } else if (image.base64) {
+                    const base64Data = image.base64.replace(/^data:image\/png;base64,/, '');
+                    const buffer = Buffer.from(base64Data, 'base64');
+                    return toFile(buffer, `image_${index + 1}.png`, { type: 'image/png' });
+                }
+            })
         );
-        
-        const response = await openaiClient.editImagesWithOpenAI(imageFiles, null, prompt, { n, size });
+
+        const response = await openaiClient.editImagesWithOpenAI(imageFiles, null, prompt, {
+            n,
+            size,
+        });
         if (!response.success) {
             throw new Error(response.message || 'Extend Image Failed');
         }
 
         // Upload images to GCS and replace base64 with URLs
-        const processedImages = await Promise.all(response.data.images.map(async (img) => {
-            const uploadResult = await uploadBase64ToGCS(
-                img.imageBase64,
-                projectId,
-                assetType
-            );
+        const processedImages = await Promise.all(
+            response.data.images.map(async (img) => {
+                const uploadResult = await uploadBase64ToGCS(img.imageBase64, projectId, assetType);
 
-            if (!uploadResult.success) {
-                // do not break the loop if one image upload is failed
-                console.error("failed to oai result to gcs", uploadResult.error);
-                return null;
-            }
+                if (!uploadResult.success) {
+                    // do not break the loop if one image upload is failed
+                    console.error('failed to oai result to gcs', uploadResult.error);
+                    return null;
+                }
 
-            return {
-                imageUrl: uploadResult.gcsUrl,
-                revisedPrompt: img.revisedPrompt
-            };
-        }));
+                return {
+                    imageUrl: uploadResult.gcsUrl,
+                    revisedPrompt: img.revisedPrompt,
+                };
+            })
+        );
 
         // Filter out any null results from failed uploads
-        return processedImages.filter(image => image !== null);
+        return processedImages.filter((image) => image !== null);
     } catch (error) {
         // Re-throw if it's already our custom error
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {

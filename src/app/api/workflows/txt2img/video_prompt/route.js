@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { workflow } from 'workflow/text2image.js';
+import { workflow } from 'workflow/image_gen.js';
 
 export async function POST(request) {
     try {

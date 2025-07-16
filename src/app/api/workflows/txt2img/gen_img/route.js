@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { workflow } from 'workflow/text2image.js';
-import { uploadBase64ToGCS } from 'utils/gcsUpload.js';
+import { workflow } from 'workflow/image_gen.js';
+import { uploadBase64ToGCS } from 'services/gcs.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
 
 export async function POST(request) {
