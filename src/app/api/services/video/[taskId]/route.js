@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { klingClient } from 'services/kling';
-import { downloadAndUploadToGCS, replaceUrlsInResponse } from 'utils/gcsUpload.js';
+import { downloadAndUploadToGCS, replaceUrlsInResponse } from 'services/gcs.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
 
 export async function GET(request, { params }) {
