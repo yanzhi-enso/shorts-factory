@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import SceneGenBlock from './SceneGenBlock';
@@ -10,11 +10,11 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 import { ASSET_TYPES } from 'constants/gcs';
 
 const SceneRow = ({ scene, storyConfig }) => {
-    const { 
+    const {
         addGeneratedImage,
         updateSelectedGeneratedImage,
         handleSceneImageUpload,
-        projectState 
+        projectState,
     } = useProjectManager();
 
     // Parse scene properties
@@ -72,12 +72,18 @@ const SceneRow = ({ scene, storyConfig }) => {
         try {
             // Get project ID from ProjectManager state
             const { curProjId } = projectState;
-            
+
             if (!curProjId) {
                 throw new Error('No project ID available');
             }
 
-            const result = await generateImage(prompt, imageCount, curProjId, ASSET_TYPES.GENERATED_SCENE_IMAGES);
+            const result = await generateImage(
+                prompt,
+                null, // [todo allow user to select size: portrait, landscape]
+                imageCount,
+                curProjId,
+                ASSET_TYPES.GENERATED_SCENE_IMAGES
+            );
 
             // Handle multiple images response
             if (result?.images && Array.isArray(result.images)) {

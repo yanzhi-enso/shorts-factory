@@ -21,119 +21,7 @@ class KlingThrottleError extends KlingError {
 // Export error classes
 export { KlingError, KlingThrottleError };
 
-export async function analyzeImage(
-    imageUrl,
-    storyContext = null,
-    globalChangeRequest = null,
-    sceneDescription = null
-) {
-    try {
-        const response = await fetch(
-            '/api/services/image/analysis/image_prompt', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                imageUrl,
-                storyContext,
-                globalChangeRequest,
-                sceneDescription
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to analyze image');
-        }
-        
-        return data.result;
-    } catch (error) {
-        console.error('Error analyzing image:', error);
-        throw error;
-    }
-}
-
-export async function analyzeImageForVideo(
-    imageUrl,
-    sceneImagePrompt,
-    storyDescription = null,
-    sceneDescription = null
-) {
-    try {
-        const response = await fetch(
-            '/api/services/image/analysis/video_prompt', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                imageUrl,
-                sceneImagePrompt,
-                storyDescription,
-                sceneDescription
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to analyze image for video');
-        }
-        
-        return data.result;
-    } catch (error) {
-        console.error('Error analyzing image for video:', error);
-        throw error;
-    }
-}
-
-export async function generateImage(prompt, size = null, n = 1, projectId, assetType) {
-    try {
-        // Validate projectId
-        if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
-            throw new Error('Project ID is required and must be a non-empty string');
-        }
-
-        // Validate assetType
-        const validAssetTypes = Object.values(ASSET_TYPES);
-        if (!assetType || !validAssetTypes.includes(assetType)) {
-            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
-        }
-
-        const response = await fetch(
-            '/api/services/image/txt2img', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                prompt,
-                size,
-                n,
-                project_id: projectId,
-                asset_type: assetType
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            // Handle content moderation error specifically
-            if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
-                throw new Error('CONTENT_MODERATION_BLOCKED');
-            }
-            throw new Error(data.error || 'Failed to generate image');
-        }
-        
-        return data.data.images;
-    } catch (error) {
-        console.error('Error generating image:', error);
-        throw error;
-    }
-}
-
+/* Video Generation Functions */
 export async function generateVideo(imageBase64, prompt, options = {}) {
     try {
         const response = await fetch('/api/services/video', {
@@ -210,6 +98,53 @@ export async function getVideoTaskStatus(taskId, projectId) {
     }
 }
 
+/* Image Generation Functions */
+export async function generateImage(prompt, size = null, n = 1, projectId, assetType) {
+    try {
+        // Validate projectId
+        if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+            throw new Error('Project ID is required and must be a non-empty string');
+        }
+
+        // Validate assetType
+        const validAssetTypes = Object.values(ASSET_TYPES);
+        if (!assetType || !validAssetTypes.includes(assetType)) {
+            throw new Error(
+                `Asset type is required and must be one of: ${validAssetTypes.join(', ')}`
+            );
+        }
+
+        const response = await fetch('/api/services/image/txt2img', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt,
+                size,
+                n,
+                project_id: projectId,
+                asset_type: assetType,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Handle content moderation error specifically
+            if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
+                throw new Error('CONTENT_MODERATION_BLOCKED');
+            }
+            throw new Error(data.error || 'Failed to generate image');
+        }
+
+        return data.data.images;
+    } catch (error) {
+        console.error('Error generating image:', error);
+        throw error;
+    }
+}
+
 export async function extendImage(images, prompt, size = null, n = 1, projectId, assetType) {
     try {
         // Validate projectId
@@ -220,11 +155,12 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
         // Validate assetType
         const validAssetTypes = Object.values(ASSET_TYPES);
         if (!assetType || !validAssetTypes.includes(assetType)) {
-            throw new Error(`Asset type is required and must be one of: ${validAssetTypes.join(', ')}`);
+            throw new Error(
+                `Asset type is required and must be one of: ${validAssetTypes.join(', ')}`
+            );
         }
 
-        const response = await fetch(
-            '/api/services/image/extend', {
+        const response = await fetch('/api/services/image/extend', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -235,12 +171,12 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
                 size,
                 n,
                 project_id: projectId,
-                asset_type: assetType
-            })
+                asset_type: assetType,
+            }),
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             // Handle content moderation error specifically
             if (response.status === 403 && data.error === 'CONTENT_MODERATION_BLOCKED') {
@@ -248,7 +184,7 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
             }
             throw new Error(data.error || 'Failed to extend image');
         }
-        
+
         return data.data.images;
     } catch (error) {
         console.error('Error extending image:', error);
@@ -256,7 +192,15 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
     }
 }
 
-export async function inpaintingImage(image_gcs_url, mask, prompt, size = null, n = 1, projectId, assetType) {
+export async function inpaintingImage(
+    image_gcs_url,
+    mask,
+    prompt,
+    size = null,
+    n = 1,
+    projectId,
+    assetType
+) {
     try {
         // Validate projectId
         if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
@@ -284,9 +228,11 @@ export async function inpaintingImage(image_gcs_url, mask, prompt, size = null, 
         const base64Data = mask.replace(/^data:image\/png;base64,/, '');
         const sizeInBytes = (base64Data.length * 3) / 4;
         const sizeInMB = sizeInBytes / (1024 * 1024);
-        
+
         if (sizeInMB > 50) {
-            throw new Error(`Mask file size (${sizeInMB.toFixed(2)}MB) exceeds OpenAI's 50MB limit`);
+            throw new Error(
+                `Mask file size (${sizeInMB.toFixed(2)}MB) exceeds OpenAI's 50MB limit`
+            );
         }
 
         const response = await fetch('/api/services/image/inpainting', {
@@ -327,7 +273,7 @@ export async function getSignedUrl(projectId, imageType) {
         if (!projectId) {
             throw new Error('Project ID is required for signed URL request');
         }
-        
+
         if (!imageType) {
             throw new Error('Image type is required for signed URL request');
         }
@@ -335,18 +281,18 @@ export async function getSignedUrl(projectId, imageType) {
         const response = await fetch('/api/upload/signed-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 project_id: projectId,
-                image_type: imageType 
-            })
+                image_type: imageType,
+            }),
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to get signed URL');
         }
-        
+
         return data; // Returns { signed_url, public_url, image_id }
     } catch (error) {
         console.error('Error getting signed URL:', error);
@@ -363,18 +309,85 @@ export async function deleteGCSAssets(gcsUrls) {
         const response = await fetch('/api/delete/gcs_assets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: gcsUrls })
+            body: JSON.stringify({ urls: gcsUrls }),
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to delete GCS assets');
         }
-        
+
         return data; // Returns { success: true, message, results }
     } catch (error) {
         console.error('Error deleting GCS assets:', error);
+        throw error;
+    }
+}
+
+/* Image Analysis Functions */
+export async function analyzeImage(
+    imageUrl,
+    storyContext = null,
+    globalChangeRequest = null,
+    sceneDescription = null
+) {
+    try {
+        const response = await fetch('/api/services/image/analysis/image_prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                imageUrl,
+                storyContext,
+                globalChangeRequest,
+                sceneDescription,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to analyze image');
+        }
+
+        return data.result;
+    } catch (error) {
+        console.error('Error analyzing image:', error);
+        throw error;
+    }
+}
+
+export async function analyzeImageForVideo(
+    imageUrl,
+    sceneImagePrompt,
+    storyDescription = null,
+    sceneDescription = null
+) {
+    try {
+        const response = await fetch('/api/services/image/analysis/video_prompt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                imageUrl,
+                sceneImagePrompt,
+                storyDescription,
+                sceneDescription,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to analyze image for video');
+        }
+
+        return data.result;
+    } catch (error) {
+        console.error('Error analyzing image for video:', error);
         throw error;
     }
 }
