@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { generateImage, extendImage, inpaintingImage } from 'services/backend';
-import { ASSET_TYPES } from 'constants/gcs';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
 
@@ -69,7 +68,7 @@ export const ImageGenProvider = ({ children }) => {
         stateRef.current = state;
     }, [state]);
 
-    const executeElementGeneration = useCallback(
+    const executeGeneration = useCallback(
         async (
             generationId,
             isTextOnly,
@@ -78,8 +77,9 @@ export const ImageGenProvider = ({ children }) => {
             numberOfImages,
             size,
             projectId,
+            assetType,
             name,
-            description
+            description,
         ) => {
             try {
                 let result;
@@ -91,7 +91,7 @@ export const ImageGenProvider = ({ children }) => {
                         size,
                         numberOfImages,
                         projectId,
-                        ASSET_TYPES.ELEMENT_IMAGES
+                        assetType,
                     );
                 } else {
                     // Image extension
@@ -102,7 +102,7 @@ export const ImageGenProvider = ({ children }) => {
                         size,
                         numberOfImages,
                         projectId,
-                        ASSET_TYPES.ELEMENT_IMAGES
+                        assetType,
                     );
                 }
 
@@ -164,8 +164,15 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage]
     );
 
-    const startElementImageGeneration = useCallback(
-        ({ prompt, selectedImages = [], numberOfImages = 1, size=IMAGE_SIZE_PORTRAIT, name = null, description = null }) => {
+    const startImageGeneration = useCallback((
+        prompt,
+        selectedImages = [],
+        numberOfImages = 1,
+        size=IMAGE_SIZE_PORTRAIT,
+        assetType,
+        name = null,
+        description = null
+    ) => {
             if (!prompt.trim() || !projectState.curProjId) {
                 throw new Error('Prompt and project ID are required');
             }
@@ -192,7 +199,7 @@ export const ImageGenProvider = ({ children }) => {
             });
 
             // Trigger async execution in background without closure
-            executeElementGeneration(
+            executeGeneration(
                 generationId,
                 isTextOnly,
                 prompt,
@@ -200,6 +207,7 @@ export const ImageGenProvider = ({ children }) => {
                 numberOfImages,
                 size,
                 projectState.curProjId,
+                assetType,
                 name,
                 description
             );
@@ -207,7 +215,7 @@ export const ImageGenProvider = ({ children }) => {
             // Return immediately with generationId
             return { generationId };
         },
-        [projectState.curProjId, executeElementGeneration]
+        [projectState.curProjId, executeGeneration]
     );
 
     const executeInpainting = useCallback(
@@ -218,6 +226,7 @@ export const ImageGenProvider = ({ children }) => {
             prompt,
             numberOfImages,
             projectId,
+            assetType,
             name,
             description
         ) => {
@@ -230,7 +239,7 @@ export const ImageGenProvider = ({ children }) => {
                     null, // by default, backend use portrait
                     numberOfImages,
                     projectId,
-                    ASSET_TYPES.ELEMENT_IMAGES
+                    assetType,
                 );
 
                 // Collect all generated image URLs
@@ -286,54 +295,53 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage]
     );
 
-    const startInpaintingGeneration = useCallback(
-        (
+    const startInpainting = useCallback((
+        inputImageUrl,
+        maskImage,
+        prompt,
+        numberOfImages = 3,
+        assetType,
+        name = null,
+        description = null
+    ) => {
+        if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
+            throw new Error('Element image, mask, prompt, and project ID are required');
+        }
+
+        const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Add to pending state immediately
+        const pendingItem = {
+            id: generationId,
+            type: 'inpainting',
+            prompt: prompt.trim(),
+            referenceImages: [inputImageUrl],
+            numberOfImages,
+            status: 'generating',
+            startTime: Date.now(),
+        };
+
+        dispatch({
+            type: IMAGE_GEN_ACTIONS.START_GENERATION,
+            payload: pendingItem,
+        });
+
+        // Trigger async execution in background without closure
+        executeInpainting(
+            generationId,
             inputImageUrl,
             maskImage,
             prompt,
-            numberOfImages = 3,
-            name = null,
-            description = null
-        ) => {
-            if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
-                throw new Error('Element image, mask, prompt, and project ID are required');
-            }
+            numberOfImages,
+            projectState.curProjId,
+            assetType,
+            name,
+            description
+        );
 
-            const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            // Add to pending state immediately
-            const pendingItem = {
-                id: generationId,
-                type: 'inpainting',
-                prompt: prompt.trim(),
-                referenceImages: [inputImageUrl],
-                numberOfImages,
-                status: 'generating',
-                startTime: Date.now(),
-            };
-
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.START_GENERATION,
-                payload: pendingItem,
-            });
-
-            // Trigger async execution in background without closure
-            executeInpainting(
-                generationId,
-                inputImageUrl,
-                maskImage,
-                prompt,
-                numberOfImages,
-                projectState.curProjId,
-                name,
-                description
-            );
-
-            // Return immediately with generationId
-            return { generationId };
-        },
-        [projectState.curProjId, executeInpainting]
-    );
+        // Return immediately with generationId
+        return { generationId };
+    }, [projectState.curProjId, executeInpainting]);
 
     const updatePendingMetadata = useCallback((generationId, metadata) => {
         dispatch({
@@ -351,8 +359,8 @@ export const ImageGenProvider = ({ children }) => {
 
     const contextValue = {
         pendingGenerations: state.pendingGenerations,
-        startElementImageGeneration,
-        startInpaintingGeneration,
+        startImageGeneration,
+        startInpainting,
         updatePendingMetadata,
         removePendingGeneration,
     };

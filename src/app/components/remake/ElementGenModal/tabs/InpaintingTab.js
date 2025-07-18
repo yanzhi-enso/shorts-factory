@@ -10,7 +10,7 @@ import { IMAGE_SIZE_LANDSCAPE, IMAGE_SIZE_PORTRAIT } from 'constants/image';
 const InpaintingTab = ({ onClose, prefillData }) => {
     const { projectState } = useProjectManager()
     const { elementImages } = projectState
-    const { startInpaintingGeneration } = useImageGenContext()
+    const { startInpainting } = useImageGenContext()
 
     // Brush sizes for display (radius in pixels)
     const BRUSH_SIZES = [10, 20, 40]; // Small, Medium, Large (radius in pixels)
@@ -361,12 +361,13 @@ const InpaintingTab = ({ onClose, prefillData }) => {
             }
 
             // Call the inpainting generation function with ImageContext API
-            startInpaintingGeneration(
+            startInpainting(
                 selectedImage.gcsUrls?.[selectedImage.selectedImageIdx || 0],
                 maskBase64,
                 prompt.trim(),
                 3, // for now we always generate 3 images
-                imageSize
+                imageSize,
+                ASSET_TYPES.ELEMENT_IMAGES,
             );
 
             // Close modal on successful generation start
@@ -383,7 +384,7 @@ const InpaintingTab = ({ onClose, prefillData }) => {
         imageSize,
         prefillData,
         getMaskAsBase64,
-        startInpaintingGeneration,
+        startInpainting,
         onClose,
     ]);
 

@@ -6,12 +6,13 @@ import { useProjectManager } from 'projectManager/useProjectManager'
 import Dropdown from 'app/components/common/Dropdown';
 import ReferenceImageStack from '../components/ReferenceImageStack';
 import styles from './PromptTab.module.css';
+import { ASSET_TYPES } from 'constants/gcs';
 import { IMAGE_SIZE_LANDSCAPE, IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
 const PromptTab = ({ onClose, prefillData }) => {
     const { projectState } = useProjectManager()
     const { elementImages } = projectState
-    const { startElementImageGeneration } = useImageGenContext()
+    const { startImageGeneration } = useImageGenContext()
 
     // State management
     const [referenceImageStack, setReferenceImageStack] = useState([]);
@@ -21,14 +22,6 @@ const PromptTab = ({ onClose, prefillData }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationError, setGenerationError] = useState(null);
     const [validationError, setValidationError] = useState(null);
-
-    useEffect(() => {
-        console.log("reference image state:", referenceImageStack)
-    }, [referenceImageStack])
-
-    useEffect(() => {
-        console.log("element images:", elementImages)
-    }, [elementImages])
 
     // Handle prefill data
     useEffect(() => {
@@ -151,12 +144,13 @@ const PromptTab = ({ onClose, prefillData }) => {
                 }
             });
 
-            startElementImageGeneration({
-                prompt: prompt.trim(),
-                selectedImages: srcImages,
+            startImageGeneration(
+                prompt.trim(),
+                srcImages,
                 numberOfImages,
-                size: imageSize,
-            });
+                imageSize,
+                ASSET_TYPES.ELEMENT_IMAGES,
+            );
 
             // Close modal on successful generation start
             onClose();
@@ -171,7 +165,7 @@ const PromptTab = ({ onClose, prefillData }) => {
             }
             setIsGenerating(false);
         }
-    }, [prompt, referenceImageStack, numberOfImages, startElementImageGeneration, imageSize, onClose]);
+    }, [prompt, referenceImageStack, numberOfImages, startImageGeneration, imageSize, onClose]);
 
     return (
         <div className={styles.tabContent}>
