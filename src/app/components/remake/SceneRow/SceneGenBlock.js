@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import styles from './SceneGenBlock.module.css';
 import Image from 'next/image';
-import SceneGenHistoryModal from './SceneGenHistoryModal';
+import SceneGenHistoryModal from '../SceneGenHistoryModal';
 
 const SceneGenBlock = ({
     sceneId,

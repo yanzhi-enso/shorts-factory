@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
 import VideoHistoryModal from './VideoHistoryModal';
-import RemakeImageBlock from '../remake/RemakeImageBlock';
+import RemakeImageBlock from './RemakeImageBlock';
 import VideoControlPanel from './VideoControlPanel';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { analyzeImageForVideo } from 'services/backend';

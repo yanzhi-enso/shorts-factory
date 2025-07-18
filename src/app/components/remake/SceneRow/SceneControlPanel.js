@@ -2,7 +2,8 @@
 
 import styles from './SceneControlPanel.module.css';
 import Image from 'next/image';
-import Dropdown from '../common/Dropdown';
+import Dropdown from '../../common/Dropdown';
+import ElementImageStack from '../ElementList/ElementImageStack';
 
 const SceneControlPanel = ({ 
   prompt = '', 
@@ -45,6 +46,7 @@ const SceneControlPanel = ({
   return (
     <div className={styles.controlPanel}>
       {/* Text Input Area */}
+      <ElementImageStack/>
       <div className={styles.textInputArea}>
         <textarea
           className={styles.promptInput}

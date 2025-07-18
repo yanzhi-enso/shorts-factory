@@ -3,8 +3,8 @@ import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { useImageGenContext } from 'app/components/remake/ImageRequestManager';
-import { useElementGenModalContext } from './ElementGenModal/ElementGenModalContext';
-import ElementImageDetailsModal from 'app/components/remake/ElementImageDetailsModal';
+import { useElementGenModalContext } from '../ElementGenModal/ElementGenModalContext';
+import ElementImageDetailsModal from 'app/components/remake/ElementList/ElementImageDetailsModal';
 import styles from './ElementImageList.module.css';
 
 const AddElementImageButton = ({ onClick }) => (
@@ -72,6 +72,14 @@ const ElementImageList = () => {
     return (
         <div className={styles.container}>
             <div className={styles.list}>
+                {/* Add new element image button */}
+                <AddElementImageButton onClick={openElementGenModal} />
+
+                {/* Pending generations */}
+                {pendingGenerations.reverse().map((pendingItem) => (
+                    <PendingImageBlock key={pendingItem.id} pendingItem={pendingItem} />
+                ))}
+
                 {/* Existing element images */}
                 {elementImages.map((image) => {
                     // Get selected idx image URL from the multi-image structure
@@ -86,14 +94,6 @@ const ElementImageList = () => {
                         />
                     );
                 })}
-
-                {/* Pending generations */}
-                {pendingGenerations.map((pendingItem) => (
-                    <PendingImageBlock key={pendingItem.id} pendingItem={pendingItem} />
-                ))}
-
-                {/* Add new element image button */}
-                <AddElementImageButton onClick={openElementGenModal} />
             </div>
 
             <ElementImageDetailsModal

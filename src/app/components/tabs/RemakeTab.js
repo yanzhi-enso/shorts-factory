@@ -6,9 +6,9 @@ import { FaMagic, FaImages } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
-import SceneRow from '../remake/SceneRow';
+import SceneRow from '../remake/SceneRow/SceneRow';
 import { useProjectManager } from 'projectManager/useProjectManager';
-import ElementImageList from '../remake/ElementImageList';
+import ElementImageList from '../remake/ElementList/ElementImageList';
 import ElementGenModal from '../remake/ElementGenModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {

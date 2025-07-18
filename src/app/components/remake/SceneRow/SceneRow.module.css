@@ -1,4 +1,5 @@
 .sceneRow {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -29,10 +30,13 @@
 }
 
 .controlSection {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: stretch;
-  min-width: 400px;
+  height: 100%;
+
+  border: 1px solid black;
 }
 
 /* Mobile responsiveness */
