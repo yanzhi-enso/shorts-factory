@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
-import { useImageGen } from 'imageGenManager/ImageGenProvider';
+import { useImageGenContext } from 'app/components/remake/ImageRequestManager';
+import { useElementGenModalContext } from './ElementGenModal/ElementGenModalContext';
 import ElementImageDetailsModal from 'app/components/remake/ElementImageDetailsModal';
 import styles from './ElementImageList.module.css';
 
@@ -44,9 +45,10 @@ const PendingImageBlock = ({ pendingItem }) => {
     );
 };
 
-const ElementImageList = ({ onAddElementImage }) => {
+const ElementImageList = () => {
     const { projectState } = useProjectManager();
-    const { pendingGenerations } = useImageGen();
+    const { pendingGenerations } = useImageGenContext();
+    const { openModal: openElementGenModal } = useElementGenModalContext()
     const elementImages = projectState.elementImages || [];
 
     const [selectedImage, setSelectedImage] = useState(null);
@@ -90,7 +92,7 @@ const ElementImageList = ({ onAddElementImage }) => {
                 ))}
 
                 {/* Add new element image button */}
-                <ElementImageBlock src={null} onClick={onAddElementImage} />
+                <ElementImageBlock src={null} onClick={openElementGenModal} />
             </div>
 
             <ElementImageDetailsModal

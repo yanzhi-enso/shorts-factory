@@ -160,6 +160,12 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
             );
         }
 
+        // Validate images array format
+        if (!images.every(img => img.url || img.base64)) {
+            console.error("invalid image request payload:", images)
+            throw new Error("image object should contain a valid url or base64 field");
+        }
+
         const response = await fetch('/api/services/image/extend', {
             method: 'POST',
             headers: {
@@ -185,7 +191,7 @@ export async function extendImage(images, prompt, size = null, n = 1, projectId,
             throw new Error(data.error || 'Failed to extend image');
         }
 
-        return data.data.images;
+        return data;
     } catch (error) {
         console.error('Error extending image:', error);
         throw error;
@@ -261,7 +267,7 @@ export async function inpaintingImage(
             throw new Error(data.error || 'Failed to inpaint image');
         }
 
-        return data.data.images;
+        return data;
     } catch (error) {
         console.error('Error inpainting image:', error);
         throw error;

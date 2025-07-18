@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { generateImage, extendImage, inpaintingImage } from 'services/backend';
-import { ASSET_TYPES } from 'constants/gcs';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
 
 // Action types
 const IMAGE_GEN_ACTIONS = {
@@ -68,16 +68,18 @@ export const ImageGenProvider = ({ children }) => {
         stateRef.current = state;
     }, [state]);
 
-    const executeElementGeneration = useCallback(
+    const executeGeneration = useCallback(
         async (
             generationId,
             isTextOnly,
             prompt,
             selectedImages,
             numberOfImages,
+            size,
             projectId,
+            assetType,
             name,
-            description
+            description,
         ) => {
             try {
                 let result;
@@ -86,23 +88,21 @@ export const ImageGenProvider = ({ children }) => {
                     // Text-to-image generation
                     result = await generateImage(
                         prompt.trim(),
-                        null, // by default, backend use portrait
+                        size,
                         numberOfImages,
                         projectId,
-                        ASSET_TYPES.ELEMENT_IMAGES
+                        assetType,
                     );
                 } else {
                     // Image extension
-                    const images = selectedImages.map((img) => {
-                        return { url: img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0] };
-                    });
+                    console.log("selected images:", selectedImages)
                     result = await extendImage(
-                        images,
+                        selectedImages,
                         prompt.trim(),
-                        null, // by default, backend use portrait
+                        size,
                         numberOfImages,
                         projectId,
-                        ASSET_TYPES.ELEMENT_IMAGES
+                        assetType,
                     );
                 }
 
@@ -164,8 +164,15 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage]
     );
 
-    const startElementImageGeneration = useCallback(
-        ({ prompt, selectedImages = [], numberOfImages = 1, name = null, description = null }) => {
+    const startImageGeneration = useCallback((
+        prompt,
+        selectedImages = [],
+        numberOfImages = 1,
+        size=IMAGE_SIZE_PORTRAIT,
+        assetType,
+        name = null,
+        description = null
+    ) => {
             if (!prompt.trim() || !projectState.curProjId) {
                 throw new Error('Prompt and project ID are required');
             }
@@ -178,11 +185,7 @@ export const ImageGenProvider = ({ children }) => {
                 id: generationId,
                 type: isTextOnly ? 'text-to-image' : 'image-extension',
                 prompt: prompt.trim(),
-                referenceImages: isTextOnly
-                    ? null
-                    : selectedImages.map((img) => {
-                          return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
-                      }),
+                referenceImages: isTextOnly? null : selectedImages,
                 numberOfImages,
                 name,
                 description,
@@ -196,13 +199,15 @@ export const ImageGenProvider = ({ children }) => {
             });
 
             // Trigger async execution in background without closure
-            executeElementGeneration(
+            executeGeneration(
                 generationId,
                 isTextOnly,
                 prompt,
                 selectedImages,
                 numberOfImages,
+                size,
                 projectState.curProjId,
+                assetType,
                 name,
                 description
             );
@@ -210,7 +215,7 @@ export const ImageGenProvider = ({ children }) => {
             // Return immediately with generationId
             return { generationId };
         },
-        [projectState.curProjId, executeElementGeneration]
+        [projectState.curProjId, executeGeneration]
     );
 
     const executeInpainting = useCallback(
@@ -221,6 +226,7 @@ export const ImageGenProvider = ({ children }) => {
             prompt,
             numberOfImages,
             projectId,
+            assetType,
             name,
             description
         ) => {
@@ -233,7 +239,7 @@ export const ImageGenProvider = ({ children }) => {
                     null, // by default, backend use portrait
                     numberOfImages,
                     projectId,
-                    ASSET_TYPES.ELEMENT_IMAGES
+                    assetType,
                 );
 
                 // Collect all generated image URLs
@@ -289,54 +295,53 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage]
     );
 
-    const startInpaintingGeneration = useCallback(
-        (
+    const startInpainting = useCallback((
+        inputImageUrl,
+        maskImage,
+        prompt,
+        numberOfImages = 3,
+        assetType,
+        name = null,
+        description = null
+    ) => {
+        if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
+            throw new Error('Element image, mask, prompt, and project ID are required');
+        }
+
+        const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Add to pending state immediately
+        const pendingItem = {
+            id: generationId,
+            type: 'inpainting',
+            prompt: prompt.trim(),
+            referenceImages: [inputImageUrl],
+            numberOfImages,
+            status: 'generating',
+            startTime: Date.now(),
+        };
+
+        dispatch({
+            type: IMAGE_GEN_ACTIONS.START_GENERATION,
+            payload: pendingItem,
+        });
+
+        // Trigger async execution in background without closure
+        executeInpainting(
+            generationId,
             inputImageUrl,
             maskImage,
             prompt,
-            numberOfImages = 3,
-            name = null,
-            description = null
-        ) => {
-            if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
-                throw new Error('Element image, mask, prompt, and project ID are required');
-            }
+            numberOfImages,
+            projectState.curProjId,
+            assetType,
+            name,
+            description
+        );
 
-            const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            // Add to pending state immediately
-            const pendingItem = {
-                id: generationId,
-                type: 'inpainting',
-                prompt: prompt.trim(),
-                referenceImages: [inputImageUrl],
-                numberOfImages,
-                status: 'generating',
-                startTime: Date.now(),
-            };
-
-            dispatch({
-                type: IMAGE_GEN_ACTIONS.START_GENERATION,
-                payload: pendingItem,
-            });
-
-            // Trigger async execution in background without closure
-            executeInpainting(
-                generationId,
-                inputImageUrl,
-                maskImage,
-                prompt,
-                numberOfImages,
-                projectState.curProjId,
-                name,
-                description
-            );
-
-            // Return immediately with generationId
-            return { generationId };
-        },
-        [projectState.curProjId, executeInpainting]
-    );
+        // Return immediately with generationId
+        return { generationId };
+    }, [projectState.curProjId, executeInpainting]);
 
     const updatePendingMetadata = useCallback((generationId, metadata) => {
         dispatch({
@@ -354,8 +359,8 @@ export const ImageGenProvider = ({ children }) => {
 
     const contextValue = {
         pendingGenerations: state.pendingGenerations,
-        startElementImageGeneration,
-        startInpaintingGeneration,
+        startImageGeneration,
+        startInpainting,
         updatePendingMetadata,
         removePendingGeneration,
     };
@@ -364,7 +369,7 @@ export const ImageGenProvider = ({ children }) => {
 };
 
 // Hook for consuming components
-export const useImageGen = () => {
+export const useImageGenContext = () => {
     const context = useContext(ImageGenContext);
     if (!context) {
         throw new Error('useImageGen must be used within an ImageGenProvider');

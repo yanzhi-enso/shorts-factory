@@ -1,0 +1,2 @@
+export const IMAGE_SIZE_PORTRAIT = "1024x1536"
+export const IMAGE_SIZE_LANDSCAPE = "1536x1024"

@@ -1,5 +1,6 @@
 import { openaiClient } from 'services/oai.js';
 import { uploadBase64ToGCS } from 'services/gcs.js';
+import { base64ToBlob } from 'utils/common/image';
 import { toFile } from 'openai';
 
 /**
@@ -36,15 +37,6 @@ export async function generateImage(prompt, size, n = 1, project_id, asset_type)
 
     // Filter out any null results from failed uploads
     return processedImages.filter(image => image !== null);
-}
-
-function base64ToBlob(base64, mimeType = 'image/png') {
-    const byteString = atob(base64.split(',')[1]); // Remove data URL prefix
-    const arrayBuffer = new Uint8Array(byteString.length);
-    for (let i = 0; i < byteString.length; i++) {
-        arrayBuffer[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([arrayBuffer], { type: mimeType });
 }
 
 /**
