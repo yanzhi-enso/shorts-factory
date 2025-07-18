@@ -84,12 +84,9 @@ export async function POST(request) {
         const extendedImages = await extendImage(images, prompt, size, n, project_id, asset_type);
 
         return NextResponse.json({
-            success: true,
-            data: {
-                images: extendedImages,
-                format: 'png',
-                created: new Date().toISOString(),
-            },
+            images: extendedImages,
+            format: 'png',
+            created: new Date().toISOString(),
         });
     } catch (error) {
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {

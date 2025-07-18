@@ -65,12 +65,9 @@ export async function POST(request) {
             asset_type
         );
         return NextResponse.json({
-            success: true,
-            data: {
-                images,
-                format: 'png',
-                created: new Date().toISOString(),
-            },
+            images,
+            format: 'png',
+            created: new Date().toISOString(),
         });
     } catch (error) {
         if (error.message === 'CONTENT_MODERATION_BLOCKED') {
