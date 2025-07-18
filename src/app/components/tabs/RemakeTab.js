@@ -15,7 +15,6 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
     const [isExporting, setIsExporting] = useState(false);
-    const [isImageGenerationModalOpen, setIsImageGenerationModalOpen] = useState(false);
 
     // Get selected scenes from ProjectManager
     const selectedScenes = useMemo(
@@ -33,15 +32,6 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     const handleImageGenAll = () => {
         console.log('Bulk image generation not implemented yet');
-    };
-
-    // Modal handlers
-    const handleOpenImageGenerationModal = () => {
-        setIsImageGenerationModalOpen(true);
-    };
-
-    const handleCloseImageGenerationModal = () => {
-        setIsImageGenerationModalOpen(false);
     };
 
     const handleExport = async () => {
@@ -185,16 +175,13 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.rowsContainer}>
-                <ElementImageList onAddElementImage={handleOpenImageGenerationModal} />
+                <ElementImageList/>
                 {selectedScenes.map((scene) => (
                     <SceneRow key={scene.id} scene={scene} storyConfig={storyConfig} />
                 ))}
             </div>
 
-            <ElementGenModal
-                isOpen={isImageGenerationModalOpen}
-                onClose={handleCloseImageGenerationModal}
-            />
+            <ElementGenModal />
         </div>
     );
 };
