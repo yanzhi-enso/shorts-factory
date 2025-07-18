@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useProjectManager } from 'projectManager/useProjectManager';
-import { useImageGen } from 'imageGenManager/ImageGenProvider';
+import { useImageGenContext } from 'app/components/remake/ImageRequestManager';
 import styles from './MetadataTab.module.css';
 
 const MetadataTab = ({ 
@@ -12,7 +12,7 @@ const MetadataTab = ({
     onComplete // callback when metadata collection is complete
 }) => {
     const { updateElementImage } = useProjectManager();
-    const { updatePendingMetadata } = useImageGen();
+    const { updatePendingMetadata } = useImageGenContext();
     
     // Form state
     const [name, setName] = useState('');

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useElementGenModalContext } from './ElementGenModalContext';
 import PromptTab from './tabs/PromptTab';
 import InpaintingTab from './tabs/InpaintingTab';
 import UploadTab from './tabs/UploadTab';
@@ -8,18 +9,18 @@ import MetadataTab from './tabs/MetadataTab';
 import styles from './ElementGenModal.module.css';
 
 const ElementGenModal = ({
-    isOpen,
-    onClose,
     onImageGenerated
 }) => {
     const [activeTab, setActiveTab] = useState('prompt');
     const [isMetadataMode, setIsMetadataMode] = useState(false);
     const [metadataContext, setMetadataContext] = useState(null);
 
+    const { isOpen, prefillData, closeModal } = useElementGenModalContext()
+
     useEffect(() => {
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                onClose();
+                closeModal();
             }
         };
 
@@ -32,13 +33,13 @@ const ElementGenModal = ({
             document.removeEventListener('keydown', handleEscape);
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, closeModal]);
 
     if (!isOpen) return null;
 
     const handleOverlayClick = (e) => {
         if (e.target === e.currentTarget) {
-            onClose();
+            closeModal();
         }
     };
 
@@ -56,7 +57,7 @@ const ElementGenModal = ({
     const handleMetadataComplete = () => {
         setIsMetadataMode(false);
         setMetadataContext(null);
-        onClose();
+        closeModal();
     };
 
     const renderTabContent = () => {
@@ -65,7 +66,7 @@ const ElementGenModal = ({
                 return (
                     <PromptTab 
                         onImageGenerated={onImageGenerated}
-                        onClose={onClose}
+                        onClose={closeModal}
                         onSwitchToMetadata={switchToMetadataMode}
                     />
                 );
@@ -73,18 +74,18 @@ const ElementGenModal = ({
                 return (
                     <InpaintingTab 
                         onImageGenerated={onImageGenerated}
-                        onClose={onClose}
+                        onClose={closeModal}
                         onSwitchToMetadata={switchToMetadataMode}
                     />
                 );
-            case 'upload':
-                return (
-                    <UploadTab 
-                        onImageGenerated={onImageGenerated}
-                        onClose={onClose}
-                        onSwitchToMetadata={switchToMetadataMode}
-                    />
-                );
+            // case 'upload':
+            //     return (
+            //         <UploadTab 
+            //             onImageGenerated={onImageGenerated}
+            //             onClose={closeModal}
+            //             onSwitchToMetadata={switchToMetadataMode}
+            //         />
+            //     );
             default:
                 return null;
         }
@@ -93,7 +94,7 @@ const ElementGenModal = ({
     return (
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
-                <button className={styles.closeButton} onClick={onClose}>
+                <button className={styles.closeButton} onClick={closeModal}>
                     ×
                 </button>
 
@@ -129,12 +130,12 @@ const ElementGenModal = ({
                             >
                                 Inpainting
                             </button>
-                            <button
+                            {/* <button
                                 className={`${styles.tabButton} ${activeTab === 'upload' ? styles.active : ''}`}
                                 onClick={() => handleTabClick('upload')}
                             >
                                 Upload
-                            </button>
+                            </button> */}
                         </div>
 
                         <div className={styles.content}>

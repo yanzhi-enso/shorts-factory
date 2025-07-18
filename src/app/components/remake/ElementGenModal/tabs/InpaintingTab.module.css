@@ -1,7 +1,7 @@
 /* Tab Content */
 .container {
   position: relative;
-  max-height: calc(90vh - 240px);
+  max-height: calc(90vh - 200px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -11,19 +11,17 @@
 .threeColumnLayout {
   position: relative;
   display: grid;
-  grid-template-columns: 180px minmax(520px, 1fr) 300px;
-  grid-template-rows: 1fr;
+  grid-template-columns: 180px fit-content(900px) 300px;
+  grid-template-rows: auto;
   gap: 24px;
-  height: 100%;
   overflow: hidden;
 }
 
 /* Left Column - Element Images */
 .leftColumn {
+  height: auto;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -70,8 +68,6 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 100%;
-  max-height: 100%;
 }
 
 .controlsPanel {
@@ -135,7 +131,7 @@
   width: 100%;
 }
 
-.canvasContainer {
+.canvasPortraitContainer {
   position: relative;
   width: 512px;
   height: 768px;
@@ -146,14 +142,58 @@
   margin-bottom: 16px;
 }
 
-.backgroundCanvas {
+.canvasLandscapeContainer {
+  position: relative;
+  width: 896px;
+  height: 504px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  margin-bottom: 16px;
+}
+
+/* laptop monitor */
+@media (max-height: 1050px) {
+  .canvasPortraitContainer {
+    width: 384px;
+    height: 576px;
+  }
+
+  .canvasLandscapeContainer {
+    width: 576px;
+    height: 384px;
+  }
+}
+
+
+/* laptop monitor - landscape */
+@media (max-height: 1050px) {
+    .canvasLandscapeContainer {
+        width: 576px;
+        height: 384px;
+    }
+}
+
+.backgroundImage {
   z-index: 1;
+  width: 100%;
   border-radius: 6px;
+  object-fit: fill;
 }
 
 .maskCanvas {
   z-index: 2;
   border-radius: 6px;
+  height: 100%;
+  width: 100%;
+  object-fit: fill;
+  cursor: none;
+  pointer-events: auto;
+  z-index: 3;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* Custom Cursor */
@@ -369,6 +409,7 @@
   resize: vertical;
   min-height: 100px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: black;
 }
 
 .promptTextarea:focus {
