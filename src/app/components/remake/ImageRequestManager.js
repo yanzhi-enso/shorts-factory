@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { generateImage, extendImage, inpaintingImage } from 'services/backend';
 import { useProjectManager } from 'projectManager/useProjectManager';
-import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
 
 // Action types
 const IMAGE_GEN_ACTIONS = {
@@ -168,7 +167,7 @@ export const ImageGenProvider = ({ children }) => {
         prompt,
         selectedImages = [],
         numberOfImages = 1,
-        size=IMAGE_SIZE_PORTRAIT,
+        size,
         assetType,
         name = null,
         description = null
