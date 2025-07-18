@@ -7,22 +7,23 @@ import { useElementGenModalContext } from './ElementGenModal/ElementGenModalCont
 import ElementImageDetailsModal from 'app/components/remake/ElementImageDetailsModal';
 import styles from './ElementImageList.module.css';
 
+const AddElementImageButton = ({ onClick }) => (
+    <div className={`${styles.toolBoxBlock}  ${styles.empty} `} onClick={onClick}>
+        <div className={styles.emptyState}>
+            <FaPlus className={styles.plusIcon} />
+        </div>
+    </div>
+);
+
 const ElementImageBlock = ({ src, onClick }) => {
     return (
-        <div className={`${styles.toolBoxBlock} ${!src ? styles.empty : ''}`} onClick={onClick}>
-            {src ? (
-                <Image
-                    src={src}
-                    alt='Tool box item'
-                    width={100}
-                    height={100}
-                    className={styles.image}
-                />
-            ) : (
-                <div className={styles.emptyState}>
-                    <FaPlus className={styles.plusIcon} />
-                </div>
-            )}
+        <div className={styles.toolBoxBlock} onClick={onClick}>
+            <img
+                src={src}
+                alt='Tool box item'
+                // width={120} height={120}
+                className={styles.image}
+            />
         </div>
     );
 };
@@ -69,8 +70,8 @@ const ElementImageList = () => {
     }, [pendingGenerations]);
 
     return (
-        <>
-            <div className={styles.container}>
+        <div className={styles.container}>
+            <div className={styles.list}>
                 {/* Existing element images */}
                 {elementImages.map((image) => {
                     // Get selected idx image URL from the multi-image structure
@@ -92,7 +93,7 @@ const ElementImageList = () => {
                 ))}
 
                 {/* Add new element image button */}
-                <ElementImageBlock src={null} onClick={openElementGenModal} />
+                <AddElementImageButton onClick={openElementGenModal} />
             </div>
 
             <ElementImageDetailsModal
@@ -100,7 +101,7 @@ const ElementImageList = () => {
                 elementImage={selectedImage}
                 onClose={handleCloseModal}
             />
-        </>
+        </div>
     );
 };
 
