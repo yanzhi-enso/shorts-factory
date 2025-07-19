@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import styles from './page.module.css';
-import TabManager from './components/TabManager';
+import TabManager from './TabManager';
 import { ProjectProvider } from 'projectManager/useProjectManager';
 import { ImageGenProvider } from 'app/components/remake/ImageRequestManager';
 import { ElementGenModalContextProvider } from 'app/components/remake/ElementGenModal/ElementGenModalContext';

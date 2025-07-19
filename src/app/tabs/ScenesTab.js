@@ -3,7 +3,7 @@
 import { FaBookOpen } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './ScenesTab.module.css';
-import ImageGrid from '../scenes/ImageGrid';
+import ImageGrid from 'app/components/scenes/ImageGrid';
 
 const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();

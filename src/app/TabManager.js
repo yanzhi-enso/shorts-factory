@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import styles from '../page.module.css';
+import styles from './page.module.css';
 import TabNavigation, { TABS } from './tabs/TabNavigation';
 import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
-import StoryConfigModal from './common/StoryConfigModal';
+import StoryConfigModal from './components/common/StoryConfigModal';
 import { useProjectManager } from 'projectManager/useProjectManager';
 
 const STAGE_PARAM = 'stage';

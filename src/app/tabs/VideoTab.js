@@ -5,9 +5,9 @@ import { FaMagic, FaVideo, FaDownload, FaBookOpen } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
-import VideoRow from '../video/VideoRow';
-import FullSizeImageModal from '../common/FullSizeImageModal';
-import VideoRequestManager from '../video/VideoRequestManager';
+import FullSizeImageModal from 'app/components/common/FullSizeImageModal';
+import VideoRow from 'app/components/video/VideoRow';
+import VideoRequestManager from 'app/components/video/VideoRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
 
 const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClick }) => {
