@@ -5,4 +5,5 @@ gcloud run deploy shorts-factory \
     --memory 8Gi \
     --timeout 180 \
     --service-account="shorts-factory-sa@pure-lantern-394915.iam.gserviceaccount.com" \
-    --build-service-account "projects/pure-lantern-394915/serviceAccounts/cloud-build@pure-lantern-394915.iam.gserviceaccount.com"
+    --build-service-account "projects/pure-lantern-394915/serviceAccounts/cloud-build@pure-lantern-394915.iam.gserviceaccount.com" \
+    --set-secrets="OPENAI_API_KEY=playground-openai-secret:latest,KLING_KEYS=kling-api-keys:latest"
