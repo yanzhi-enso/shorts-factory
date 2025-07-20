@@ -47,7 +47,7 @@ const SceneRow = ({ scene, sceneIndex, storyConfig }) => {
     // Internal states
     const [prompt, setPrompt] = useState('');
     const [isPromptAssistantRunning, setIsPromptAssistantRunning] = useState(false);
-    const [imageCount, setImageCount] = useState(1);
+    const [imageCount, setImageCount] = useState(4);
 
     // Derive isGenerating from pendingGenerations to sync UI with actual generation state
     const isGenerating = useMemo(() => {
