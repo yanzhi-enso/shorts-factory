@@ -130,6 +130,7 @@ export const organizeSceneImagesBySceneId = (scenes, sceneImages) => {
  *     createdAt: string            // Creation timestamp
  *   }],
  *   selectedGeneratedImageId: number|null,  // Selected generated image ID (DB storage reference)
+ *   selectedGeneratedImage: string|null,    // URL of selected generated image (derived from selectedGeneratedImageId)
  *   sceneClips: Array[{            // All generated clips for this scene
  *     id: number,                  // Generated clip ID
  *     sceneId: number,             // Parent scene ID
@@ -174,6 +175,17 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
         const selectedGeneratedImageId = scene.selected_generated_image_id || 
                                        (generatedImages.length > 0 ? generatedImages[0].id : null);
         
+        // Derive the selected generated image URL for easier consumption by UI components
+        const selectedGeneratedImage = selectedGeneratedImageId 
+            ? (() => {
+                const selectedImageData = generatedImages.find(img => img.id === selectedGeneratedImageId);
+                if (selectedImageData && selectedImageData.gcsUrls && selectedImageData.gcsUrls.length > 0) {
+                    return selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
+                }
+                return null;
+            })()
+            : null;
+        
         // Load generated clips for this scene
         const rawSceneClips = await getSceneClips(scene.id);
         
@@ -198,6 +210,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
             sceneImages: sceneImages,
             generatedImages: generatedImages,
             selectedGeneratedImageId: selectedGeneratedImageId,
+            selectedGeneratedImage: selectedGeneratedImage,
             sceneClips: sceneClips,
             selectedSceneClip: selectedSceneClip,
             selectedSceneClipId: selectedSceneClipId,
