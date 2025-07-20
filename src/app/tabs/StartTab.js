@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import styles from './StartTab.module.css';
 import LoadingSpinner from 'app/components/common/LoadingSpinner';
+import ProjectCreationModal from 'app/components/common/ProjectCreationModal';
 import { useProjectManager } from 'projectManager/useProjectManager';
 
 const StartTab = ({ onProcessComplete, onError }) => {
-  const [videoUrl, setVideoUrl] = useState('');
   const [projects, setProjects] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { projectState, createProject, loadProject, getAllProjects } = useProjectManager();
 
   // Load projects on component mount
@@ -22,22 +23,48 @@ const StartTab = ({ onProcessComplete, onError }) => {
     loadProjects();
   }, [getAllProjects]);
 
-  const handleProcessVideo = async () => {
-    if (!videoUrl) {
-      return;
-    }
-
-    const result = await createProject(videoUrl);
-    
-    if (result.success) {
-      // Call parent callback for backward compatibility with TabManager
-      // This maintains the existing interface while we transition
-      onProcessComplete({
-        projectId: result.projectId
+  const handleCreateProject = async ({ projectName, tiktokUrl, storyContext, imageMode }) => {
+    try {
+      // Call backend API with video URL (empty string if no URL provided)
+      const response = await fetch('/api/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_url: tiktokUrl || '' })
       });
-    } else {
+
+      if (!response.ok) {
+        throw new Error('Failed to create project');
+      }
+
+      const data = await response.json();
+      
+      // Create project locally with all metadata using the updated createProject action
+      const result = await createProject(tiktokUrl || null, {
+        name: projectName,
+        storyDescription: storyContext,
+        settings: { image_size: imageMode }
+      });
+      
+      if (result.success) {
+        // Refresh projects list
+        const updatedProjects = await getAllProjects();
+        if (updatedProjects.success) {
+          setProjects(updatedProjects.projects);
+        }
+        
+        // Call parent callback
+        onProcessComplete({
+          projectId: data.project_id
+        });
+      } else {
+        if (onError) {
+          onError(result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
       if (onError) {
-        onError(result.error);
+        onError(error.message);
       }
     }
   };
@@ -76,22 +103,23 @@ const StartTab = ({ onProcessComplete, onError }) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.inputContainer}>
-        <input
-          type="text"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="Enter TikTok video URL"
-          className={styles.input}
-        />
+      <div className={styles.createSection}>
         <button
-          onClick={handleProcessVideo}
-          className={styles.button}
+          onClick={() => setIsModalOpen(true)}
+          className={styles.createButton}
         >
           Create Project
         </button>
       </div>
+      
       {projectState.error && <p className={styles.error}>{projectState.error}</p>}
+      
+      {/* Project Creation Modal */}
+      <ProjectCreationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreateProject={handleCreateProject}
+      />
       
       {/* Project List Section */}
       {projects.length > 0 && (

@@ -10,6 +10,7 @@ import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
 import StoryConfigModal from './components/common/StoryConfigModal';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
@@ -145,7 +146,7 @@ export default function TabManager() {
     const handleStoryConfigSave = async (configData) => {
         await updateProjectSettings({
             storyDescription: configData.storyDescription,
-            changeRequest: configData.changeRequest,
+            image_size: configData.imageMode,
         });
         setIsStoryModalOpen(false);
     };
@@ -217,7 +218,7 @@ export default function TabManager() {
             <StoryConfigModal
                 isOpen={isStoryModalOpen}
                 storyDescription={projectState.currentProject?.settings?.storyDescription || ''}
-                changeRequest={projectState.currentProject?.settings?.changeRequest || ''}
+                imageMode={projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT}
                 originalVideoUrl={projectState.currentProject?.tiktok_url || ''}
                 onSave={handleStoryConfigSave}
                 onSkip={handleStoryConfigSkip}

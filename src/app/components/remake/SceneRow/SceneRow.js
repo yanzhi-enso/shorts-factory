@@ -98,7 +98,7 @@ const SceneRow = ({ scene, sceneIndex, storyConfig }) => {
             }
 
             // Get image size from project settings, default to portrait
-            const imageSize = projectState.settings?.image_size || IMAGE_SIZE_PORTRAIT;
+            const imageSize = projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT;
 
             startImageGeneration(
                 prompt.trim(),

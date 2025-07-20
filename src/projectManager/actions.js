@@ -53,48 +53,83 @@ import {
  */
 export const createProjectActions = (dispatch, projectState) => {
     /**
-     * Create a new project from video URL
+     * Create a new project from video URL or with custom metadata
      */
-    const createProject = async (videoUrl) => {
-        if (!videoUrl) {
-            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: 'Please enter a video URL' });
-            return { success: false, error: 'Please enter a video URL' };
-        }
-
+    const createProject = async (videoUrl, projectMetadata = null) => {
         dispatch({ type: PROJECT_ACTIONS.CREATE_PROJECT_START });
 
         try {
-            // Call backend API to start processing
+            // Call backend API to start processing (handles both video and empty projects)
             const response = await fetch('/api/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ video_url: videoUrl })
+                body: JSON.stringify({ video_url: videoUrl || '' })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to process video');
+                throw new Error('Failed to create project');
             }
 
             const data = await response.json();
             
-            // Fetch file list via backend proxy to avoid CORS issues
-            const fileListResponse = await fetch(`/api/files/${data.project_id}`);
-            if (!fileListResponse.ok) {
-                throw new Error('Failed to fetch file list');
+            let projectData;
+            
+            if (videoUrl) {
+                // Existing video processing flow
+                const fileListResponse = await fetch(`/api/files/${data.project_id}`);
+                if (!fileListResponse.ok) {
+                    throw new Error('Failed to fetch file list');
+                }
+                
+                const fileData = await fileListResponse.json();
+                
+                // Store project data in IndexedDB and get structured data
+                projectData = await createProjectFromGCS(
+                    data.project_id, 
+                    videoUrl, 
+                    fileData.files
+                );
+                
+                // Apply any additional metadata if provided
+                if (projectMetadata) {
+                    await updateProject(data.project_id, {
+                        name: projectMetadata.name,
+                        story_description: projectMetadata.storyDescription,
+                        settings: projectMetadata.settings
+                    });
+                    
+                    // Update the local project object
+                    projectData.project = {
+                        ...projectData.project,
+                        name: projectMetadata.name,
+                        story_description: projectMetadata.storyDescription,
+                        settings: projectMetadata.settings
+                    };
+                }
+                
+                console.log('Video project stored successfully in IndexedDB:', data.project_id);
+            } else {
+                // Empty project flow - just create project record without scenes
+                const { createProject: createProjectRecord } = await import('../storage/project.js');
+                
+                const project = await createProjectRecord({
+                    id: data.project_id,
+                    tiktok_url: null,
+                    name: projectMetadata?.name || null,
+                    story_description: projectMetadata?.storyDescription || null,
+                    settings: projectMetadata?.settings || {}
+                });
+                
+                projectData = {
+                    project,
+                    scenes: [],
+                    sceneImages: []
+                };
+                
+                console.log('Empty project stored successfully in IndexedDB:', data.project_id);
             }
             
-            const fileData = await fileListResponse.json();
-            
-            // Store project data in IndexedDB and get structured data
-            const projectData = await createProjectFromGCS(
-                data.project_id, 
-                videoUrl, 
-                fileData.files
-            );
-            
-            console.log('Project stored successfully in IndexedDB:', data.project_id);
-            
-            // Organize scene images by scene ID for enrichment
+            // Organize scene images by scene ID for enrichment (handles empty scenes array)
             const sceneImagesMap = organizeSceneImagesBySceneId(projectData.scenes, projectData.sceneImages);
             
             // Enrich scenes with embedded images and selected image URL

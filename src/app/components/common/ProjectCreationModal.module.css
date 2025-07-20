@@ -1,0 +1,198 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.closeButton:hover:not(:disabled) {
+  color: #374151;
+}
+
+.closeButton:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.form {
+  padding: 24px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.optional {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.input, .textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.input:focus, .textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input:disabled, .textarea:disabled {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.helpText {
+  margin: 4px 0 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.radioLabel input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radioLabel input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancelButton, .createButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+
+.cancelButton {
+  background: white;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.cancelButton:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.createButton {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.createButton:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.createButton:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
