@@ -84,16 +84,19 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
         try {
             const zip = new JSZip();
 
-            for (const scene of videosToExport) {
+            for (let i = 0; i < videosToExport.length; i++) {
+                const scene = videosToExport[i];
+                const sceneDisplayName = `Scene-${i + 1}`;
+                
                 try {
                     const response = await fetch(scene.selectedSceneClip);
                     if (!response.ok) {
                         throw new Error(
-                            `Failed to fetch video for Scene ${scene.id}: ${response.statusText}`
+                            `Failed to fetch video for ${sceneDisplayName}: ${response.statusText}`
                         );
                     }
                     const videoBlob = await response.blob();
-                    zip.file(`scene_${scene.id}_video.mp4`, videoBlob);
+                    zip.file(`${sceneDisplayName}_video.mp4`, videoBlob);
                 } catch (error) {
                     console.error(error);
                     // Continue with other videos even if one fails
@@ -156,10 +159,11 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
             </div>
 
             <div className={styles.rowsContainer}>
-                {scenesForVideo.map((scene) => (
+                {scenesForVideo.map((scene, index) => (
                     <VideoRow
                         key={scene.id}
                         scene={scene}
+                        sceneIndex={index}
                         storyConfig={storyConfig}
                         videoManager={videoManager}
                         onInputImageClick={handleInputImageClick}

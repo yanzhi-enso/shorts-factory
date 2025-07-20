@@ -7,7 +7,7 @@ import Image from "next/image";
 
 const SceneGenHistoryModal = ({
     isOpen,
-    sceneId,
+    sceneDisplayName,
     generatedImages = [],
     selectedGeneratedImageId = null,
     onClose,
@@ -55,7 +55,7 @@ const SceneGenHistoryModal = ({
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
                 <div className={styles.header}>
-                    <h3 className={styles.title}>Image History - {sceneId}</h3>
+                    <h3 className={styles.title}>Image History - {sceneDisplayName}</h3>
                     <button className={styles.closeButton} onClick={onClose}>
                         ×
                     </button>

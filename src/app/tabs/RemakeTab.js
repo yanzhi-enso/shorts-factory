@@ -46,14 +46,14 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 );
                 return selectedImageData && selectedImageData.gcsUrls?.length > 0;
             })
-            .map((scene) => {
+            .map((scene, index) => {
                 const selectedImageData = scene.generatedImages.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
                 const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
                 
                 return {
-                    sceneId: `Scene-${scene.sceneOrder / 100}`,
+                    sceneDisplayName: `Scene-${index + 1}`, // Dynamic display name
                     imageUrl: currentImageUrl,
                     imageType: selectedImageData.generationSources ? 'generated' : 'uploaded',
                 };
@@ -70,16 +70,16 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             const zip = new JSZip();
 
             // Add each selected image to the zip
-            for (const { sceneId, imageUrl, imageType } of selectedImages) {
+            for (const { sceneDisplayName, imageUrl, imageType } of selectedImages) {
                 try {
                     // Extract base64 data from data URL
                     const base64Data = imageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
 
                     // Add image to zip with scene-based filename
                     const filePrefix = imageType === 'uploaded' ? 'uploaded' : 'generated';
-                    zip.file(`${sceneId}_${filePrefix}.png`, base64Data, { base64: true });
+                    zip.file(`${sceneDisplayName}_${filePrefix}.png`, base64Data, { base64: true });
                 } catch (error) {
-                    console.error(`Error processing image for ${sceneId}:`, error);
+                    console.error(`Error processing image for ${sceneDisplayName}:`, error);
                 }
             }
 
@@ -105,15 +105,16 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 );
                 return selectedImageData && selectedImageData.gcsUrls?.length > 0;
             })
-            .map((scene) => {
-                const sceneId = `Scene-${scene.sceneOrder / 100}`;
+            .map((scene, index) => {
+                const sceneDisplayName = `Scene-${index + 1}`; // Dynamic display name
                 const selectedImageData = scene.generatedImages.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
                 const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
                 
                 return {
-                    sceneId,
+                    sceneId: scene.id, // UUID for data consistency
+                    sceneDisplayName, // For display purposes
                     revisedPrompt:
                         selectedImageData?.generationSources?.revisedPrompt ||
                         selectedImageData?.generationSources?.prompt ||
@@ -176,8 +177,8 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
             <div className={styles.rowsContainer}>
                 <ElementImageList/>
-                {selectedScenes.map((scene) => (
-                    <SceneRow key={scene.id} scene={scene} storyConfig={storyConfig} />
+                {selectedScenes.map((scene, index) => (
+                    <SceneRow key={scene.id} scene={scene} sceneIndex={index} storyConfig={storyConfig} />
                 ))}
             </div>
 

@@ -1,42 +1,61 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import styles from './SceneRow.module.css';
 import RemakeImageBlock from './RemakeImageBlock';
 import SceneGenBlock from './SceneGenBlock';
 import SceneControlPanel from './SceneControlPanel';
-import { analyzeImage, generateImage } from 'services/backend';
+import { analyzeImage } from 'services/backend';
+import { useImageGenContext } from 'app/components/remake/ImageRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { useElementManager } from '../ElementList/ElementSelectionManager';
 import { ASSET_TYPES } from 'constants/gcs';
+import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
-const SceneRow = ({ scene, storyConfig }) => {
+const SceneRow = ({ scene, sceneIndex, storyConfig }) => {
     const {
-        addGeneratedImage,
-        updateSelectedGeneratedImage,
         handleSceneImageUpload,
         projectState,
+        updateSelectedGeneratedImage,
     } = useProjectManager();
+
+    // ImageRequestManager integration
+    const { startImageGeneration, pendingGenerations } = useImageGenContext();
+
+    // ElementSelectionManager integration
+    const { focusedSceneId, selectedElements } = useElementManager();
 
     // Parse scene properties
     const {
-        id: sceneDbId,
-        sceneOrder,
+        id: sceneId, // Now using UUID directly
         selectedImage,
         generatedImages,
         selectedGeneratedImageId,
     } = scene;
 
-    const sceneId = `Scene-${sceneOrder / 100}`;
+    // Determine focus state for styling
+    const isFocused = focusedSceneId === sceneId;
+    const isUnfocused = focusedSceneId !== null && focusedSceneId !== sceneId;
+
+    // Dynamic display name based on array position
+    const sceneDisplayName = `Scene-${sceneIndex + 1}`;
     const originalImage = {
         imageUrl: selectedImage,
-        title: `Scene ${sceneOrder / 100} Original`,
+        title: `${sceneDisplayName} Original`,
     };
 
     // Internal states
     const [prompt, setPrompt] = useState('');
     const [isPromptAssistantRunning, setIsPromptAssistantRunning] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
     const [imageCount, setImageCount] = useState(1);
+
+    // Derive isGenerating from pendingGenerations to sync UI with actual generation state
+    const isGenerating = useMemo(() => {
+        return pendingGenerations.some(
+            pending => pending.sceneId === sceneId && 
+                      pending.assetType === ASSET_TYPES.GENERATED_SCENE_IMAGES
+        );
+    }, [pendingGenerations, sceneId]);
 
     const handlePromptChange = (newPrompt) => {
         setPrompt(newPrompt);
@@ -65,57 +84,44 @@ const SceneRow = ({ scene, storyConfig }) => {
     };
 
     const handleGenerate = async () => {
-        if (!originalImage.imageUrl || !prompt || isGenerating) return;
-
-        setIsGenerating(true);
+        if (!prompt || isGenerating) return;
 
         try {
-            // Get project ID from ProjectManager state
-            const { curProjId } = projectState;
+            // Get selected elements for this scene and convert to srcImages format
+            const selectedElementUrls = selectedElements[sceneId] || [];
 
-            if (!curProjId) {
-                throw new Error('No project ID available');
+            const srcImages = selectedElementUrls.map(url => ({ url }));
+
+            // Add originalImage.url if it exists
+            if (originalImage.imageUrl) {
+                srcImages.unshift({ url: originalImage.imageUrl });
             }
 
-            const result = await generateImage(
-                prompt,
-                null, // [todo allow user to select size: portrait, landscape]
+            // Get image size from project settings, default to portrait
+            const imageSize = projectState.settings?.image_size || IMAGE_SIZE_PORTRAIT;
+
+            startImageGeneration(
+                prompt.trim(),
+                srcImages, // Empty array for text-only, populated for image-extension
                 imageCount,
-                curProjId,
-                ASSET_TYPES.GENERATED_SCENE_IMAGES
+                imageSize,
+                ASSET_TYPES.GENERATED_SCENE_IMAGES,
+                null, // name
+                null, // description
+                sceneId // Add sceneId for scene generations
             );
 
-            // Handle multiple images response
-            if (result?.images && Array.isArray(result.images)) {
-                // Add each generated image to ProjectManager
-                for (const imgData of result.images) {
-                    const generationSources = {
-                        prompt: prompt,
-                        revisedPrompt: imgData.revisedPrompt || result.revisedPrompt || prompt,
-                    };
-
-                    await addGeneratedImage(sceneDbId, imgData.imageUrl, generationSources);
-                }
-            } else if (result?.imageUrl) {
-                // Single image returned (backward compatibility)
-                const generationSources = {
-                    prompt: prompt,
-                    revisedPrompt: result?.revisedPrompt || prompt,
-                };
-
-                await addGeneratedImage(sceneDbId, result.imageUrl, generationSources);
-            }
+            // ImageRequestManager handles all result processing automatically
+            // isGenerating state is now derived from pendingGenerations
         } catch (error) {
-            console.error('Error generating image:', error);
+            console.error('Error starting generation:', error);
             alert(`Error generating image for ${sceneId}: ${error.message}`);
-        } finally {
-            setIsGenerating(false);
         }
     };
 
     const handleImageUploadInternal = async (imageFile) => {
         // Call ProjectManager's image upload handler
-        const result = await handleSceneImageUpload(sceneDbId, imageFile);
+        const result = await handleSceneImageUpload(sceneId, imageFile);
 
         if (!result.success) {
             console.error('Image upload failed:', result.error);
@@ -127,7 +133,7 @@ const SceneRow = ({ scene, storyConfig }) => {
 
     const handleImageSelect = async (imageId) => {
         // Call ProjectManager to update selected generated image
-        await updateSelectedGeneratedImage(sceneDbId, imageId);
+        await updateSelectedGeneratedImage(sceneId, imageId);
     };
 
     const handleOriginalClick = (imageUrl, title) => {
@@ -136,7 +142,7 @@ const SceneRow = ({ scene, storyConfig }) => {
     };
 
     return (
-        <div className={styles.sceneRow}>
+        <div className={`${styles.sceneRow} ${isFocused ? styles.focused : ''} ${isUnfocused ? styles.unfocused : ''}`}>
             {/* Original Image */}
             <div className={styles.imageSection}>
                 <RemakeImageBlock
@@ -149,6 +155,7 @@ const SceneRow = ({ scene, storyConfig }) => {
             {/* Control Panel */}
             <div className={styles.controlSection}>
                 <SceneControlPanel
+                    sceneId={sceneId}
                     prompt={prompt}
                     onPromptChange={handlePromptChange}
                     onPromptAssistant={handlePromptAssistant}
@@ -165,6 +172,7 @@ const SceneRow = ({ scene, storyConfig }) => {
             <div className={styles.imageSection}>
                 <SceneGenBlock
                     sceneId={sceneId}
+                    sceneDisplayName={sceneDisplayName}
                     generatedImages={generatedImages}
                     selectedGeneratedImageId={selectedGeneratedImageId}
                     onImageUpload={handleImageUploadInternal}

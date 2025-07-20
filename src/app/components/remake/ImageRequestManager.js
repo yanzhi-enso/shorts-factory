@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { generateImage, extendImage, inpaintingImage } from 'services/backend';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { ASSET_TYPES } from 'constants/gcs';
 
 // Action types
 const IMAGE_GEN_ACTIONS = {
@@ -59,7 +60,7 @@ const ImageGenContext = createContext();
 // Provider component
 export const ImageGenProvider = ({ children }) => {
     const [state, dispatch] = useReducer(imageGenReducer, initialState);
-    const { projectState, addElementImage, updateElementImage } = useProjectManager();
+    const { projectState, addElementImage, updateElementImage, addGeneratedImage } = useProjectManager();
     
     // Use ref to access current state in async functions
     const stateRef = useRef(state);
@@ -79,6 +80,7 @@ export const ImageGenProvider = ({ children }) => {
             assetType,
             name,
             description,
+            sceneId,
         ) => {
             try {
                 let result;
@@ -120,29 +122,34 @@ export const ImageGenProvider = ({ children }) => {
                     revisedPrompt: result.images[0]?.revisedPrompt,
                 };
 
-                // Add single element image with all variants
-                const elementImageResult = await addElementImage(
-                    allImageUrls, // All generated images as variants
-                    generationSources,
-                    name?.trim() || null,
-                    description?.trim() || null
-                );
+                // Handle result based on asset type
+                if (assetType === ASSET_TYPES.ELEMENT_IMAGES) {
+                    // Element image handling
+                    const elementImageResult = await addElementImage(
+                        allImageUrls,
+                        generationSources,
+                        name?.trim() || null,
+                        description?.trim() || null
+                    );
 
-                // Check if there's pending metadata for this generation
-                // Access current state via ref to avoid stale closure
-                const currentPendingItem = stateRef.current.pendingGenerations.find(
-                    (gen) => gen.id === generationId
-                );
-                if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
-                    try {
-                        await updateElementImage(
-                            elementImageResult.elementImage.id,
-                            currentPendingItem.pendingMetadata
-                        );
-                    } catch (error) {
-                        console.error('Failed to apply pending metadata:', error);
-                        // Continue even if metadata application fails
+                    // Apply pending metadata only for element images
+                    const currentPendingItem = stateRef.current.pendingGenerations.find(
+                        (gen) => gen.id === generationId
+                    );
+                    if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
+                        try {
+                            await updateElementImage(
+                                elementImageResult.elementImage.id,
+                                currentPendingItem.pendingMetadata
+                            );
+                        } catch (error) {
+                            console.error('Failed to apply pending metadata:', error);
+                            // Continue even if metadata application fails
+                        }
                     }
+                } else if (assetType === ASSET_TYPES.GENERATED_SCENE_IMAGES) {
+                    // Scene image handling - simpler, no metadata support
+                    await addGeneratedImage(sceneId, allImageUrls, generationSources);
                 }
 
                 // Remove from pending state
@@ -151,7 +158,7 @@ export const ImageGenProvider = ({ children }) => {
                     payload: { id: generationId },
                 });
             } catch (error) {
-                console.error('Element image generation failed:', error);
+                console.error('Image generation failed:', error);
 
                 // Update pending item with error state
                 dispatch({
@@ -160,7 +167,7 @@ export const ImageGenProvider = ({ children }) => {
                 });
             }
         },
-        [addElementImage, updateElementImage]
+        [addElementImage, updateElementImage, addGeneratedImage]
     );
 
     const startImageGeneration = useCallback((
@@ -170,7 +177,8 @@ export const ImageGenProvider = ({ children }) => {
         size,
         assetType,
         name = null,
-        description = null
+        description = null,
+        sceneId = null
     ) => {
             if (!prompt.trim() || !projectState.curProjId) {
                 throw new Error('Prompt and project ID are required');
@@ -183,6 +191,8 @@ export const ImageGenProvider = ({ children }) => {
             const pendingItem = {
                 id: generationId,
                 type: isTextOnly ? 'text-to-image' : 'image-extension',
+                assetType,
+                sceneId,
                 prompt: prompt.trim(),
                 referenceImages: isTextOnly? null : selectedImages,
                 numberOfImages,
@@ -208,7 +218,8 @@ export const ImageGenProvider = ({ children }) => {
                 projectState.curProjId,
                 assetType,
                 name,
-                description
+                description,
+                sceneId
             );
 
             // Return immediately with generationId

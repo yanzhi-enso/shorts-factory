@@ -3,6 +3,7 @@
  * Handles scenes, scene images, recreated scene images, and element images
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { database, STORES } from './db.js';
 
 // ==================== SCENES TABLE OPERATIONS ====================
@@ -15,6 +16,7 @@ export async function createScenes(projectId, scenesData) {
     const store = tx.objectStore(STORES.SCENES);
 
     const scenes = scenesData.map((sceneData) => ({
+        id: uuidv4(), // Generate UUID for scene ID
         project_id: projectId,
         scene_order: sceneData.scene_order,
         is_selected: sceneData.is_selected || false,
@@ -32,7 +34,7 @@ export async function createScenes(projectId, scenesData) {
         scenes.forEach((scene) => {
             const request = store.add(scene);
             request.onsuccess = () => {
-                results.push({ ...scene, id: request.result });
+                results.push(scene); // Scene already has UUID, no need to add request.result
                 completed++;
                 if (completed === scenes.length) {
                     resolve(results);

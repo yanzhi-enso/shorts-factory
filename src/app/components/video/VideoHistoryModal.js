@@ -4,7 +4,7 @@ import styles from "./VideoHistoryModal.module.css";
 
 const VideoHistoryModal = ({
     isOpen,
-    sceneId,
+    sceneDisplayName,
     sceneClips = [],
     selectedSceneClipId = null,
     onClose,
@@ -28,7 +28,7 @@ const VideoHistoryModal = ({
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
                 <div className={styles.header}>
-                    <h3 className={styles.title}>Video History - Scene {sceneId}</h3>
+                    <h3 className={styles.title}>Video History - {sceneDisplayName}</h3>
                     <button className={styles.closeButton} onClick={onClose}>
                         ×
                     </button>

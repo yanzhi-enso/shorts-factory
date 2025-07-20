@@ -11,12 +11,16 @@ import { analyzeImageForVideo } from 'services/backend';
 
 const VideoRow = ({
     scene,
+    sceneIndex,
     storyConfig,
     videoManager,
     onInputImageClick,
 }) => {
     const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
     const { id: sceneId, selectedGeneratedImage, generatedImages, selectedSceneClip, sceneClips, selectedSceneClipId } = scene;
+    
+    // Dynamic display name based on array position
+    const sceneDisplayName = `Scene-${sceneIndex + 1}`;
 
     // Internal state for this specific scene row
     const [prompt, setPrompt] = useState('');
@@ -119,7 +123,7 @@ const VideoRow = ({
 
     const inputImage = {
         imageUrl: selectedGeneratedImage,
-        title: `Scene ${sceneId} Input`,
+        title: `${sceneDisplayName} Input`,
     };
 
     return (
@@ -152,7 +156,7 @@ const VideoRow = ({
             <div className={styles.videoSection}>
                 <VideoBlock
                     videoUrl={selectedSceneClip}
-                    title={selectedSceneClip ? `${sceneId} Generated Video` : ''}
+                    title={selectedSceneClip ? `${sceneDisplayName} Generated Video` : ''}
                     variant='generated'
                     isEmpty={!selectedSceneClip}
                     isGenerating={isGeneratingVideo}
@@ -165,7 +169,7 @@ const VideoRow = ({
             {/* Video History Modal */}
             <VideoHistoryModal
                 isOpen={historyModalOpen}
-                sceneId={sceneId}
+                sceneDisplayName={sceneDisplayName}
                 sceneClips={sceneClips}
                 selectedSceneClipId={selectedSceneClipId}
                 onClose={handleHistoryModalClose}

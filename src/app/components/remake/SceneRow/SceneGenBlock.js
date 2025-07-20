@@ -7,6 +7,7 @@ import SceneGenHistoryModal from '../SceneGenHistoryModal';
 
 const SceneGenBlock = ({
     sceneId,
+    sceneDisplayName,
     generatedImages = [],
     selectedGeneratedImageId = null,
     onImageUpload,
@@ -102,7 +103,7 @@ const SceneGenBlock = ({
             {/* History Modal */}
             <SceneGenHistoryModal
                 isOpen={historyModalOpen}
-                sceneId={sceneId}
+                sceneDisplayName={sceneDisplayName}
                 generatedImages={generatedImages}
                 selectedGeneratedImageId={selectedGeneratedImageId}
                 onClose={handleHistoryModalClose}

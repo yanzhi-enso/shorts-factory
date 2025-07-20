@@ -53,7 +53,6 @@ class Database {
                     // Fresh installation - create new SCENES table with all fields
                     const sceneStore = db.createObjectStore(STORES.SCENES, {
                         keyPath: 'id',
-                        autoIncrement: true,
                     });
                     sceneStore.createIndex('project_id', 'project_id');
                     sceneStore.createIndex('scene_order', 'scene_order');

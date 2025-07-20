@@ -4,8 +4,10 @@ import styles from './SceneControlPanel.module.css';
 import Image from 'next/image';
 import Dropdown from '../../common/Dropdown';
 import ElementImageStack from '../ElementList/ElementImageStack';
+import { useElementManager } from '../ElementList/ElementSelectionManager';
 
 const SceneControlPanel = ({ 
+  sceneId,
   prompt = '', 
   onPromptChange, 
   onPromptAssistant,
@@ -16,6 +18,8 @@ const SceneControlPanel = ({
   imageCount = 1,
   onImageCountChange
 }) => {
+  // ElementSelectionManager integration
+  const { focusScene, blur } = useElementManager();
   // Image count options for dropdown
   const imageCountOptions = [
     { value: 1, label: '1 Image' },
@@ -43,16 +47,29 @@ const SceneControlPanel = ({
     }
   };
 
+  // Focus/blur handlers for ElementSelectionManager
+  const handleFocus = () => {
+    if (sceneId) {
+      focusScene(sceneId);
+    }
+  };
+
+  const handleBlur = () => {
+    blur();
+  };
+
   return (
     <div className={styles.controlPanel}>
       {/* Text Input Area */}
-      <ElementImageStack/>
       <div className={styles.textInputArea}>
+        <ElementImageStack sceneId={sceneId} />
         <textarea
           className={styles.promptInput}
           placeholder="Describe what happens in this scene (global changes will also be applied)"
           value={prompt}
           onChange={handlePromptChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           disabled={isPromptAssistantRunning}
           rows={6}
         />

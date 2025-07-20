@@ -1,8 +1,23 @@
 .container {
   width: 100%;
-  border: 1px dashed #c0c0c0;
+  border: 3px dashed #c0c0c0;
   padding: 1rem;
   border-radius: 16px;
+  transition: border 0.3s ease;
+}
+
+.container.activated {
+  border: 3px solid #007bff;
+  animation: containerPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes containerPulse {
+  0%, 100% {
+    border-color: #007bff;
+  }
+  50% {
+    border-color: #0056b3;
+  }
 }
 
 .list {
@@ -141,4 +156,41 @@
   line-height: 1.2;
   word-break: break-word;
   max-width: 90px;
+}
+
+/* Activated state for flashing animation */
+.toolBoxBlock.activated {
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 rgba(0, 123, 255, 0);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.4);
+  }
+}
+
+/* Disabled state */
+.toolBoxBlock.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toolBoxBlock.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.toolBoxBlock.empty.disabled {
+  border-color: #ddd;
+  background: #f0f0f0;
+}
+
+.toolBoxBlock.empty.disabled .plusIcon {
+  color: #bbb;
 }
