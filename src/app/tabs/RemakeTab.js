@@ -175,8 +175,11 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 </div>
             </div>
 
-            <div className={styles.rowsContainer}>
+            <div className={styles.elementListContainer}>
                 <ElementImageList/>
+            </div>
+
+            <div className={styles.rowsContainer}>
                 {selectedScenes.map((scene, index) => (
                     <SceneRow key={scene.id} scene={scene} sceneIndex={index} storyConfig={storyConfig} />
                 ))}

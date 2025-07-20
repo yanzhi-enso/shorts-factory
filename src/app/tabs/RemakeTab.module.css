@@ -124,6 +124,14 @@
   margin: 0;
 }
 
+.elementListContainer {
+  position: sticky;
+  margin-left: 24px;
+  margin-right: 24px;
+  overflow-y: hidden;
+  min-height: 180px;
+}
+
 .rowsContainer {
   flex: 1;
   display: flex;
@@ -134,6 +142,13 @@
   height: 100%;
   min-height: 100%;
   gap: 16px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.rowsContainer::-webkit-scrollbar {
+  height: none; /* adjust as needed */
 }
 
 /* Mobile responsiveness */
