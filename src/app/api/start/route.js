@@ -1,14 +1,37 @@
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
+import { v4 as uuidv4 } from 'uuid';
+import { createEmptyProjectFolder } from '../../../services/gcs.js';
 
 export async function POST(request) {
   const { video_url } = await request.json();
   
-  if (!video_url) {
-    return NextResponse.json(
-      { error: 'Missing video_url parameter' },
-      { status: 400 }
-    );
+  // If no video URL provided, create empty project
+  if (!video_url || video_url.trim() === '') {
+    try {
+      const projectId = uuidv4();
+      
+      // Create empty project folder using utility function
+      const result = await createEmptyProjectFolder(projectId);
+      
+      if (!result.success) {
+        console.error('Error creating empty project:', result.error);
+        return NextResponse.json(
+          { error: result.error || 'Failed to create empty project' },
+          { status: 500 }
+        );
+      }
+      
+      console.log(`Empty project created with ID: ${projectId}`);
+      return NextResponse.json({ project_id: projectId });
+      
+    } catch (error) {
+      console.error('Error creating empty project:', error);
+      return NextResponse.json(
+        { error: 'Failed to create empty project' },
+        { status: 500 }
+      );
+    }
   }
 
   try {

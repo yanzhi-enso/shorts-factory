@@ -226,6 +226,55 @@ export function replaceUrlsInResponse(obj, urlMapping) {
 
 
 /**
+ * Create an empty project folder in GCS
+ * @param {string} projectId - Project ID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function createEmptyProjectFolder(projectId) {
+    if (!projectId) {
+        return {
+            success: false,
+            error: 'Missing project ID parameter'
+        };
+    }
+
+    for (
+        let attempt = 1;
+        attempt <= GCS_CONFIG.RETRY_CONFIG.MAX_RETRIES;
+        attempt++
+    ) {
+        try {
+            console.log(
+                `Creating empty project folder (attempt ${attempt}/${GCS_CONFIG.RETRY_CONFIG.MAX_RETRIES}): ${projectId}`
+            );
+
+            // Create an empty folder by uploading a placeholder file then deleting it
+            const placeholderFile = bucket.file(`${projectId}/.placeholder`);
+            await placeholderFile.save('placeholder');
+            await placeholderFile.delete();
+
+            console.log(`Successfully created empty project folder: ${projectId}`);
+
+            return {
+                success: true
+            };
+        } catch (error) {
+            console.error(`Create empty project folder attempt ${attempt} failed:`, error);
+
+            if (attempt === GCS_CONFIG.RETRY_CONFIG.MAX_RETRIES) {
+                return {
+                    success: false,
+                    error: `Failed to create empty project folder after ${GCS_CONFIG.RETRY_CONFIG.MAX_RETRIES} attempts: ${error.message}`,
+                };
+            }
+
+            // Wait before retry
+            await sleep(GCS_CONFIG.RETRY_CONFIG.RETRY_DELAY * attempt);
+        }
+    }
+}
+
+/**
  * Create a Signed URL from GCS bucket
  * @param {string} projectId - Project ID
  * @param {string} assetType - Asset type (ELEMENT_IMAGES, GENERATED_IMAGES, CLIPS)
