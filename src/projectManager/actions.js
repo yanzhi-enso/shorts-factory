@@ -13,7 +13,8 @@ import {
     createProjectFromGCS, 
     getProject, 
     getAllProjects, 
-    updateProject 
+    updateProject,
+    deleteProject as deleteProjectStorage 
 } from '../storage/project.js';
 import { 
     getScenesByProject, 
@@ -782,6 +783,35 @@ export const createProjectActions = (dispatch, projectState) => {
         }
     };
 
+    /**
+     * Delete a project and all its related data
+     * Handles both local record deletion and GCS asset cleanup
+     */
+    const deleteProject = async (projectId) => {
+        dispatch({ type: PROJECT_ACTIONS.DELETE_PROJECT_START });
+
+        try {
+            // Check if project has scenes (for folder deletion logic)
+            const scenes = await getScenesByProject(projectId);
+            const hasScenes = scenes && scenes.length > 0;
+            
+            // Delete from persistent storage first (includes GCS cleanup)
+            await deleteProjectStorage(projectId);
+            
+            // Update local state second - no state update needed since this is for project listing
+            dispatch({ 
+                type: PROJECT_ACTIONS.DELETE_PROJECT_SUCCESS, 
+                payload: { projectId, hasScenes } 
+            });
+            
+            return { success: true, hasScenes };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to delete project';
+            dispatch({ type: PROJECT_ACTIONS.DELETE_PROJECT_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     // Return all action functions
     return {
         createProject,
@@ -805,6 +835,7 @@ export const createProjectActions = (dispatch, projectState) => {
         addElementImage: addElementImageAction,
         removeElementImage: removeElementImageAction,
         updateElementImage: updateElementImageAction,
-        updateElementImageIndex
+        updateElementImageIndex,
+        deleteProject
     };
 };

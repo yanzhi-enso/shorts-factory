@@ -9,7 +9,8 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 const StartTab = ({ onProcessComplete, onError }) => {
   const [projects, setProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { projectState, createProject, loadProject, getAllProjects } = useProjectManager();
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
+  const { projectState, createProject, loadProject, getAllProjects, deleteProject } = useProjectManager();
 
   // Load projects on component mount
   useEffect(() => {
@@ -92,9 +93,47 @@ const StartTab = ({ onProcessComplete, onError }) => {
   };
 
   const handleDeleteProject = async (projectId) => {
-    console.log(`Deleting project ${projectId}`);
-    console.warn('not implemented yet');
-  }
+    const project = projects.find(p => p.id === projectId);
+    const projectName = project?.name || 'Unknown';
+    
+    // Show confirmation dialog
+    const confirmMessage = `Are you sure you want to delete the project "${projectName}"? This action cannot be undone.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    // Set loading state for this specific project
+    setDeletingProjectId(projectId);
+    
+    try {
+      // Call the delete action
+      const result = await deleteProject(projectId);
+      
+      if (result.success) {
+        // Refresh projects list
+        const updatedProjects = await getAllProjects();
+        if (updatedProjects.success) {
+          setProjects(updatedProjects.projects);
+        }
+        
+        // Show success message
+        const folderMessage = result.hasScenes 
+          ? "Project and all associated data deleted successfully."
+          : "Project deleted successfully. Empty project folder was also removed.";
+        
+        alert(folderMessage);
+      } else {
+        // Show error alert as requested
+        alert(`Deletion failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert(`Deletion failed: ${error.message}`);
+    } finally {
+      // Clear loading state
+      setDeletingProjectId(null);
+    }
+  };
 
   // Use global loading state from ProjectManager
   if (projectState.loading) {
@@ -149,12 +188,13 @@ const StartTab = ({ onProcessComplete, onError }) => {
                 <div className={styles.projectCell}>
                 <button
                     className={styles.deleteButton}
+                    disabled={deletingProjectId === project.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteProject(project.id);
                     }}
                 >
-                  Delete
+                  {deletingProjectId === project.id ? 'Deleting...' : 'Delete'}
                 </button>
                 </div>
               </div>
