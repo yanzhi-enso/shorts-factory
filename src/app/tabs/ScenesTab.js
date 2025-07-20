@@ -12,16 +12,8 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
     const scenes = projectState.scenes || [];
 
     const handleNext = () => {
-        // Validation: check if any scenes are selected
-        if (!scenes.some(scene => scene.isSelected)) {
-            onError('Please select at least one scene to continue');
-            return;
-        }
-
         onNext();
     };
-
-    const hasSelectedScenes = scenes.some(scene => scene.isSelected);
 
     return (
         <div className={styles.container}>
@@ -44,8 +36,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
                 </div>
                 <button
                     onClick={handleNext}
-                    className={`${styles.stepButton} ${!hasSelectedScenes ? styles.disabled : ''}`}
-                    disabled={!hasSelectedScenes}
+                    className={styles.stepButton}
                 >
                     Next Step →
                 </button>
@@ -59,7 +50,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
                 {scenes.length > 0 ? (
                     <ImageGrid scenes={scenes}/>
                 ) : (
-                    <p className={styles.noImages}>No scenes found for this project</p>
+                    <p className={styles.noImages}>No scenes found for this project, create one in the next tab.</p>
                 )}
             </div>
         </div>
