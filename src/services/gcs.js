@@ -224,7 +224,6 @@ export function replaceUrlsInResponse(obj, urlMapping) {
     return obj;
 }
 
-
 /**
  * Create an empty project folder in GCS
  * @param {string} projectId - Project ID
