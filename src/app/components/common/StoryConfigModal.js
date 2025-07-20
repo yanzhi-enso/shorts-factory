@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from './StoryConfigModal.module.css';
+import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
 
 const StoryConfigModal = ({
     isOpen,
     storyDescription = '',
-    changeRequest = '',
+    imageMode = IMAGE_SIZE_PORTRAIT,
     originalVideoUrl = '',
     onSave,
     onSkip,
@@ -14,16 +15,16 @@ const StoryConfigModal = ({
 }) => {
     const [formData, setFormData] = useState({
         storyDescription: storyDescription,
-        changeRequest: changeRequest
+        imageMode: imageMode
     });
 
     // Update form data when props change (for editing existing values)
     useEffect(() => {
         setFormData({
             storyDescription: storyDescription,
-            changeRequest: changeRequest
+            imageMode: imageMode
         });
-    }, [storyDescription, changeRequest]);
+    }, [storyDescription, imageMode]);
 
     useEffect(() => {
         const handleEscape = (e) => {
@@ -74,7 +75,7 @@ const StoryConfigModal = ({
                 </button>
 
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Story & Change Configuration</h2>
+                    <h2 className={styles.title}>Story Configuration</h2>
                 </div>
 
                 <div className={styles.content}>
@@ -110,19 +111,30 @@ const StoryConfigModal = ({
                     </div>
 
                     <div className={styles.fieldGroup}>
-                        <label className={styles.fieldLabel}>🔄 Change Request</label>
+                        <label className={styles.fieldLabel}>📐 Image Mode</label>
                         <p className={styles.fieldInfo}>
-                            {
-                                "Describe what changes you'd like to apply to all scenes in your story. This could be style changes, mood adjustments, or specific modifications. This field is also optional."
-                            }
+                            Choose the aspect ratio for generated images in this project.
                         </p>
-                        <textarea
-                            className={styles.textarea}
-                            value={formData.changeRequest}
-                            onChange={(e) => handleInputChange('changeRequest', e.target.value)}
-                            placeholder='Describe the changes you want to apply...'
-                            rows={4}
-                        />
+                        <div className={styles.radioGroup}>
+                            <label className={styles.radioLabel}>
+                                <input
+                                    type="radio"
+                                    value={IMAGE_SIZE_PORTRAIT}
+                                    checked={formData.imageMode === IMAGE_SIZE_PORTRAIT}
+                                    onChange={(e) => handleInputChange('imageMode', e.target.value)}
+                                />
+                                Portrait (1024×1536)
+                            </label>
+                            <label className={styles.radioLabel}>
+                                <input
+                                    type="radio"
+                                    value={IMAGE_SIZE_LANDSCAPE}
+                                    checked={formData.imageMode === IMAGE_SIZE_LANDSCAPE}
+                                    onChange={(e) => handleInputChange('imageMode', e.target.value)}
+                                />
+                                Landscape (1536×1024)
+                            </label>
+                        </div>
                     </div>
                 </div>
 

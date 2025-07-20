@@ -132,6 +132,32 @@
   color: #999;
 }
 
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.radioLabel input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radioLabel input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
 .footer {
   padding: 16px 24px 24px 24px;
   border-top: 1px solid #e0e0e0;
