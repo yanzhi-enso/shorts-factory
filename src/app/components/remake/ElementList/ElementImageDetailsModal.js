@@ -132,55 +132,57 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
   }
 
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
-      <div className={styles.modal}>
-        <button className={styles.closeButton} onClick={onClose}>
-          ×
-        </button>
-        
-        <div className={styles.imageContainer}>
-          <div className={styles.imageSelector}>
-            {elementImage.gcsUrls.map((imageUrl, index) => (
-              <div
-                key={index}
-                className={`${styles.thumbnail} ${
-                  index === imgIdx ? styles.selected : ''
-                }`}
-                onClick={() => handleImageSelect(index)}
-              >
-                <Image
-                  src={imageUrl}
-                  alt={`Variant ${index + 1}`}
-                  width={60}
-                  height={60}
-                  className={styles.thumbnailImage}
-                />
+      <div className={styles.overlay} onClick={handleOverlayClick}>
+          <div className={styles.modal}>
+              <button className={styles.closeButton} onClick={onClose}>
+                  ×
+              </button>
+
+              <div className={styles.imageContainer}>
+                  <div className={styles.imageSelector}>
+                      {elementImage.gcsUrls.map((imageUrl, index) => (
+                          <div
+                              key={index}
+                              className={`${styles.thumbnail} ${
+                                  index === imgIdx ? styles.selected : ''
+                              }`}
+                              onClick={() => handleImageSelect(index)}
+                          >
+                              <Image
+                                  src={imageUrl}
+                                  alt={`Variant ${index + 1}`}
+                                  width={60}
+                                  height={60}
+                                  className={styles.thumbnailImage}
+                              />
+                          </div>
+                      ))}
+                  </div>
+                  <img
+                      src={elementImage.gcsUrls?.[imgIdx]}
+                      alt={elementImage.name || 'Element image'}
+                      className={styles.image}
+                  />
               </div>
-            ))}
-          </div>
-          <img
-            src={elementImage.gcsUrls?.[imgIdx]}
-            alt={elementImage.name || 'Element image'}
-            className={styles.image}
-          />
-        </div>
-        
-        <div className={styles.formContainer}>
-          <div className={styles.formField}>
-            <label htmlFor="name" className={styles.label}>Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter image name..."
-              className={styles.input}
-              disabled={isLoading}
-              onKeyDown={handleKeyDown}
-            />
-          </div>
-          
-          <div className={styles.formField}>
+
+              <div className={styles.formContainer}>
+                  {/*    <div className={styles.formField}>
+                      <label htmlFor='name' className={styles.label}>
+                          Name
+                      </label>
+                      <input
+                          id='name'
+                          type='text'
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder='Enter image name...'
+                          className={styles.input}
+                          disabled={isLoading}
+                          onKeyDown={handleKeyDown}
+                      />
+                  </div> 
+
+         <div className={styles.formField}>
             <label htmlFor="description" className={styles.label}>Description</label>
             <textarea
               id="description"
@@ -192,33 +194,29 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
               rows={3}
               onKeyDown={handleKeyDown}
             />
+          </div> */}
+
+                  {error && <div className={styles.error}>{error}</div>}
+
+                  <div className={styles.buttonContainer}>
+                      <button
+                          onClick={handleDelete}
+                          disabled={isDeleting || isLoading}
+                          className={`${styles.deleteButton} ${isDeleting ? styles.loading : ''}`}
+                      >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                      <button
+                          onClick={handleSave}
+                          disabled={isLoading || isDeleting}
+                          className={`${styles.saveButton} ${isLoading ? styles.loading : ''}`}
+                      >
+                          {isLoading ? 'Saving...' : 'Save'}
+                      </button>
+                  </div>
+              </div>
           </div>
-          
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
-          
-          <div className={styles.buttonContainer}>
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting || isLoading}
-              className={`${styles.deleteButton} ${isDeleting ? styles.loading : ''}`}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isLoading || isDeleting}
-              className={`${styles.saveButton} ${isLoading ? styles.loading : ''}`}
-            >
-              {isLoading ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
   );
 };
 
