@@ -74,6 +74,7 @@ export function projectReducer(state, action) {
             };
         
         case PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION:
+            console.log('Updating scene image selection for scene:', action.payload.sceneId);
             return {
                 ...state,
                 scenes: state.scenes.map(scene => 
@@ -191,6 +192,23 @@ export function projectReducer(state, action) {
                 scenes: state.scenes.map(scene => 
                     scene.id === action.payload.sceneId 
                         ? { ...scene, ...action.payload.updates }
+                        : scene
+                )
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_INDEX:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { 
+                            ...scene,
+                            generatedImages: scene.generatedImages.map(img =>
+                                img.id === action.payload.imageId
+                                    ? { ...img, selectedImageIdx: action.payload.selectedIndex }
+                                    : img
+                            )
+                          }
                         : scene
                 )
             };

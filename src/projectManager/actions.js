@@ -802,14 +802,27 @@ export const createProjectActions = (dispatch, projectState) => {
             // Transform to JavaScript format for state
             const updatedGeneratedImage = transformGeneratedImageToJS(rawGeneratedImage);
             
-            // Update local state second
-            dispatch({ 
-                type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION, 
-                payload: { 
-                    sceneId, 
-                    imageId: generatedImageId
-                }
+            // 1. Update the selectedImageIdx in the generatedImage record
+            dispatch({
+                type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_INDEX,
+                payload: {
+                    sceneId,
+                    imageId: generatedImageId,
+                    selectedIndex: selectedIndex,
+                },
             });
+            
+            // 2. If this is the currently selected generated image, update the selected image reference
+            const scene = projectState.scenes.find(s => s.id === sceneId);
+            if (scene?.selectedGeneratedImageId === generatedImageId) {
+                dispatch({
+                    type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION,
+                    payload: {
+                        sceneId,
+                        imageId: generatedImageId,
+                    },
+                });
+            }
             
             return { success: true, generatedImage: updatedGeneratedImage };
         } catch (err) {
@@ -955,31 +968,49 @@ export const createProjectActions = (dispatch, projectState) => {
         try {
             // Update in persistent storage first
             await updateScene(sceneId, updates);
-            
-            // Update local state second based on what was updated
-            const updatePayload = { sceneId, updates };
-            
+            console.log('updated scene from actions:', sceneId, updates);
+
+            const scene = projectState.scenes.find((s) => s.id === sceneId);
             // Handle specific UI state updates
             if (updates.selected_image_id) {
                 // Find the image to get its URL for state update
-                const scene = projectState.scenes.find(s => s.id === sceneId);
-                const selectedImage = scene?.sceneImages?.find(img => img.id === updates.selected_image_id);
+                const selectedImage = scene?.sceneImages?.find(
+                    (img) => img.id === updates.selected_image_id
+                );
                 if (selectedImage) {
-                    dispatch({ 
-                        type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION, 
-                        payload: { sceneId, imageUrl: selectedImage.gcsUrl } 
+                    dispatch({
+                        type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION,
+                        payload: { sceneId, imageUrl: selectedImage.gcsUrl },
                     });
                 }
             }
-            
+
+            if (updates.selected_generated_image_id) {
+                const selectedGeneratedImage = scene?.generatedImages?.find(
+                    (img) => img.id === updates.selected_generated_image_id
+                );
+                if (selectedGeneratedImage) {
+                    dispatch({
+                        type: PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION,
+                        payload: {
+                            sceneId,
+                            imageId: selectedGeneratedImage.id,
+                        },
+                    });
+                }
+            }
+
             // Handle title updates and other generic updates
-            if (updates.title !== undefined || Object.keys(updates).some(key => key !== 'selected_image_id')) {
-                dispatch({ 
-                    type: PROJECT_ACTIONS.UPDATE_SCENE_SUCCESS, 
-                    payload: updatePayload
+            if (
+                updates.title !== undefined ||
+                Object.keys(updates).some((key) => key !== 'selected_image_id')
+            ) {
+                dispatch({
+                    type: PROJECT_ACTIONS.UPDATE_SCENE_SUCCESS,
+                    payload: { sceneId, updates },
                 });
             }
-            
+
             return { success: true };
         } catch (err) {
             const errorMessage = err.message || 'Failed to update scene';
