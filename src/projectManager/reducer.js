@@ -87,28 +87,55 @@ export function projectReducer(state, action) {
         case PROJECT_ACTIONS.ADD_GENERATED_IMAGE_SUCCESS:
             return {
                 ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            generatedImages: [action.payload.generatedImage, ...scene.generatedImages],
-                            selectedGeneratedImageId: action.payload.generatedImage.id
-                          }
-                        : scene
-                )
+                scenes: state.scenes.map(scene => {
+                    if (scene.id !== action.payload.sceneId) {
+                        return scene;
+                    }
+                    
+                    const newGeneratedImage = action.payload.generatedImage;
+                    
+                    // Derive the selected generated image URL from the new image
+                    const selectedGeneratedImageUrl = newGeneratedImage && 
+                        newGeneratedImage.gcsUrls && 
+                        newGeneratedImage.gcsUrls.length > 0
+                            ? newGeneratedImage.gcsUrls[newGeneratedImage.selectedImageIdx] || newGeneratedImage.gcsUrls[0]
+                            : null;
+                    
+                    return { 
+                        ...scene, 
+                        generatedImages: [newGeneratedImage, ...scene.generatedImages],
+                        selectedGeneratedImageId: newGeneratedImage.id,
+                        selectedGeneratedImage: selectedGeneratedImageUrl
+                    };
+                })
             };
         
         case PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_SELECTION:
             return {
                 ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene, 
-                            selectedGeneratedImageId: action.payload.imageId
-                          }
-                        : scene
-                )
+                scenes: state.scenes.map(scene => {
+                    if (scene.id !== action.payload.sceneId) {
+                        return scene;
+                    }
+                    
+                    // Find the selected generated image to derive its URL
+                    const selectedGeneratedImage = scene.generatedImages.find(
+                        img => img.id === action.payload.imageId
+                    );
+                    
+                    // Derive the selected generated image URL
+                    const selectedGeneratedImageUrl = selectedGeneratedImage && 
+                        selectedGeneratedImage.gcsUrls && 
+                        selectedGeneratedImage.gcsUrls.length > 0
+                            ? selectedGeneratedImage.gcsUrls[selectedGeneratedImage.selectedImageIdx] || selectedGeneratedImage.gcsUrls[0]
+                            : null;
+                    
+                    return { 
+                        ...scene, 
+                        selectedGeneratedImageId: action.payload.imageId,
+                        selectedGeneratedImage: selectedGeneratedImageUrl
+                    };
+                })
             };
         
         case PROJECT_ACTIONS.ADD_GENERATED_CLIP_SUCCESS:
@@ -199,18 +226,37 @@ export function projectReducer(state, action) {
         case PROJECT_ACTIONS.UPDATE_GENERATED_IMAGE_INDEX:
             return {
                 ...state,
-                scenes: state.scenes.map(scene => 
-                    scene.id === action.payload.sceneId 
-                        ? { 
-                            ...scene,
-                            generatedImages: scene.generatedImages.map(img =>
-                                img.id === action.payload.imageId
-                                    ? { ...img, selectedImageIdx: action.payload.selectedIndex }
-                                    : img
-                            )
-                          }
-                        : scene
-                )
+                scenes: state.scenes.map(scene => {
+                    if (scene.id !== action.payload.sceneId) {
+                        return scene;
+                    }
+                    
+                    // Update the generated image's selected index
+                    const updatedGeneratedImages = scene.generatedImages.map(img =>
+                        img.id === action.payload.imageId
+                            ? { ...img, selectedImageIdx: action.payload.selectedIndex }
+                            : img
+                    );
+                    
+                    // If this is the currently selected generated image, update the URL
+                    let updatedSelectedGeneratedImage = scene.selectedGeneratedImage;
+                    if (scene.selectedGeneratedImageId === action.payload.imageId) {
+                        const updatedGeneratedImage = updatedGeneratedImages.find(
+                            img => img.id === action.payload.imageId
+                        );
+                        updatedSelectedGeneratedImage = updatedGeneratedImage && 
+                            updatedGeneratedImage.gcsUrls && 
+                            updatedGeneratedImage.gcsUrls.length > 0
+                                ? updatedGeneratedImage.gcsUrls[action.payload.selectedIndex] || updatedGeneratedImage.gcsUrls[0]
+                                : null;
+                    }
+                    
+                    return { 
+                        ...scene,
+                        generatedImages: updatedGeneratedImages,
+                        selectedGeneratedImage: updatedSelectedGeneratedImage
+                    };
+                })
             };
         
         default:
