@@ -12,12 +12,17 @@ import ElementImageList from 'app/components/remake/ElementList/ElementImageList
 import ElementGenModal from 'app/components/remake/ElementGenModal';
 import AddSceneButton from 'app/components/remake/AddSceneButton/AddSceneButton';
 import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
+import SceneGenHistoryModal from 'app/components/remake/SceneGenHistoryModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
     const [isExporting, setIsExporting] = useState(false);
     const [referenceModalState, setReferenceModalState] = useState({
+        isOpen: false,
+        scene: null,
+    });
+    const [sceneHistoryModal, setSceneHistoryModal] = useState({
         isOpen: false,
         scene: null,
     });
@@ -112,6 +117,20 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     const closeModal = () => {
         setReferenceModalState({
+            isOpen: false,
+            scene: null,
+        });
+    };
+
+    const handleOpenHistoryModal = (scene) => {
+        setSceneHistoryModal({
+            isOpen: true,
+            scene: scene,
+        });
+    };
+
+    const handleCloseHistoryModal = () => {
+        setSceneHistoryModal({
             isOpen: false,
             scene: null,
         });
@@ -218,6 +237,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                             sceneIndex={index} 
                             storyConfig={storyConfig} 
                             onReferenceImageClick={handleReferenceImageClick}
+                            onOpenHistoryModal={handleOpenHistoryModal}
                         />
                         
                         {/* Add Scene Button */}
@@ -239,6 +259,12 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 isOpen={referenceModalState.isOpen}
                 onClose={closeModal}
                 scene={referenceModalState.scene}
+            />
+
+            <SceneGenHistoryModal
+                isOpen={sceneHistoryModal.isOpen}
+                onClose={handleCloseHistoryModal}
+                scene={sceneHistoryModal.scene}
             />
         </div>
     );

@@ -15,8 +15,8 @@
 .modal {
   background: white;
   border-radius: 12px;
-  max-width: 800px;
-  max-height: 80vh;
+  max-width: 1200px;
+  max-height: 90vh;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -25,7 +25,7 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e0e0e0;
@@ -37,73 +37,109 @@
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  text-align: center;
 }
 
-.closeButton {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 32px;
-  height: 32px;
+/* Main Content - Two Column Layout */
+.mainContent {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background 0.2s ease;
-}
-
-.closeButton:hover {
-  background: #f5f5f5;
-  color: #333;
-}
-
-.content {
-  padding: 24px;
-  overflow-y: auto;
   flex: 1;
-}
-
-.imageGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
-}
-
-.imageItem {
-  cursor: pointer;
-  border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background: #f5f5f5;
+  min-height: 0;
 }
 
-.imageItem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* Left Column - Record List */
+.leftColumn {
+  width: 280px;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
 }
 
-.imageItem.selected {
-  border: 3px solid #007bff;
-  box-shadow: 0 0 0 1px #007bff;
+.recordList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
 }
 
+.recordItem {
+  display: flex;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.recordItem:hover {
+  background: #f8f9fa;
+}
+
+.recordItem.selected {
+  background: #e3f2fd;
+  border-color: #007bff;
+}
+
+.recordThumbnail {
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.recordImage {
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.recordInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.recordLabel {
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.imageCount {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.recordDate {
+  font-size: 11px;
+  color: #888;
+}
+
+/* Upload Button */
 .uploadItem {
   border: 2px dashed #ccc;
   background: #fafafa;
+  margin: 16px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 225px;
+  min-height: 80px;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .uploadItem:hover {
   border-color: #007bff;
   background: #f0f8ff;
-  transform: translateY(-2px);
+}
+
+.uploadItem.uploading {
+  border-color: #007bff;
+  background: #f0f8ff;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .uploadContent {
@@ -111,12 +147,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   text-align: center;
 }
 
 .uploadIcon {
-  font-size: 32px;
+  font-size: 24px;
   color: #666;
   margin-bottom: 8px;
   transition: color 0.2s ease;
@@ -127,7 +163,7 @@
 }
 
 .uploadText {
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -137,48 +173,198 @@
   color: #007bff;
 }
 
-.image {
-  width: 100%;
-  height: 225px;
+/* Right Column - Details */
+.rightColumn {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Image Viewer */
+.imageViewer {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.mainImageContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.mainImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnailRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.thumbnailItem {
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.thumbnailItem:hover {
+  border-color: #ccc;
+}
+
+.thumbnailItem.thumbnailSelected {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.thumbnailImage {
+  border-radius: 4px;
   object-fit: cover;
+}
+
+/* Metadata Panel */
+.metadataPanel {
+  flex: 0 0 40%;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+
+.metadataTitle {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.metadataSection {
+  margin-bottom: 16px;
+}
+
+.metadataLabel {
   display: block;
-}
-
-.imageLabel {
-  padding: 8px 12px;
   font-size: 12px;
+  font-weight: 600;
   color: #666;
-  text-align: center;
-  background: white;
-  border-top: 1px solid #e0e0e0;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
-.emptyState {
+.metadataValue {
+  font-size: 14px;
+  color: #333;
+}
+
+.currentSelection {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.jsonDisplay {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Placeholder Content */
+.placeholderContent {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
   text-align: center;
+  padding: 60px 20px;
+  color: #666;
 }
 
-.emptyIcon {
+.placeholderIcon {
   font-size: 48px;
   margin-bottom: 16px;
   opacity: 0.5;
 }
 
-.emptyText {
+.placeholderText {
   font-size: 18px;
-  color: #666;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
 
-.emptySubtext {
+.placeholderSubtext {
   font-size: 14px;
-  color: #888;
   margin: 0;
+  opacity: 0.8;
+}
+
+/* Action Panel */
+.actionPanel {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  flex-shrink: 0;
+}
+
+.cancelButton,
+.saveButton {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+}
+
+.cancelButton {
+  background: white;
+  color: #666;
+  border-color: #ddd;
+}
+
+.cancelButton:hover {
+  background: #f8f9fa;
+  border-color: #999;
+}
+
+.saveButton {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.saveButton:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Mobile responsiveness */
@@ -188,7 +374,7 @@
   }
   
   .modal {
-    max-height: 90vh;
+    max-height: 95vh;
   }
   
   .header {
@@ -199,28 +385,77 @@
     font-size: 16px;
   }
   
-  .content {
-    padding: 20px;
+  .mainContent {
+    flex-direction: column;
   }
   
-  .imageGrid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px;
+  .leftColumn {
+    width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
   }
   
-  .image {
-    height: 180px;
+  .recordList {
+    padding: 12px;
   }
   
-  .emptyState {
-    padding: 40px 20px;
+  .recordItem {
+    padding: 8px;
   }
   
-  .emptyIcon {
-    font-size: 36px;
+  .uploadItem {
+    margin: 12px;
+    min-height: 60px;
   }
   
-  .emptyText {
-    font-size: 16px;
+  .rightColumn {
+    flex-direction: column;
+  }
+  
+  .imageViewer {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 16px;
+  }
+  
+  .metadataPanel {
+    flex: none;
+    padding: 16px;
+  }
+  
+  .actionPanel {
+    padding: 12px 16px;
+  }
+  
+  .thumbnailRow {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .recordItem {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .recordThumbnail {
+    margin-right: 0;
+    margin-bottom: 8px;
+    align-self: center;
+  }
+  
+  .mainImageContainer {
+    margin-bottom: 12px;
+  }
+  
+  .actionPanel {
+    flex-direction: column;
+  }
+  
+  .cancelButton,
+  .saveButton {
+    width: 100%;
   }
 }

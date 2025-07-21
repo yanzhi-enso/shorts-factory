@@ -1,39 +1,21 @@
 "use client";
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import styles from './SceneGenBlock.module.css';
 import Image from 'next/image';
-import SceneGenHistoryModal from '../SceneGenHistoryModal';
 
 const SceneGenBlock = ({
-    sceneId,
+    scene,
     sceneDisplayName,
-    generatedImages = [],
-    selectedGeneratedImageId = null,
-    onImageUpload,
-    onImageSelect,
+    onOpenHistoryModal,
 }) => {
-    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    // Extract data from scene object
+    const { id: sceneId, generatedImages = [], selectedGeneratedImageId = null } = scene;
 
     const handleClick = () => {
-        // Always open history modal when clicked - this allows both selection and upload
-        setHistoryModalOpen(true);
-    };
-
-    const handleHistoryModalClose = () => {
-        setHistoryModalOpen(false);
-    };
-
-    const handleSelectFromHistory = (selectedImageId) => {
-        if (onImageSelect) {
-            onImageSelect(selectedImageId);
-        }
-        setHistoryModalOpen(false);
-    };
-
-    const handleImageUploadFromModal = (imageFile) => {
-        if (onImageUpload) {
-            onImageUpload(imageFile);
+        // Open centralized modal with scene data
+        if (onOpenHistoryModal) {
+            onOpenHistoryModal(scene);
         }
     };
 
@@ -42,7 +24,7 @@ const SceneGenBlock = ({
         return generatedImages.find(
             (img) => img.id === selectedGeneratedImageId
         );
-    }, [selectedGeneratedImageId])
+    }, [generatedImages, selectedGeneratedImageId]);
 
     const renderContent = useCallback(() => {
         if (!selectedImageData) {
@@ -78,39 +60,25 @@ const SceneGenBlock = ({
                 className={styles.image}
             />
         );
-    }, [selectedGeneratedImageId, selectedImageData?.selectedImageIdx]);
+    }, [selectedImageData, sceneId]);
 
     return (
-        <>
-            <div
-                className={`${styles.imageBlock} ${!selectedImageData ? styles.empty : ''} ${
-                    styles.generated
-                }`}
-                onClick={handleClick}
-            >
-                {renderContent()}
+        <div
+            className={`${styles.imageBlock} ${!selectedImageData ? styles.empty : ''} ${
+                styles.generated
+            }`}
+            onClick={handleClick}
+        >
+            {renderContent()}
 
-                {/* Show history indicator if there are multiple images */}
-                {generatedImages.length > 1 && (
-                    <div className={styles.historyIndicator}>
-                        {generatedImages.findIndex((img) => img.id === selectedGeneratedImageId) +
-                            1}
-                        /{generatedImages.length}
-                    </div>
-                )}
-            </div>
-
-            {/* History Modal */}
-            <SceneGenHistoryModal
-                isOpen={historyModalOpen}
-                sceneDisplayName={sceneDisplayName}
-                generatedImages={generatedImages}
-                selectedGeneratedImageId={selectedGeneratedImageId}
-                onClose={handleHistoryModalClose}
-                onSelectImage={handleSelectFromHistory}
-                onImageUpload={handleImageUploadFromModal}
-            />
-        </>
+            {/* Show history indicator if there are multiple images */}
+            {generatedImages.length > 1 && (
+                <div className={styles.historyIndicator}>
+                    {generatedImages.findIndex((img) => img.id === selectedGeneratedImageId) + 1}
+                    /{generatedImages.length}
+                </div>
+            )}
+        </div>
     );
 };
 

@@ -12,7 +12,7 @@ import { useElementManager } from '../ElementList/ElementSelectionManager';
 import { ASSET_TYPES } from 'constants/gcs';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
-const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick }) => {
+const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpenHistoryModal }) => {
     const {
         handleSceneImageUpload,
         projectState,
@@ -165,12 +165,9 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick }) => 
             {/* Generated Image */}
             <div className={styles.imageSection}>
                 <SceneGenBlock
-                    sceneId={sceneId}
+                    scene={scene}
                     sceneDisplayName={sceneDisplayName}
-                    generatedImages={generatedImages}
-                    selectedGeneratedImageId={selectedGeneratedImageId}
-                    onImageUpload={handleImageUploadInternal}
-                    onImageSelect={handleImageSelect}
+                    onOpenHistoryModal={onOpenHistoryModal}
                 />
             </div>
         </div>

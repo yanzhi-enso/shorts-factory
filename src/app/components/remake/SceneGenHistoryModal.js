@@ -1,128 +1,332 @@
 "use client";
 
-import { useRef } from 'react';
-import { FaUpload } from "react-icons/fa";
-import styles from "./SceneGenHistoryModal.module.css";
-import Image from "next/image";
+import { useState, useEffect, useRef } from 'react';
+import { FaUpload } from 'react-icons/fa';
+import { useProjectManager } from 'projectManager/useProjectManager';
+import styles from './SceneGenHistoryModal.module.css';
+import Image from 'next/image';
 
-const SceneGenHistoryModal = ({
-    isOpen,
-    sceneDisplayName,
-    generatedImages = [],
-    selectedGeneratedImageId = null,
-    onClose,
-    onSelectImage,
-    onImageUpload,
-}) => {
+const SceneGenHistoryModal = ({ isOpen, scene, onClose }) => {
     const fileInputRef = useRef(null);
+
+    // Get project manager functions and state
+    const { updateScene, updateGeneratedImageIndex, handleSceneImageUpload } = useProjectManager();
+
+    // Get scene data from project state
+    console.log('SceneGenHistoryModal - scene:', scene);
+    const recreatedImages = scene?.generatedImages || [];
+    console.log('SceneGenHistoryModal - recreatedImages:', recreatedImages);
+    const selectedGeneratedImageId = scene?.selectedGeneratedImageId;
+    console.log('SceneGenHistoryModal - selectedGeneratedImageId:', selectedGeneratedImageId);
+
+    // Local state for modal interactions
+    const [selectedRecordId, setSelectedRecordId] = useState(selectedGeneratedImageId);
+    const [localSelectedImageIdx, setLocalSelectedImageIdx] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+
+    // Update local state when props change
+    useEffect(() => {
+        if (selectedGeneratedImageId) {
+            setSelectedRecordId(selectedGeneratedImageId);
+            // Set initial image index based on the record's selectedImageIdx
+            const selectedRecord = recreatedImages.find(
+                (img) => img.id === selectedGeneratedImageId
+            );
+            if (selectedRecord) {
+                setLocalSelectedImageIdx(selectedRecord.selectedImageIdx || 0);
+            }
+        } else if (recreatedImages.length > 0) {
+            // If no selection but images exist, select first one
+            setSelectedRecordId(recreatedImages[0].id);
+            setLocalSelectedImageIdx(recreatedImages[0].selectedImageIdx || 0);
+        }
+    }, [selectedGeneratedImageId, recreatedImages]);
 
     if (!isOpen) return null;
 
-    const handleImageClick = (imageId) => {
-        if (onSelectImage) {
-            onSelectImage(imageId);
+    // Get current selected record
+    const selectedRecord = recreatedImages.find((img) => img.id === selectedRecordId);
+    const currentImageUrl =
+        selectedRecord?.gcsUrls?.[localSelectedImageIdx] || selectedRecord?.gcsUrls?.[0];
+
+    const handleRecordSelect = (recordId) => {
+        setSelectedRecordId(recordId);
+        const record = recreatedImages.find((img) => img.id === recordId);
+        if (record) {
+            setLocalSelectedImageIdx(record.selectedImageIdx || 0);
         }
+    };
+
+    const handleThumbnailClick = (imageIndex) => {
+        setLocalSelectedImageIdx(imageIndex);
+    };
+
+    const handleSave = async () => {
+        try {
+            console.log('Saving changes for record:', selectedRecordId);
+            // 1. Update scene's selected_generated_image_id if changed
+            if (selectedRecordId !== selectedGeneratedImageId) {
+                console.log('Updating selectedImageId to:', selectedRecordId);
+                await updateScene(scene.id, {
+                    selected_generated_image_id: selectedRecordId,
+                });
+            }
+
+            // 2. Update selected_image_idx for the record if changed
+            if (selectedRecord && localSelectedImageIdx !== selectedRecord.selectedImageIdx) {
+                console.log('Updating selectedImageIdx to:', localSelectedImageIdx);
+                await updateGeneratedImageIndex(scene.id, selectedRecordId, localSelectedImageIdx);
+            }
+
+            onClose();
+        } catch (error) {
+            console.error('Save failed:', error);
+            alert('Failed to save changes');
+        }
+    };
+
+    const handleCancel = () => {
+        onClose();
     };
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
         const file = e.target.files?.[0];
-        if (file && onImageUpload) {
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select only PNG, JPEG, or WebP images');
-                e.target.value = '';
-                return;
-            }
 
-            // Pass the file directly to the parent handler
-            onImageUpload(file);
+        if (!file) return;
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select only PNG, JPEG, or WebP images');
+            e.target.value = '';
+            return;
         }
-        // Reset the input so the same file can be selected again
-        e.target.value = '';
+
+        setIsUploading(true);
+
+        try {
+            const result = await handleSceneImageUpload(scene.id, file);
+            if (result.success) {
+                // New image becomes selected
+                setSelectedRecordId(result.generatedImage.id);
+                setLocalSelectedImageIdx(0);
+            } else {
+                alert('Failed to upload image: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Failed to upload image');
+        } finally {
+            setIsUploading(false);
+            e.target.value = '';
+        }
     };
 
     const handleOverlayClick = (e) => {
         if (e.target === e.currentTarget) {
-            onClose();
+            handleCancel();
         }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleString();
     };
 
     return (
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
                 <div className={styles.header}>
-                    <h3 className={styles.title}>Image History - {sceneDisplayName}</h3>
-                    <button className={styles.closeButton} onClick={onClose}>
-                        ×
-                    </button>
+                    <h3 className={styles.title}>
+                        Scene Image History - {scene?.title || `Scene ${scene?.sceneOrder || ''}`}
+                    </h3>
                 </div>
 
-                <div className={styles.content}>
-                    <div className={styles.imageGrid}>
-                        {/* Existing images */}
-                        {generatedImages.map((imageItem, index) => {
-                            const isSelected = selectedGeneratedImageId === imageItem.id;
-                            const imageType = imageItem.generationSources
-                                ? 'Generated'
-                                : 'Uploaded';
+                <div className={styles.mainContent}>
+                    {/* Left Column - Record List */}
+                    <div className={styles.leftColumn}>
+                        <div className={styles.recordList}>
+                            {recreatedImages.map((record, index) => {
+                                const isSelected = selectedRecordId === record.id;
+                                const thumbnailUrl =
+                                    record.gcsUrls?.[record.selectedImageIdx] ||
+                                    record.gcsUrls?.[0];
+                                const imageType = record.generationSources
+                                    ? 'Generated'
+                                    : 'Uploaded';
 
-                            // Get current image URL from the multi-image structure
-                            const currentImageUrl = imageItem.gcsUrls?.[imageItem.selectedImageIdx] || imageItem.gcsUrls?.[0];
-
-                            return (
-                                <div
-                                    key={imageItem.id}
-                                    className={`${styles.imageItem} ${
-                                        isSelected ? styles.selected : ''
-                                    }`}
-                                    onClick={() => handleImageClick(imageItem.id)}
-                                >
-                                    <Image
-                                        src={currentImageUrl}
-                                        alt={`${imageType} ${index + 1}`}
-                                        width={150}
-                                        height={225}
-                                        className={styles.image}
-                                    />
-                                    <div className={styles.imageLabel}>
-                                        {imageType === 'Uploaded' ? '📁 Uploaded' : '🎨 Generated'}{' '}
-                                        {index + 1}
-                                        {imageItem.gcsUrls?.length > 1 && (
-                                            <span className={styles.imageCount}>
-                                                {' '}({imageItem.selectedImageIdx + 1}/{imageItem.gcsUrls.length})
-                                            </span>
-                                        )}
+                                return (
+                                    <div
+                                        key={record.id}
+                                        className={`${styles.recordItem} ${
+                                            isSelected ? styles.selected : ''
+                                        }`}
+                                        onClick={() => handleRecordSelect(record.id)}
+                                    >
+                                        <div className={styles.recordThumbnail}>
+                                            <Image
+                                                src={thumbnailUrl}
+                                                alt={`${imageType} ${index + 1}`}
+                                                width={80}
+                                                height={120}
+                                                className={styles.recordImage}
+                                            />
+                                        </div>
+                                        <div className={styles.recordInfo}>
+                                            <div className={styles.recordLabel}>
+                                                {imageType === 'Uploaded'
+                                                    ? '📁 Uploaded'
+                                                    : '🎨 Generated'}{' '}
+                                                #{index + 1}
+                                            </div>
+                                            {record.gcsUrls?.length > 1 && (
+                                                <div className={styles.imageCount}>
+                                                    {record.gcsUrls.length} images
+                                                </div>
+                                            )}
+                                            <div className={styles.recordDate}>
+                                                {formatDate(record.createdAt)}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
 
-                        {/* Upload button - always visible as last item */}
+                        {/* Upload Button */}
                         <div
-                            className={`${styles.imageItem} ${styles.uploadItem}`}
-                            onClick={handleUploadClick}
+                            className={`${styles.uploadItem} ${
+                                isUploading ? styles.uploading : ''
+                            }`}
+                            onClick={!isUploading ? handleUploadClick : undefined}
                         >
                             <div className={styles.uploadContent}>
                                 <FaUpload className={styles.uploadIcon} />
-                                <div className={styles.uploadText}>Upload Image</div>
+                                <div className={styles.uploadText}>
+                                    {isUploading ? 'Uploading...' : 'Upload New Image'}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Show empty state only when no images and no upload button would be confusing */}
-                    {generatedImages.length === 0 && (
-                        <div className={styles.emptyState}>
-                            <div className={styles.emptyIcon}>📸</div>
-                            <p className={styles.emptyText}>No images yet</p>
-                            <p className={styles.emptySubtext}>
-                                Generate images or upload your own to see them here
-                            </p>
-                        </div>
-                    )}
+                    {/* Right Column - Details */}
+                    <div className={styles.rightColumn}>
+                        {selectedRecord ? (
+                            <>
+                                {/* Image Viewer */}
+                                <div className={styles.imageViewer}>
+                                    <div className={styles.mainImageContainer}>
+                                        <Image
+                                            src={currentImageUrl}
+                                            alt='Selected image'
+                                            width={400}
+                                            height={600}
+                                            className={styles.mainImage}
+                                        />
+                                    </div>
+
+                                    {/* Thumbnail Row */}
+                                    {selectedRecord.gcsUrls &&
+                                        selectedRecord.gcsUrls.length > 1 && (
+                                            <div className={styles.thumbnailRow}>
+                                                {selectedRecord.gcsUrls.map((url, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={`${styles.thumbnailItem} ${
+                                                            index === localSelectedImageIdx
+                                                                ? styles.thumbnailSelected
+                                                                : ''
+                                                        }`}
+                                                        onClick={() => handleThumbnailClick(index)}
+                                                    >
+                                                        <Image
+                                                            src={url}
+                                                            alt={`Image ${index + 1}`}
+                                                            width={60}
+                                                            height={90}
+                                                            className={styles.thumbnailImage}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                </div>
+
+                                {/* Metadata Panel */}
+                                <div className={styles.metadataPanel}>
+                                    <h4 className={styles.metadataTitle}>Details</h4>
+
+                                    <div className={styles.metadataSection}>
+                                        <label className={styles.metadataLabel}>Type:</label>
+                                        <div className={styles.metadataValue}>
+                                            {selectedRecord.generationSources
+                                                ? 'Generated'
+                                                : 'Uploaded'}
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.metadataSection}>
+                                        <label className={styles.metadataLabel}>Created:</label>
+                                        <div className={styles.metadataValue}>
+                                            {formatDate(selectedRecord.createdAt)}
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.metadataSection}>
+                                        <label className={styles.metadataLabel}>Images:</label>
+                                        <div className={styles.metadataValue}>
+                                            {selectedRecord.gcsUrls?.length || 1}
+                                            {selectedRecord.gcsUrls?.length > 1 && (
+                                                <span className={styles.currentSelection}>
+                                                    {' '}
+                                                    (viewing {localSelectedImageIdx + 1})
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {selectedRecord.generationSources && (
+                                        <div className={styles.metadataSection}>
+                                            <label className={styles.metadataLabel}>
+                                                Generation Sources:
+                                            </label>
+                                            <pre className={styles.jsonDisplay}>
+                                                {JSON.stringify(
+                                                    selectedRecord.generationSources,
+                                                    null,
+                                                    2
+                                                )}
+                                            </pre>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.placeholderContent}>
+                                <div className={styles.placeholderIcon}>📸</div>
+                                <p className={styles.placeholderText}>No images available</p>
+                                <p className={styles.placeholderSubtext}>
+                                    Generate or upload images to see them here
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Action Panel */}
+                <div className={styles.actionPanel}>
+                    <button className={styles.cancelButton} onClick={handleCancel}>
+                        Cancel
+                    </button>
+                    <button
+                        className={styles.saveButton}
+                        onClick={handleSave}
+                        disabled={!selectedRecord}
+                    >
+                        Save
+                    </button>
                 </div>
 
                 {/* Hidden file input */}
