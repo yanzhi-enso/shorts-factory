@@ -19,15 +19,21 @@ import {
 import { 
     getScenesByProject, 
     getProjectSceneImages, 
-    getElementImages, 
+    getSceneImages,
     updateScene, 
     addRecreatedSceneImage, 
+    updateRecreatedSceneImageSelection, 
+    createScene,
+    deleteScene,
+    createSceneImages
+} from '../storage/scene.js';
+import { 
+    getElementImages,
     addElementImage, 
     removeElementImage, 
     updateElementImage, 
-    updateRecreatedSceneImageSelection, 
     updateElementImageSelection
-} from '../storage/scene.js';
+} from '../storage/elementImages.js';
 import { 
     addSceneClip 
 } from '../storage/clip.js';
@@ -35,7 +41,7 @@ import {
     validateProjectExists, isStageAdvancement
 } from 'utils/client/projectValidation';
 import { 
-    uploadImage, IMAGE_TYPE_ELEMENT, IMAGE_TYPE_GENERATED_SCENE
+    uploadImage, IMAGE_TYPE_ELEMENT, IMAGE_TYPE_GENERATED_SCENE, IMAGE_TYPE_REFERENCE_SCENE
 } from 'utils/client/upload';
 import { PROJECT_ACTIONS } from './constants';
 import { 
@@ -655,6 +661,61 @@ export const createProjectActions = (dispatch, projectState) => {
     };
 
     /**
+     * Handle reference image upload for a scene
+     * @param {string} sceneId - The scene ID to attach the reference image to
+     * @param {File} imageFile - The image file to upload
+     * @returns {Promise<Object>} Result object with success status
+     */
+    const handleReferenceImageUpload = async (sceneId, imageFile) => {
+        try {
+            // 1. Upload file to GCS using IMAGE_TYPE_REFERENCE_SCENE
+            const uploadResult = await uploadImage(
+                imageFile, 
+                IMAGE_TYPE_REFERENCE_SCENE,
+                projectState.curProjId
+            );
+            
+            if (!uploadResult.success) {
+                return uploadResult;
+            }
+
+            // 2. Create scene image record in database
+            const sceneImages = await createSceneImages([{
+                scene_id: sceneId,
+                gcs_url: uploadResult.public_url,
+                image_order: 0
+            }]);
+
+            const sceneImage = sceneImages[0];
+
+            // 3. Update scene to select this reference image
+            await updateScene(sceneId, { 
+                selected_image_id: sceneImage.id 
+            });
+
+            // 4. Update UI state
+            dispatch({ 
+                type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION, 
+                payload: { 
+                    sceneId, 
+                    imageUrl: uploadResult.public_url 
+                } 
+            });
+
+            return {
+                success: true,
+                imageId: uploadResult.image_id,
+                publicUrl: uploadResult.public_url,
+                sceneImage: sceneImage
+            };
+
+        } catch (error) {
+            console.error('Reference image upload failed:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    /**
      * Add a new element image to the project
      */
     const addElementImageAction = async (
@@ -812,6 +873,121 @@ export const createProjectActions = (dispatch, projectState) => {
         }
     };
 
+    /**
+     * Add a new scene to the current project
+     * @param {Object|null} beforeScene - Scene to insert after (null for first scene)
+     * @param {Object|null} afterScene - Scene to insert before (null for append)
+     * @param {Object} metadata - Scene metadata and settings
+     * @param {string|null} referenceImageUrl - Optional reference image URL
+     * @returns {Promise<Object>} Result object with success status and created scene
+     */
+    const addScene = async (beforeScene, afterScene, metadata = {}, referenceImageUrl = null) => {
+        try {
+            // Create scene in persistent storage first (returns raw DB object)
+            const rawScene = await createScene(
+                projectState.curProjId, 
+                beforeScene, 
+                afterScene, 
+                metadata, 
+                referenceImageUrl
+            );
+            
+            // Enrich the scene with the full data structure
+            const sceneImagesMap = {};
+            if (referenceImageUrl) {
+                // If there's a reference image,
+                // we need to get it to include in enrichment
+                const sceneImages = await getSceneImages(rawScene.id);
+                sceneImagesMap[rawScene.id] = sceneImages;
+            } else {
+                sceneImagesMap[rawScene.id] = [];
+            }
+            
+            // Enrich the single scene
+            const enrichedScenes = await enrichScenes([rawScene], sceneImagesMap);
+            const enrichedScene = enrichedScenes[0];
+            
+            // Update local state second
+            dispatch({ 
+                type: PROJECT_ACTIONS.ADD_SCENE_SUCCESS, 
+                payload: { scene: enrichedScene } 
+            });
+            
+            return { success: true, scene: enrichedScene };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to add scene';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Remove a scene from the current project
+     * @param {string} sceneId - The scene ID to remove
+     * @returns {Promise<Object>} Result object with success status
+     */
+    const removeScene = async (sceneId) => {
+        try {
+            // Remove from persistent storage first (includes GCS cleanup)
+            await deleteScene(sceneId);
+            
+            // Update local state second
+            dispatch({ 
+                type: PROJECT_ACTIONS.REMOVE_SCENE_SUCCESS, 
+                payload: { sceneId } 
+            });
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to remove scene';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
+     * Update scene properties (title, selected_image_id, etc.)
+     * @param {string} sceneId - The scene ID to update
+     * @param {Object} updates - Properties to update (e.g., { title: "new title", selected_image_id: "abc123" })
+     * @returns {Promise<Object>} Result object with success status
+     */
+    const updateSceneAction = async (sceneId, updates) => {
+        try {
+            // Update in persistent storage first
+            await updateScene(sceneId, updates);
+            
+            // Update local state second based on what was updated
+            const updatePayload = { sceneId, updates };
+            
+            // Handle specific UI state updates
+            if (updates.selected_image_id) {
+                // Find the image to get its URL for state update
+                const scene = projectState.scenes.find(s => s.id === sceneId);
+                const selectedImage = scene?.sceneImages?.find(img => img.id === updates.selected_image_id);
+                if (selectedImage) {
+                    dispatch({ 
+                        type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION, 
+                        payload: { sceneId, imageUrl: selectedImage.gcsUrl } 
+                    });
+                }
+            }
+            
+            // Handle title updates and other generic updates
+            if (updates.title !== undefined || Object.keys(updates).some(key => key !== 'selected_image_id')) {
+                dispatch({ 
+                    type: PROJECT_ACTIONS.UPDATE_SCENE_SUCCESS, 
+                    payload: updatePayload
+                });
+            }
+            
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update scene';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     // Return all action functions
     return {
         createProject,
@@ -832,10 +1008,14 @@ export const createProjectActions = (dispatch, projectState) => {
         updateStage,
         handleSceneImageUpload,
         handleElementImageUpload,
+        handleReferenceImageUpload,
         addElementImage: addElementImageAction,
         removeElementImage: removeElementImageAction,
         updateElementImage: updateElementImageAction,
         updateElementImageIndex,
-        deleteProject
+        deleteProject,
+        addScene,
+        removeScene,
+        updateScene: updateSceneAction
     };
 };

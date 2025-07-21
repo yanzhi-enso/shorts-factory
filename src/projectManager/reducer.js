@@ -170,6 +170,31 @@ export function projectReducer(state, action) {
                 }
             };
         
+        case PROJECT_ACTIONS.ADD_SCENE_SUCCESS:
+            // Insert scene in correct position based on sceneOrder
+            const newScene = action.payload.scene;
+            const updatedScenes = [...state.scenes, newScene].sort((a, b) => a.sceneOrder - b.sceneOrder);
+            return {
+                ...state,
+                scenes: updatedScenes
+            };
+        
+        case PROJECT_ACTIONS.REMOVE_SCENE_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.filter(scene => scene.id !== action.payload.sceneId)
+            };
+        
+        case PROJECT_ACTIONS.UPDATE_SCENE_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.map(scene => 
+                    scene.id === action.payload.sceneId 
+                        ? { ...scene, ...action.payload.updates }
+                        : scene
+                )
+            };
+        
         default:
             return state;
     }

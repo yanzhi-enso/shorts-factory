@@ -10,11 +10,17 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 import SceneRow from 'app/components/remake/SceneRow/SceneRow';
 import ElementImageList from 'app/components/remake/ElementList/ElementImageList';
 import ElementGenModal from 'app/components/remake/ElementGenModal';
+import AddSceneButton from 'app/components/remake/AddSceneButton/AddSceneButton';
+import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
     const [isExporting, setIsExporting] = useState(false);
+    const [referenceModalState, setReferenceModalState] = useState({
+        isOpen: false,
+        scene: null,
+    });
 
     // Get selected scenes from ProjectManager
     const selectedScenes = useMemo(
@@ -93,6 +99,22 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
         } finally {
             setIsExporting(false);
         }
+    };
+
+    // Modal handlers
+    const handleReferenceImageClick = (scene) => {
+        console.log("handleReferenceImageClick is triggered")
+        setReferenceModalState({
+            isOpen: true,
+            scene: scene,
+        });
+    };
+
+    const closeModal = () => {
+        setReferenceModalState({
+            isOpen: false,
+            scene: null,
+        });
     };
 
     const handleNext = () => {
@@ -180,12 +202,44 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.rowsContainer}>
-                {selectedScenes.map((scene, index) => (
-                    <SceneRow key={scene.id} scene={scene} sceneIndex={index} storyConfig={storyConfig} />
+                {selectedScenes.length > 0 && selectedScenes.map((scene, index) => (
+                    <div key={scene.id} className={styles.sceneRow}>
+                        {/* Add Scene Button */}
+                        { index == 0 && 
+                            <AddSceneButton
+                                insertAfterScene={null}
+                                insertBeforeScene={selectedScenes[0]}
+                            />
+                        }
+                        
+                        {/* Scene Row */}
+                        <SceneRow 
+                            scene={scene} 
+                            sceneIndex={index} 
+                            storyConfig={storyConfig} 
+                            onReferenceImageClick={handleReferenceImageClick}
+                        />
+                        
+                        {/* Add Scene Button */}
+                        <AddSceneButton
+                            insertAfterScene={scene[index]}
+                            insertBeforeScene={
+                                index + 1 < scene.length
+                                ?scene[index + 1]
+                                :null
+                            }
+                        />
+                    </div>
                 ))}
             </div>
 
             <ElementGenModal />
+
+            <ReferenceImageSelectionModal
+                isOpen={referenceModalState.isOpen}
+                onClose={closeModal}
+                scene={referenceModalState.scene}
+            />
         </div>
     );
 };

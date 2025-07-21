@@ -139,10 +139,10 @@
   flex-direction: column;
   align-items: flex-start;
   padding: 24px;
+  padding-top: 0;
   overflow-y: scroll;
   height: 100%;
   min-height: 100%;
-  gap: 16px;
 
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE/Edge */
@@ -150,6 +150,12 @@
 
 .rowsContainer::-webkit-scrollbar {
   height: none; /* adjust as needed */
+}
+
+.sceneRow {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* Mobile responsiveness */

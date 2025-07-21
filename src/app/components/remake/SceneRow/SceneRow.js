@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import styles from './SceneRow.module.css';
-import RemakeImageBlock from './RemakeImageBlock';
+import ReferenceImageBlock from 'app/components/common/ReferenceImageBlock';
 import SceneGenBlock from './SceneGenBlock';
 import SceneControlPanel from './SceneControlPanel';
 import { analyzeImage } from 'services/backend';
@@ -12,7 +12,7 @@ import { useElementManager } from '../ElementList/ElementSelectionManager';
 import { ASSET_TYPES } from 'constants/gcs';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
-const SceneRow = ({ scene, sceneIndex, storyConfig }) => {
+const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick }) => {
     const {
         handleSceneImageUpload,
         projectState,
@@ -136,19 +136,13 @@ const SceneRow = ({ scene, sceneIndex, storyConfig }) => {
         await updateSelectedGeneratedImage(sceneId, imageId);
     };
 
-    const handleOriginalClick = (imageUrl, title) => {
-        // Could open full-size modal in the future
-        console.log('Original image clicked:', { imageUrl, title });
-    };
-
     return (
         <div className={`${styles.sceneRow} ${isFocused ? styles.focused : ''} ${isUnfocused ? styles.unfocused : ''}`}>
-            {/* Original Image */}
+            {/* Reference Image */}
             <div className={styles.imageSection}>
-                <RemakeImageBlock
-                    imageUrl={originalImage.imageUrl}
-                    title={originalImage.title}
-                    onClick={handleOriginalClick}
+                <ReferenceImageBlock 
+                scene={scene}
+                onImageClick={onReferenceImageClick}
                 />
             </div>
 

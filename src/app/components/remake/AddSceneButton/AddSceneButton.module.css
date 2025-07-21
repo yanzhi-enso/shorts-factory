@@ -1,0 +1,165 @@
+.container {
+  width: 100%;
+  padding: 8px 0;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin: 5px 0px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.container:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 0;
+}
+
+.addButton:hover {
+  background: #f9fafb;
+  color: #374151;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.addButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  color: gray;
+  background: currentColor;
+}
+
+.addButton:hover .line {
+  opacity: 0.6;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: 12px;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.addButton:hover .icon {
+  opacity: 1;
+}
+
+.text {
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .container {
+    padding: 6px 0;
+  }
+  
+  .addButton {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: 150px;
+    max-width: 250px;
+  }
+  
+  .content {
+    padding: 0 8px;
+    gap: 4px;
+  }
+  
+  .icon {
+    font-size: 11px;
+  }
+  
+  .text {
+    font-size: 12px;
+  }
+}
+
+/* Focus accessibility */
+.addButton:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .line {
+    opacity: 0.8;
+    height: 2px;
+  }
+  
+  .addButton:hover .line {
+    opacity: 1;
+  }
+  
+  .addButton {
+    border: 1px solid transparent;
+  }
+  
+  .addButton:hover {
+    border-color: #374151;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .container,
+  .addButton,
+  .line,
+  .icon {
+    transition: none;
+  }
+  
+  .addButton:hover {
+    transform: none;
+  }
+  
+  .addButton:active {
+    transform: none;
+  }
+}
+
+/* Dark mode support (if needed in the future) */
+@media (prefers-color-scheme: dark) {
+  .addButton {
+    color: #9ca3af;
+  }
+  
+  .addButton:hover {
+    background: #374151;
+    color: #d1d5db;
+  }
+}

@@ -2,11 +2,12 @@ import { getSignedUrl } from '../../services/backend';
 
 // File validation constants
 export const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Image Type
 export const IMAGE_TYPE_ELEMENT = 'ELEMENT_IMAGES'
 export const IMAGE_TYPE_GENERATED_SCENE = 'GENERATED_SCENE_IMAGES'
+export const IMAGE_TYPE_REFERENCE_SCENE = 'REFERENCE_SCENE_IMAGES'
 
 /**
  * Validate image file type and size
@@ -17,7 +18,7 @@ export const validateImageFile = (file) => {
     }
     
     if (file.size > MAX_FILE_SIZE) {
-        return { valid: false, error: 'File size must be less than 25MB' };
+        return { valid: false, error: 'File size must be less than 50MB' };
     }
     
     return { valid: true };

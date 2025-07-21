@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './ImageGrid.module.css';
-import ImageSelectionModal from './ImageSelectionModal';
+import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
 import SceneImageBlock from './SceneImageBlock';
 
 const ImageGrid = ({ scenes }) => {
-    const { updateSelectedImage } = useProjectManager();
     const [modalState, setModalState] = useState({
         isOpen: false,
         scene: null,
@@ -19,29 +18,10 @@ const ImageGrid = ({ scenes }) => {
         });
     };
 
-    const handleSelectImage = (imageIndex) => {
-        const selectedImage = modalState.scene?.sceneImages[imageIndex];
-
-        if (selectedImage) {
-            updateSelectedImage(
-                modalState.scene.id, selectedImage
-            ).then(result => {
-                if (!result.success) {
-                    // Update the scene's selected image ID
-                    onError(result.error);
-                }
-            });
-        }
-
-        closeModal();
-    };
-
-
     const closeModal = () => {
         setModalState({
             isOpen: false,
-            sceneId: null,
-            sceneImages: []
+            scene: null,
         });
     };
 
@@ -57,11 +37,10 @@ const ImageGrid = ({ scenes }) => {
                 ))}
             </div>
 
-            <ImageSelectionModal
+            <ReferenceImageSelectionModal
                 isOpen={modalState.isOpen}
                 onClose={closeModal}
                 scene={modalState.scene}
-                onSelectImage={handleSelectImage}
             />
         </>
     );

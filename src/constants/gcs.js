@@ -3,7 +3,8 @@ export const GCS_CONFIG = {
     BUCKET_NAME: 'shorts-scenes',
     BASE_URL: 'https://storage.googleapis.com',
     FOLDERS: {
-        ELEMENT_IMAGES: 'element_img',
+        REFERENCE_SCENE_IMAGES: 'reference_scene_images',
+        ELEMENT_IMAGES: 'element_images',
         GENERATED_SCENE_IMAGES: 'generated_scene_images',
         CLIPS: 'clips'
     },
@@ -23,6 +24,7 @@ export const GCS_CONFIG = {
 
 // Asset type constants for client usage
 export const ASSET_TYPES = {
+    REFERENCE_SCENE_IMAGE: 'REFERENCE_SCENE_IMAGES',
     ELEMENT_IMAGES: 'ELEMENT_IMAGES',
     GENERATED_SCENE_IMAGES: 'GENERATED_SCENE_IMAGES',
     CLIPS: 'CLIPS'

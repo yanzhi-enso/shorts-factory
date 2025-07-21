@@ -1,10 +1,15 @@
 /**
  * Scene-related database operations
- * Handles scenes, scene images, recreated scene images, and element images
+ * Handles scenes, scene images, and recreated scene images
  */
 
 import { v4 as uuidv4 } from 'uuid';
 import { database, STORES } from './db.js';
+import { getNextSceneOrder } from './utils.js';
+import { deleteGCSAssets } from 'services/backend.js';
+import { getSceneClips } from './clip.js';
+    
+
 
 // ==================== SCENES TABLE OPERATIONS ====================
 
@@ -93,6 +98,237 @@ export async function updateScene(sceneId, updates) {
         };
         getRequest.onerror = () => reject(getRequest.error);
     });
+}
+
+/**
+ * Create a single scene with auto-calculated ordering
+ * @param {string} projectId - Parent project ID
+ * @param {Object|null} beforeScene - Scene to insert after (null for first scene)
+ * @param {Object|null} afterScene - Scene to insert before (null for append)
+ * @param {Object} metadata - Scene metadata and settings
+ * @param {string|null} referenceImageUrl - Optional reference image URL
+ * @returns {Promise<Object>} Created scene object
+ */
+export async function createScene(projectId, beforeScene, afterScene, metadata = {}, referenceImageUrl = null) {
+    try {
+        // Calculate the scene order using utility function
+        const sceneOrder = getNextSceneOrder(beforeScene, afterScene);
+        
+        // Create the scene record
+        const tx = await database.transaction([STORES.SCENES, STORES.SCENE_IMAGES], 'readwrite');
+        const scenesStore = tx.objectStore(STORES.SCENES);
+        const sceneImagesStore = tx.objectStore(STORES.SCENE_IMAGES);
+        
+        const sceneId = uuidv4();
+        const scene = {
+            id: sceneId,
+            project_id: projectId,
+            scene_order: sceneOrder,
+            is_selected: metadata.isSelected || false,
+            selected_image_id: null, // Will be set if referenceImageUrl is provided
+            selected_generated_image_id: null,
+            selected_clip_id: null,
+            settings: metadata.settings || {},
+            created_at: new Date().toISOString(),
+        };
+
+        // Add the scene
+        await new Promise((resolve, reject) => {
+            const request = scenesStore.add(scene);
+            request.onsuccess = () => resolve(scene);
+            request.onerror = () => reject(request.error);
+        });
+
+        // If reference image URL is provided, create a scene image
+        if (referenceImageUrl) {
+            const sceneImage = {
+                scene_id: sceneId,
+                gcs_url: referenceImageUrl,
+                image_order: 0, // First image in the scene
+                created_at: new Date().toISOString(),
+            };
+
+            const sceneImageResult = await new Promise((resolve, reject) => {
+                const request = sceneImagesStore.add(sceneImage);
+                request.onsuccess = () => resolve({ ...sceneImage, id: request.result });
+                request.onerror = () => reject(request.error);
+            });
+
+            // Update the scene to select this reference image
+            scene.selected_image_id = sceneImageResult.id;
+            await new Promise((resolve, reject) => {
+                const request = scenesStore.put(scene);
+                request.onsuccess = () => resolve(scene);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        return scene;
+        
+    } catch (error) {
+        console.error('Error creating scene:', error);
+        throw new Error(`Failed to create scene: ${error.message}`);
+    }
+}
+
+/**
+ * Delete a scene and all its related data (scene images, generated images, clips)
+ * @param {string} sceneId - The scene ID to delete
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteScene(sceneId) {
+    try {
+        // Step 1: Get the scene to validate it exists
+        const tx1 = await database.transaction([STORES.SCENES], 'readonly');
+        const scenesStore = tx1.objectStore(STORES.SCENES);
+        
+        const scene = await new Promise((resolve, reject) => {
+            const request = scenesStore.get(sceneId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (!scene) {
+            console.log(`Scene ${sceneId} not found - silent pass`);
+            return true;
+        }
+
+        // Step 2: Collect all GCS URLs that need to be deleted
+        const gcsUrls = [];
+        
+        // Get scene images (using local function)
+        const sceneImages = await getSceneImages(sceneId);
+        sceneImages.forEach(sceneImage => {
+            if (sceneImage.gcs_url) {
+                gcsUrls.push(sceneImage.gcs_url);
+            }
+        });
+        
+        // Get recreated scene images (using local function)
+        const recreatedImages = await getRecreatedSceneImages(sceneId);
+        recreatedImages.forEach(recreatedImage => {
+            if (recreatedImage.gcs_urls && Array.isArray(recreatedImage.gcs_urls)) {
+                gcsUrls.push(...recreatedImage.gcs_urls);
+            }
+        });
+        
+        // Get scene clips (using dynamic import)
+        const sceneClips = await getSceneClips(sceneId);
+        sceneClips.forEach(clip => {
+            if (clip.gcs_url) {
+                gcsUrls.push(clip.gcs_url);
+            }
+        });
+
+        // Step 3: Delete from GCS storage if there are any URLs
+        if (gcsUrls.length > 0) {
+            console.log(`Deleting ${gcsUrls.length} GCS files for scene ${sceneId}`);
+            
+            try {
+                await deleteGCSAssets(gcsUrls);
+                console.log(`Successfully deleted GCS files for scene ${sceneId}`);
+            } catch (error) {
+                // Strict error handling - if GCS deletion fails, halt the process
+                console.error(`GCS deletion failed for scene ${sceneId}:`, error);
+                throw new Error(`Failed to delete GCS files: ${error.message}`);
+            }
+        }
+
+        // Step 4: Delete from IndexedDB (only if GCS deletion succeeded)
+        // Delete in proper order: child records first, then parent records
+        
+        const stores = [STORES.SCENE_CLIPS, STORES.RECREATED_SCENE_IMAGES, STORES.SCENE_IMAGES, STORES.SCENES];
+        const tx2 = await database.transaction(stores, 'readwrite');
+        
+        // Delete scene clips
+        const sceneClipsStore = tx2.objectStore(STORES.SCENE_CLIPS);
+        const sceneClipsIndex = sceneClipsStore.index('scene_id');
+        const sceneClipsRequest = sceneClipsIndex.getAll(sceneId);
+        await new Promise((resolve, reject) => {
+            sceneClipsRequest.onsuccess = () => {
+                const clips = sceneClipsRequest.result;
+                let deletedCount = 0;
+                if (clips.length === 0) {
+                    resolve();
+                    return;
+                }
+                clips.forEach(clip => {
+                    const deleteRequest = sceneClipsStore.delete(clip.id);
+                    deleteRequest.onsuccess = () => {
+                        deletedCount++;
+                        if (deletedCount === clips.length) resolve();
+                    };
+                    deleteRequest.onerror = () => reject(deleteRequest.error);
+                });
+            };
+            sceneClipsRequest.onerror = () => reject(sceneClipsRequest.error);
+        });
+        
+        // Delete recreated scene images
+        const recreatedImagesStore = tx2.objectStore(STORES.RECREATED_SCENE_IMAGES);
+        const recreatedImagesIndex = recreatedImagesStore.index('scene_id');
+        const recreatedImagesRequest = recreatedImagesIndex.getAll(sceneId);
+        await new Promise((resolve, reject) => {
+            recreatedImagesRequest.onsuccess = () => {
+                const images = recreatedImagesRequest.result;
+                let deletedCount = 0;
+                if (images.length === 0) {
+                    resolve();
+                    return;
+                }
+                images.forEach(image => {
+                    const deleteRequest = recreatedImagesStore.delete(image.id);
+                    deleteRequest.onsuccess = () => {
+                        deletedCount++;
+                        if (deletedCount === images.length) resolve();
+                    };
+                    deleteRequest.onerror = () => reject(deleteRequest.error);
+                });
+            };
+            recreatedImagesRequest.onerror = () => reject(recreatedImagesRequest.error);
+        });
+        
+        // Delete scene images
+        const sceneImagesStore = tx2.objectStore(STORES.SCENE_IMAGES);
+        const sceneImagesIndex = sceneImagesStore.index('scene_id');
+        const sceneImagesRequest = sceneImagesIndex.getAll(sceneId);
+        await new Promise((resolve, reject) => {
+            sceneImagesRequest.onsuccess = () => {
+                const images = sceneImagesRequest.result;
+                let deletedCount = 0;
+                if (images.length === 0) {
+                    resolve();
+                    return;
+                }
+                images.forEach(image => {
+                    const deleteRequest = sceneImagesStore.delete(image.id);
+                    deleteRequest.onsuccess = () => {
+                        deletedCount++;
+                        if (deletedCount === images.length) resolve();
+                    };
+                    deleteRequest.onerror = () => reject(deleteRequest.error);
+                });
+            };
+            sceneImagesRequest.onerror = () => reject(sceneImagesRequest.error);
+        });
+        
+        // Delete scene
+        const scenesStoreDelete = tx2.objectStore(STORES.SCENES);
+        await new Promise((resolve, reject) => {
+            const deleteRequest = scenesStoreDelete.delete(sceneId);
+            deleteRequest.onsuccess = () => {
+                console.log(`Successfully deleted scene ${sceneId}`);
+                resolve();
+            };
+            deleteRequest.onerror = () => reject(deleteRequest.error);
+        });
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Error during scene deletion:', error);
+        throw new Error(`Failed to delete scene: ${error.message}`);
+    }
 }
 
 // ==================== SCENE_IMAGES TABLE OPERATIONS ====================
@@ -246,195 +482,6 @@ export async function updateRecreatedSceneImageSelection(imageId, selectedIndex)
 
             const putRequest = store.put(image);
             putRequest.onsuccess = () => resolve(image);
-            putRequest.onerror = () => reject(putRequest.error);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-    });
-}
-
-// ==================== ELEMENT_IMAGES TABLE OPERATIONS ====================
-
-/**
- * Add an element image to a project (supports multiple URLs from single generation)
- */
-export async function addElementImage(projectId, gcsUrls, generationSources = null, name = null, description = null, tags = null) {
-    const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
-    const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-
-    // Handle both single URL (backward compatibility) and multiple URLs
-    if (!Array.isArray(gcsUrls)) {
-        throw new Error('gcsUrls must be an array of URLs');
-    }
-
-    const elementImage = {
-        project_id: projectId,
-        gcs_urls: gcsUrls,
-        selected_image_idx: 0, // Default to first image
-        generation_sources: generationSources || null,
-        name: name || null,
-        description: description || null,
-        tags: tags || null,
-        created_at: new Date().toISOString(),
-    };
-
-    return new Promise((resolve, reject) => {
-        const request = store.add(elementImage);
-        request.onsuccess = () => {
-            resolve({ ...elementImage, id: request.result });
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-/**
- * Update selected image index for an element image
- */
-export async function updateElementImageSelection(elementImageId, selectedIndex) {
-    const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
-    const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-
-    return new Promise((resolve, reject) => {
-        const getRequest = store.get(elementImageId);
-        getRequest.onsuccess = () => {
-            const elementImage = getRequest.result;
-            if (!elementImage) {
-                reject(new Error('Element image not found'));
-                return;
-            }
-
-            // Validate index is within bounds
-            if (selectedIndex < 0 || selectedIndex >= elementImage.gcs_urls.length) {
-                reject(new Error('Selected image index out of bounds'));
-                return;
-            }
-
-            elementImage.selected_image_idx = selectedIndex;
-
-            const putRequest = store.put(elementImage);
-            putRequest.onsuccess = () => resolve(elementImage);
-            putRequest.onerror = () => reject(putRequest.error);
-        };
-        getRequest.onerror = () => reject(getRequest.error);
-    });
-}
-
-/**
- * Remove an element image by ID (includes GCS deletion via backend)
- */
-export async function removeElementImage(elementImageId) {
-    // Import backend service for GCS deletion
-    const { deleteGCSAssets } = await import('../services/backend.js');
-    
-    try {
-        // Step 1: Get element image data using a separate transaction
-        const elementImage = await new Promise(async (resolve, reject) => {
-            const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readonly');
-            const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-            const getRequest = store.get(elementImageId);
-            
-            getRequest.onsuccess = () => {
-                resolve(getRequest.result);
-            };
-            getRequest.onerror = () => {
-                reject(new Error(`Failed to retrieve element image: ${getRequest.error}`));
-            };
-        });
-
-        if (!elementImage) {
-            // Element image doesn't exist - silent pass
-            console.log(`Element image ${elementImageId} not found in storage - silent pass`);
-            return true;
-        }
-
-        // Step 2: Delete from GCS storage via backend
-        if (elementImage.gcs_urls && elementImage.gcs_urls.length > 0) {
-            console.log(`Deleting ${elementImage.gcs_urls.length} GCS files for element image ${elementImageId}`);
-            
-            try {
-                await deleteGCSAssets(elementImage.gcs_urls);
-                console.log(`Successfully deleted GCS files for element image ${elementImageId}`);
-            } catch (error) {
-                // Strict error handling - if GCS deletion fails, halt the process
-                console.error(`GCS deletion failed for element image ${elementImageId}:`, error);
-                throw new Error(`Failed to delete GCS files: ${error.message}`);
-            }
-        }
-
-        // Step 3: Delete from IndexedDB using a new transaction (only if GCS deletion succeeded)
-        await new Promise(async (resolve, reject) => {
-            const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
-            const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-            const deleteRequest = store.delete(elementImageId);
-            
-            deleteRequest.onsuccess = () => {
-                console.log(`Successfully removed element image ${elementImageId}`);
-                resolve(true);
-            };
-            deleteRequest.onerror = () => {
-                reject(new Error(`Failed to remove element image from IndexedDB: ${deleteRequest.error}`));
-            };
-        });
-
-        return true;
-        
-    } catch (error) {
-        console.error('Error during element image removal:', error);
-        throw new Error(`Failed to remove element image: ${error.message}`);
-    }
-}
-
-/**
- * Get element images for a project
- */
-export async function getElementImages(projectId) {
-    const tx = await database.transaction([STORES.ELEMENT_IMAGES]);
-    const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-    const index = store.index('project_id');
-
-    return new Promise((resolve, reject) => {
-        const request = index.getAll(projectId);
-        request.onsuccess = () => {
-            // Sort by created_at descending (newest first)
-            const images = request.result.sort(
-                (a, b) => new Date(b.created_at) - new Date(a.created_at)
-            );
-            resolve(images);
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-/**
- * Update element image metadata (name, description, tags)
- */
-export async function updateElementImage(elementImageId, updates) {
-    const tx = await database.transaction([STORES.ELEMENT_IMAGES], 'readwrite');
-    const store = tx.objectStore(STORES.ELEMENT_IMAGES);
-
-    return new Promise((resolve, reject) => {
-        const getRequest = store.get(elementImageId);
-        getRequest.onsuccess = () => {
-            const elementImage = getRequest.result;
-            if (!elementImage) {
-                reject(new Error('Element image not found'));
-                return;
-            }
-
-            // Only update editable metadata fields
-            const editableFields = ['name', 'description', 'tags'];
-            const filteredUpdates = {};
-            
-            editableFields.forEach(field => {
-                if (updates.hasOwnProperty(field)) {
-                    filteredUpdates[field] = updates[field];
-                }
-            });
-
-            // Apply updates to element image
-            Object.assign(elementImage, filteredUpdates);
-
-            const putRequest = store.put(elementImage);
-            putRequest.onsuccess = () => resolve(elementImage);
             putRequest.onerror = () => reject(putRequest.error);
         };
         getRequest.onerror = () => reject(getRequest.error);

@@ -1,33 +1,30 @@
 import React from 'react';
 import styles from './SceneImageBlock.module.css';
-import Image from 'next/image';
+import ReferenceImageBlock from 'app/components/common/ReferenceImageBlock';
 
 import { useProjectManager } from 'projectManager/useProjectManager';
 
-// original scene image block. Display the scene that's extracted from the video
+// Scene image block that uses ReferenceImageBlock for display
 
 const SceneImageBlock = ({ scene, onImageClick }) => {
   const { updateSceneSelection } = useProjectManager();
 
-  if (!scene || !scene.selectedImage) {
-    return null; // Handle case where scene or image is not available
+  if (!scene) {
+    return null; // Handle case where scene is not available
   }
   
   const handleSceneToggle = async () => {
     updateSceneSelection(scene.id, !scene.isSelected);
   }
 
+  const handleImageClick = () => {
+    if (onImageClick) {
+      onImageClick(scene);
+    }
+  }
+
   return (
-    <div 
-      className={`${styles.gridItem} ${!scene.isSelected ? styles.deselected : ''}`}
-      onClick={ () => {
-        if (scene?.sceneImages?.length > 1) {
-          // only scenes with multiple images
-          // can trigger the image selection modal
-          onImageClick(scene)
-        }
-      }}
-    >
+    <div className={`${styles.gridItem} ${!scene.isSelected ? styles.deselected : ''}`}>
       {/* Checkbox in top-right corner */}
       <div 
         className={styles.selectionCheckbox}
@@ -52,12 +49,10 @@ const SceneImageBlock = ({ scene, onImageClick }) => {
       {/* Opacity mask for deselected scenes */}
       {!scene.isSelected && <div className={styles.opacityMask} />}
       
-      <Image
-        src={scene.selectedImage}
-        alt={`Scene ${scene.sceneOrder / 100}`}
-        width={200}
-        height={350}
-        className={styles.image}
+      {/* Use ReferenceImageBlock for image display */}
+      <ReferenceImageBlock 
+        scene={scene}
+        onImageClick={handleImageClick}
       />
       
       {/* Scene info */}

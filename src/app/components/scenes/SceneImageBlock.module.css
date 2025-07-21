@@ -51,6 +51,31 @@
   transform: scale(1.05);
 }
 
+.placeholder {
+  width: 100%;
+  height: 350px; /* Same height as image */
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.gridItem:hover .placeholder {
+  transform: scale(1.05);
+}
+
+.placeholderContent {
+  text-align: center;
+  color: #6b7280;
+}
+
+.placeholderText {
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+}
+
 .sceneInfo {
   position: absolute;
   bottom: 0;
@@ -85,6 +110,10 @@
     height: 250px;
   }
   
+  .placeholder {
+    height: 250px;
+  }
+  
   .sceneInfo {
     font-size: 11px;
     padding: 8px 6px 6px;
@@ -93,6 +122,10 @@
 
 @media (max-width: 480px) {
   .image {
+    height: 200px;
+  }
+  
+  .placeholder {
     height: 200px;
   }
   

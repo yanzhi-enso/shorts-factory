@@ -4,7 +4,8 @@
  */
 
 import { database, STORES } from './db.js';
-import { createScenes, createSceneImages, getScenesByProject, getSceneImages, getElementImages, getRecreatedSceneImages } from './scene.js';
+import { createScenes, createSceneImages, getScenesByProject, getSceneImages, getRecreatedSceneImages } from './scene.js';
+import { getElementImages } from './elementImages.js';
 import { getSceneClips } from './clip.js';
 import { parseSceneFromUrl } from './utils.js';
 

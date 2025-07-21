@@ -95,7 +95,8 @@ def preprocess_tiktok_video(url: str, split_mode: str = 'thorough') -> str:
         
         # Read all generated images into memory
         project_id = str(uuid.uuid4())
-        image_files = glob.glob(os.path.join(temp_dir, "*.jpg"))
+        image_file_path = os.path.join(temp_dir, "reference_scene_images", "*.jpg")
+        image_files = glob.glob(image_file_path)
         for img_path in sorted(image_files):
             blob = bucket.blob(f"{project_id}/{os.path.basename(img_path)}")
             blob.upload_from_filename(img_path)
@@ -104,7 +105,7 @@ def preprocess_tiktok_video(url: str, split_mode: str = 'thorough') -> str:
         file_list_path = os.path.join(temp_dir, f"{project_id}_files.txt")
         with open(file_list_path, 'w') as f:
             for img_path in sorted(image_files):
-                f.write(f"{project_id}/{os.path.basename(img_path)}\n")
+                f.write(f"{project_id}/reference_scene_images/{os.path.basename(img_path)}\n")
         
         blob = bucket.blob(f"{project_id}/file_list.txt")
         blob.upload_from_filename(file_list_path)
