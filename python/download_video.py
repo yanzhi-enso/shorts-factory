@@ -91,14 +91,15 @@ def preprocess_tiktok_video(url: str, split_mode: str = 'thorough') -> str:
         download_tiktok_no_watermark(url, video_path)
         
         # Save scene images to temp directory
-        save_scene_images(video_path, temp_dir, split_mode)
+        image_dir = os.path.join(temp_dir, "reference_scene_images")
+        save_scene_images(video_path, image_dir, split_mode)
         
         # Read all generated images into memory
         project_id = str(uuid.uuid4())
-        image_file_path = os.path.join(temp_dir, "reference_scene_images", "*.jpg")
+        image_file_path = os.path.join(image_dir, "*.jpg")
         image_files = glob.glob(image_file_path)
         for img_path in sorted(image_files):
-            blob = bucket.blob(f"{project_id}/{os.path.basename(img_path)}")
+            blob = bucket.blob(f"{project_id}/reference_scene_images/{os.path.basename(img_path)}")
             blob.upload_from_filename(img_path)
         
         # store all the file paths in the bucket in a text file
