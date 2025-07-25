@@ -216,41 +216,34 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 </div>
             </div>
 
+            {/* Add Scene Button */}
             <div className={styles.elementListContainer}>
-                <ElementImageList/>
+                <ElementImageList />
             </div>
 
             <div className={styles.rowsContainer}>
-                {selectedScenes.length > 0 && selectedScenes.map((scene, index) => (
-                    <div key={scene.id} className={styles.sceneRow}>
-                        {/* Add Scene Button */}
-                        { index == 0 && 
-                            <AddSceneButton
-                                insertAfterScene={null}
-                                insertBeforeScene={selectedScenes[0]}
+                <AddSceneButton insertAfterScene={null} insertBeforeScene={selectedScenes[0]} />
+                {selectedScenes.length > 0 &&
+                    selectedScenes.map((scene, index) => (
+                        <div key={scene.id} className={styles.sceneRow}>
+                            {/* Scene Row */}
+                            <SceneRow
+                                scene={scene}
+                                sceneIndex={index}
+                                storyConfig={storyConfig}
+                                onReferenceImageClick={handleReferenceImageClick}
+                                onOpenHistoryModal={handleOpenHistoryModal}
                             />
-                        }
-                        
-                        {/* Scene Row */}
-                        <SceneRow 
-                            scene={scene} 
-                            sceneIndex={index} 
-                            storyConfig={storyConfig} 
-                            onReferenceImageClick={handleReferenceImageClick}
-                            onOpenHistoryModal={handleOpenHistoryModal}
-                        />
-                        
-                        {/* Add Scene Button */}
-                        <AddSceneButton
-                            insertAfterScene={scene[index]}
-                            insertBeforeScene={
-                                index + 1 < scene.length
-                                ?scene[index + 1]
-                                :null
-                            }
-                        />
-                    </div>
-                ))}
+
+                            {/* Add Scene Button */}
+                            <AddSceneButton
+                                insertAfterScene={scene[index]}
+                                insertBeforeScene={
+                                    index + 1 < scene.length ? scene[index + 1] : null
+                                }
+                            />
+                        </div>
+                    ))}
             </div>
 
             <ElementGenModal />
