@@ -124,6 +124,7 @@ export async function createScene(projectId, beforeScene, afterScene, metadata =
             id: sceneId,
             project_id: projectId,
             scene_order: sceneOrder,
+            title: metadata.title,
             is_selected: metadata.isSelected || false,
             selected_image_id: null, // Will be set if referenceImageUrl is provided
             selected_generated_image_id: null,

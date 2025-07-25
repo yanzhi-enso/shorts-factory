@@ -205,6 +205,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
             projectId: scene.project_id,
             sceneOrder: scene.scene_order,
             isSelected: scene.is_selected,
+            title: scene.title || null, // Assuming title is added in DB schema
             selectedImage: selectedImage,
             selectedImageId: selectedImageId,
             sceneImages: sceneImages,
@@ -215,7 +216,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
             selectedSceneClip: selectedSceneClip,
             selectedSceneClipId: selectedSceneClipId,
             settings: scene.settings,
-            createdAt: scene.created_at
+            createdAt: scene.created_at,
         });
     }
     
