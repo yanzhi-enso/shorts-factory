@@ -410,6 +410,7 @@
   min-height: 100px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   color: black;
+  background-color: white;
 }
 
 .promptTextarea:focus {

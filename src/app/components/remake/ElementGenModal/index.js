@@ -17,6 +17,16 @@ const ElementGenModal = ({
 
     const { isOpen, prefillData, closeModal } = useElementGenModalContext()
 
+    // Handle prefill data to set initial tab
+    useEffect(() => {
+        if (isOpen && prefillData?.initialTab) {
+            setActiveTab(prefillData.initialTab);
+        } else if (isOpen) {
+            // Reset to default tab when opening without prefill data
+            setActiveTab('prompt');
+        }
+    }, [isOpen, prefillData]);
+
     useEffect(() => {
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
@@ -68,6 +78,7 @@ const ElementGenModal = ({
                         onImageGenerated={onImageGenerated}
                         onClose={closeModal}
                         onSwitchToMetadata={switchToMetadataMode}
+                        prefillData={prefillData}
                     />
                 );
             case 'inpainting':
@@ -76,6 +87,7 @@ const ElementGenModal = ({
                         onImageGenerated={onImageGenerated}
                         onClose={closeModal}
                         onSwitchToMetadata={switchToMetadataMode}
+                        prefillData={prefillData}
                     />
                 );
             // case 'upload':
@@ -84,6 +96,7 @@ const ElementGenModal = ({
             //             onImageGenerated={onImageGenerated}
             //             onClose={closeModal}
             //             onSwitchToMetadata={switchToMetadataMode}
+            //             prefillData={prefillData}
             //         />
             //     );
             default:

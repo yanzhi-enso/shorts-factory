@@ -6,6 +6,7 @@ import { useImageGenContext } from 'app/components/remake/ImageRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './InpaintingTab.module.css';
 import { IMAGE_SIZE_LANDSCAPE, IMAGE_SIZE_PORTRAIT } from 'constants/image';
+import { ASSET_TYPES } from 'constants/gcs';
 
 const InpaintingTab = ({ onClose, prefillData }) => {
     const { projectState } = useProjectManager()

@@ -5,7 +5,7 @@ import { generateImage, extendImage, inpaintingImage } from 'services/backend';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { ASSET_TYPES } from 'constants/gcs';
 
-// Action types
+// Action type
 const IMAGE_GEN_ACTIONS = {
     START_GENERATION: 'START_GENERATION',
     GENERATION_SUCCESS: 'GENERATION_SUCCESS',
@@ -80,7 +80,7 @@ export const ImageGenProvider = ({ children }) => {
             assetType,
             name,
             description,
-            sceneId,
+            sceneId
         ) => {
             try {
                 let result;
@@ -92,18 +92,17 @@ export const ImageGenProvider = ({ children }) => {
                         size,
                         numberOfImages,
                         projectId,
-                        assetType,
+                        assetType
                     );
                 } else {
                     // Image extension
-                    console.log("selected images:", selectedImages)
                     result = await extendImage(
                         selectedImages,
                         prompt.trim(),
                         size,
                         numberOfImages,
                         projectId,
-                        assetType,
+                        assetType
                     );
                 }
 
@@ -114,11 +113,16 @@ export const ImageGenProvider = ({ children }) => {
                 const generationSources = {
                     type: isTextOnly ? 'text-to-image' : 'image-extension',
                     prompt: prompt.trim(),
-                    referenceImages: isTextOnly
+                    srcImages: isTextOnly
                         ? null
                         : selectedImages.map((img) => {
-                              return img.gcsUrls?.[img.selectedImageIdx] || img.gcsUrls?.[0];
+                              if (img.url) {
+                                  return { url: img.url };
+                              } else if (img.base64) {
+                                  return { base64: img.base64 };
+                              }
                           }),
+                    size,
                     revisedPrompt: result.images[0]?.revisedPrompt,
                 };
 
@@ -170,16 +174,17 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage, addGeneratedImage]
     );
 
-    const startImageGeneration = useCallback((
-        prompt,
-        selectedImages = [],
-        numberOfImages = 1,
-        size,
-        assetType,
-        name = null,
-        description = null,
-        sceneId = null
-    ) => {
+    const startImageGeneration = useCallback(
+        (
+            prompt,
+            selectedImages = [],
+            numberOfImages = 1,
+            size,
+            assetType,
+            name = null,
+            description = null,
+            sceneId = null
+        ) => {
             if (!prompt.trim() || !projectState.curProjId) {
                 throw new Error('Prompt and project ID are required');
             }
@@ -194,7 +199,7 @@ export const ImageGenProvider = ({ children }) => {
                 assetType,
                 sceneId,
                 prompt: prompt.trim(),
-                referenceImages: isTextOnly? null : selectedImages,
+                referenceImages: isTextOnly ? null : selectedImages,
                 numberOfImages,
                 name,
                 description,
@@ -235,6 +240,7 @@ export const ImageGenProvider = ({ children }) => {
             maskImage,
             prompt,
             numberOfImages,
+            size,
             projectId,
             assetType,
             name,
@@ -246,10 +252,10 @@ export const ImageGenProvider = ({ children }) => {
                     inputImageUrl,
                     maskImage,
                     prompt.trim(),
-                    null, // by default, backend use portrait
+                    size,
                     numberOfImages,
                     projectId,
-                    assetType,
+                    assetType
                 );
 
                 // Collect all generated image URLs
@@ -259,7 +265,9 @@ export const ImageGenProvider = ({ children }) => {
                 const generationSources = {
                     type: 'inpainting',
                     prompt: prompt.trim(),
-                    originalImage: inputImageUrl,
+                    srcImages: [{ url: inputImageUrl }],
+                    maskImage: maskImage,
+                    size,
                     revisedPrompt: result.images[0]?.revisedPrompt,
                 };
 
@@ -305,53 +313,60 @@ export const ImageGenProvider = ({ children }) => {
         [addElementImage, updateElementImage]
     );
 
-    const startInpainting = useCallback((
-        inputImageUrl,
-        maskImage,
-        prompt,
-        numberOfImages = 3,
-        assetType,
-        name = null,
-        description = null
-    ) => {
-        if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
-            throw new Error('Element image, mask, prompt, and project ID are required');
-        }
-
-        const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        // Add to pending state immediately
-        const pendingItem = {
-            id: generationId,
-            type: 'inpainting',
-            prompt: prompt.trim(),
-            referenceImages: [inputImageUrl],
-            numberOfImages,
-            status: 'generating',
-            startTime: Date.now(),
-        };
-
-        dispatch({
-            type: IMAGE_GEN_ACTIONS.START_GENERATION,
-            payload: pendingItem,
-        });
-
-        // Trigger async execution in background without closure
-        executeInpainting(
-            generationId,
+    const startInpainting = useCallback(
+        (
             inputImageUrl,
             maskImage,
             prompt,
-            numberOfImages,
-            projectState.curProjId,
+            numberOfImages = 3,
+            size,
             assetType,
-            name,
-            description
-        );
+            name = null,
+            description = null
+        ) => {
+            if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
+                throw new Error('Element image, mask, prompt, and project ID are required');
+            }
 
-        // Return immediately with generationId
-        return { generationId };
-    }, [projectState.curProjId, executeInpainting]);
+            const generationId = `inpaint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Add to pending state immediately
+            const pendingItem = {
+                id: generationId,
+                type: 'inpainting',
+                assetType,
+                prompt: prompt.trim(),
+                referenceImages: [inputImageUrl],
+                numberOfImages,
+                size,
+                status: 'generating',
+                startTime: Date.now(),
+            };
+
+            dispatch({
+                type: IMAGE_GEN_ACTIONS.START_GENERATION,
+                payload: pendingItem,
+            });
+
+            // Trigger async execution in background without closure
+            executeInpainting(
+                generationId,
+                inputImageUrl,
+                maskImage,
+                prompt,
+                numberOfImages,
+                size,
+                projectState.curProjId,
+                assetType,
+                name,
+                description
+            );
+
+            // Return immediately with generationId
+            return { generationId };
+        },
+        [projectState.curProjId, executeInpainting]
+    );
 
     const updatePendingMetadata = useCallback((generationId, metadata) => {
         dispatch({

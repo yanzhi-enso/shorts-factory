@@ -292,6 +292,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose }) => {
                                             <label className={styles.metadataLabel}>
                                                 Generation Sources:
                                             </label>
+                                            {/* [TODO] json display, need to polish */}
                                             <pre className={styles.jsonDisplay}>
                                                 {JSON.stringify(
                                                     selectedRecord.generationSources,

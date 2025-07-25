@@ -43,7 +43,7 @@ const PromptTab = ({ onClose, prefillData }) => {
                     type: srcImage.url ? 'url' : 'base64',
                     url: srcImage.url,
                     base64: srcImage.base64,
-                    fileName: srcImage.base64 ? `prefilled-image-${index + 1}` : undefined,
+                    fileName: `image-${index + 1}`,
                 }));
                 setReferenceImageStack(convertedStack);
             }
