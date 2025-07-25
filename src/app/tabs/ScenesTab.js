@@ -47,11 +47,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.content}>
-                {scenes.length > 0 ? (
-                    <ImageGrid scenes={scenes}/>
-                ) : (
-                    <p className={styles.noImages}>No scenes found for this project, create one in the next tab.</p>
-                )}
+                <ImageGrid scenes={scenes}/>
             </div>
         </div>
     );

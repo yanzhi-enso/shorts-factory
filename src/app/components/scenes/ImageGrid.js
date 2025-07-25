@@ -1,46 +1,75 @@
 import React, { useState } from 'react';
 
-import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './ImageGrid.module.css';
 import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
-import SceneImageBlock from './SceneImageBlock';
+import SceneBlock from './SceneBlock';
+import AddSceneModal from './AddSceneModal';
 
 const ImageGrid = ({ scenes }) => {
-    const [modalState, setModalState] = useState({
+    const [editModalState, setEditModalState] = useState({
         isOpen: false,
         scene: null,
     });
 
+    const [addModalState, setAddModalState] = useState({
+        isOpen: false,
+    });
+
     const handleImageClick = (scene) => {
-        setModalState({
+        setEditModalState({
             isOpen: true,
             scene: scene,
         });
     };
 
-    const closeModal = () => {
-        setModalState({
+    const closeEditModal = () => {
+        setEditModalState({
             isOpen: false,
             scene: null,
         });
     };
 
+    const handleAddScene = () => {
+        setAddModalState({
+            isOpen: true,
+        });
+    };
+
+    const closeAddModal = () => {
+        setAddModalState({
+            isOpen: false,
+        });
+    };
+
+    const handleSceneCreated = () => {
+        // Optional: any additional logic after scene is created
+        // The ProjectManager will handle state updates automatically
+    };
+
     return (
         <>
             <div className={styles.grid}>
+                {/* Add Scene Block - always first */}
+                <SceneBlock scene={null} onAddScene={handleAddScene} />
+
+                {/* Existing Scenes */}
                 {scenes.map((scene) => (
-                    <SceneImageBlock
-                        key={scene.id}
-                        scene={scene}
-                        onImageClick={handleImageClick}
-                    />
+                    <SceneBlock key={scene.id} scene={scene} onImageClick={handleImageClick} />
                 ))}
             </div>
 
+            {/* Edit Scene Modal */}
             <ReferenceImageSelectionModal
-                isOpen={modalState.isOpen}
-                onClose={closeModal}
-                scene={modalState.scene}
+                isOpen={editModalState.isOpen}
+                onClose={closeEditModal}
+                scene={editModalState.scene}
+            />
+
+            {/* Add Scene Modal */}
+            <AddSceneModal
+                isOpen={addModalState.isOpen}
+                onClose={closeAddModal}
+                onSuccess={handleSceneCreated}
             />
         </>
     );
