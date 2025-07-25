@@ -23,14 +23,12 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
     const { startImageGeneration, pendingGenerations } = useImageGenContext();
 
     // ElementSelectionManager integration
-    const { focusedSceneId, selectedElements } = useElementManager();
+    const { focusedSceneId, selectedElements, setElements, resetElements } = useElementManager();
 
     // Parse scene properties
     const {
         id: sceneId, // Now using UUID directly
         selectedImage,
-        generatedImages,
-        selectedGeneratedImageId,
     } = scene;
 
     // Determine focus state for styling
@@ -52,8 +50,9 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
     // Derive isGenerating from pendingGenerations to sync UI with actual generation state
     const isGenerating = useMemo(() => {
         return pendingGenerations.some(
-            pending => pending.sceneId === sceneId && 
-                      pending.assetType === ASSET_TYPES.GENERATED_SCENE_IMAGES
+            (pending) =>
+                pending.sceneId === sceneId &&
+                pending.assetType === ASSET_TYPES.GENERATED_SCENE_IMAGES
         );
     }, [pendingGenerations, sceneId]);
 
@@ -90,7 +89,7 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
             // Get selected elements for this scene and convert to srcImages format
             const selectedElementUrls = selectedElements[sceneId] || [];
 
-            const srcImages = selectedElementUrls.map(url => ({ url }));
+            const srcImages = selectedElementUrls.map((url) => ({ url }));
 
             // Add originalImage.url if it exists
             if (originalImage.imageUrl) {
@@ -98,7 +97,8 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
             }
 
             // Get image size from project settings, default to portrait
-            const imageSize = projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT;
+            const imageSize =
+                projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT;
 
             startImageGeneration(
                 prompt.trim(),
@@ -136,14 +136,42 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
         await updateSelectedGeneratedImage(sceneId, imageId);
     };
 
+    const handleEditFromHistory = (editData) => {
+        // Update prompt state
+        setPrompt(editData.prompt || '');
+
+        // Update image count
+        setImageCount(editData.imageCount || 4); // default to 4 images
+
+        // Update selected elements if srcImages exist
+        if (editData.srcImages && editData.srcImages.length > 0) {
+            // Extract URLs from srcImages array
+            const elementUrls = editData.srcImages.map((img) => img.url).filter((url) => url); // Filter out any null/undefined URLs
+
+            // Set elements for this scene using ElementSelectionManager
+            setElements(sceneId, elementUrls);
+        } else {
+            // Clear selected elements if no srcImages
+            resetElements(sceneId);
+        }
+    };
+
+    // Create a wrapped function for opening history modal with edit callback
+    const handleOpenHistoryModal = (scene) => {
+        if (onOpenHistoryModal) {
+            onOpenHistoryModal(scene, handleEditFromHistory);
+        }
+    };
+
     return (
-        <div className={`${styles.sceneRow} ${isFocused ? styles.focused : ''} ${isUnfocused ? styles.unfocused : ''}`}>
+        <div
+            className={`${styles.sceneRow} ${isFocused ? styles.focused : ''} ${
+                isUnfocused ? styles.unfocused : ''
+            }`}
+        >
             {/* Reference Image */}
             <div className={styles.imageSection}>
-                <ReferenceImageBlock 
-                scene={scene}
-                onImageClick={onReferenceImageClick}
-                />
+                <ReferenceImageBlock scene={scene} onImageClick={onReferenceImageClick} />
             </div>
 
             {/* Control Panel */}
@@ -167,7 +195,7 @@ const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpe
                 <SceneGenBlock
                     scene={scene}
                     sceneDisplayName={sceneDisplayName}
-                    onOpenHistoryModal={onOpenHistoryModal}
+                    onOpenHistoryModal={handleOpenHistoryModal}
                 />
             </div>
         </div>

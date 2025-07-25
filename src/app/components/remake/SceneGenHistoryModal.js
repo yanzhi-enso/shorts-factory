@@ -5,8 +5,9 @@ import { FaUpload } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './SceneGenHistoryModal.module.css';
 import Image from 'next/image';
+import SceneEditButton from './SceneEditButton';
 
-const SceneGenHistoryModal = ({ isOpen, scene, onClose }) => {
+const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => {
     const fileInputRef = useRef(null);
 
     // Get project manager functions and state
@@ -135,6 +136,15 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose }) => {
         return new Date(dateString).toLocaleString();
     };
 
+    const handleEditClick = (editData) => {
+        // Call the edit callback from SceneRow
+        if (onEditFromHistory) {
+            onEditFromHistory(editData);
+        }
+        // Close the modal
+        onClose();
+    };
+
     return (
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
@@ -218,13 +228,21 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose }) => {
                                 {/* Image Viewer */}
                                 <div className={styles.imageViewer}>
                                     <div className={styles.mainImageContainer}>
-                                        <Image
-                                            src={currentImageUrl}
-                                            alt='Selected image'
-                                            width={400}
-                                            height={600}
-                                            className={styles.mainImage}
-                                        />
+                                        <div className={styles.imageWrapper}>
+                                            <Image
+                                                src={currentImageUrl}
+                                                alt='Selected image'
+                                                width={400}
+                                                height={600}
+                                                className={styles.mainImage}
+                                            />
+                                            <SceneEditButton
+                                                selectedRecord={selectedRecord}
+                                                onEditFromHistory={handleEditClick}
+                                                className={styles.imageEditButton}
+                                                title="Edit this generation"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Thumbnail Row */}

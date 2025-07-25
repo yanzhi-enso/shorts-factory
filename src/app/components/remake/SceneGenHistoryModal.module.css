@@ -198,12 +198,49 @@
   overflow: hidden;
 }
 
+.imageWrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .mainImage {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
+.imageEditButton {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-width: 36px;
+  height: 36px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.imageEditButton:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.imageEditButton:active {
+  transform: translateY(0);
 }
 
 .thumbnailRow {

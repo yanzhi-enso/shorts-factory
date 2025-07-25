@@ -25,6 +25,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const [sceneHistoryModal, setSceneHistoryModal] = useState({
         isOpen: false,
         scene: null,
+        onEditFromHistory: null,
     });
 
     // Get selected scenes from ProjectManager
@@ -122,10 +123,11 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
         });
     };
 
-    const handleOpenHistoryModal = (scene) => {
+    const handleOpenHistoryModal = (scene, onEditFromHistory) => {
         setSceneHistoryModal({
             isOpen: true,
             scene: scene,
+            onEditFromHistory: onEditFromHistory,
         });
     };
 
@@ -258,6 +260,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 isOpen={sceneHistoryModal.isOpen}
                 onClose={handleCloseHistoryModal}
                 scene={sceneHistoryModal.scene}
+                onEditFromHistory={sceneHistoryModal.onEditFromHistory}
             />
         </div>
     );
