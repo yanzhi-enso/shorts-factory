@@ -4,10 +4,11 @@ import React from 'react';
 import Image from 'next/image';
 import { FaPlus } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import DeleteButton from '../common/DeleteButton';
 import styles from './SceneBlock.module.css';
 
-const SceneBlock = ({ scene, onImageClick, onAddScene, idx }) => {
-    const { updateSceneSelection } = useProjectManager();
+const SceneBlock = ({ scene, onImageClick, onAddScene }) => {
+    const { updateSceneSelection, removeScene } = useProjectManager();
 
     // Determine what content to display based on scene state
     const getDisplayContent = (scene) => {
@@ -61,6 +62,17 @@ const SceneBlock = ({ scene, onImageClick, onAddScene, idx }) => {
         e.stopPropagation();
         if (scene) {
             updateSceneSelection(scene.id, !scene.isSelected);
+        }
+    };
+
+    const handleDeleteScene = async () => {
+        if (scene && confirm(`Are you sure you want to delete Scene ${idx}?`)) {
+            try {
+                await removeScene(scene.id);
+            } catch (error) {
+                console.error('Failed to delete scene:', error);
+                alert('Failed to delete scene. Please try again.');
+            }
         }
     };
 
@@ -125,6 +137,15 @@ const SceneBlock = ({ scene, onImageClick, onAddScene, idx }) => {
                 </div>
             )}
 
+            {/* Delete button in top-left corner (only for real scenes) */}
+            {scene && (
+                <DeleteButton
+                    onDelete={handleDeleteScene}
+                    className={styles.deleteButton}
+                    title={'Delete Scene'}
+                />
+            )}
+
             {/* Opacity mask for deselected scenes */}
             {scene && !scene.isSelected && <div className={styles.opacityMask} />}
 
@@ -141,13 +162,6 @@ const SceneBlock = ({ scene, onImageClick, onAddScene, idx }) => {
             >
                 {renderContent()}
             </div>
-
-            {/* Scene info (only for real scenes) */}
-            {scene && (
-                <div className={styles.sceneInfo}>
-                    <span>Scene {idx}</span>
-                </div>
-            )}
         </div>
     );
 };

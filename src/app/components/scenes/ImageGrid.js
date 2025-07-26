@@ -53,13 +53,8 @@ const ImageGrid = ({ scenes }) => {
                 <SceneBlock scene={null} onAddScene={handleAddScene} />
 
                 {/* Existing Scenes */}
-                {scenes.map((scene, idx) => (
-                    <SceneBlock
-                        key={scene.id}
-                        scene={scene}
-                        idx={idx + 1}
-                        onImageClick={handleImageClick}
-                    />
+                {scenes.map((scene) => (
+                    <SceneBlock key={scene.id} scene={scene} onImageClick={handleImageClick} />
                 ))}
             </div>
 
