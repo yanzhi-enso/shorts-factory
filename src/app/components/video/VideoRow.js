@@ -114,11 +114,10 @@ const VideoRow = ({
         setHistoryModalOpen(false);
     };
 
-    const handleSelectFromHistory = async (selectedClipId) => {
+    const handleUpdateSelection = async (selectedClipId) => {
         if (updateSelectedGeneratedClip) {
             await updateSelectedGeneratedClip(selectedClipId);
         }
-        setHistoryModalOpen(false);
     };
 
     const inputImage = {
@@ -173,7 +172,7 @@ const VideoRow = ({
                 sceneClips={sceneClips}
                 selectedSceneClipId={selectedSceneClipId}
                 onClose={handleHistoryModalClose}
-                onSelectClip={handleSelectFromHistory}
+                onUpdateSelection={handleUpdateSelection}
             />
         </div>
     );
