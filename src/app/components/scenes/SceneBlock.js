@@ -66,7 +66,7 @@ const SceneBlock = ({ scene, onImageClick, onAddScene }) => {
     };
 
     const handleDeleteScene = async () => {
-        if (scene && confirm(`Are you sure you want to delete Scene ${idx}?`)) {
+        if (scene && confirm(`Are you sure you want to delete this Scene?`)) {
             try {
                 await removeScene(scene.id);
             } catch (error) {
