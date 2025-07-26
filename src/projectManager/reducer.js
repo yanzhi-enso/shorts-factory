@@ -259,6 +259,12 @@ export function projectReducer(state, action) {
                 })
             };
         
+        case PROJECT_ACTIONS.UPDATE_SCENE_ORDERS_SUCCESS:
+            return {
+                ...state,
+                scenes: action.payload.reorderedScenes
+            };
+        
         default:
             return state;
     }

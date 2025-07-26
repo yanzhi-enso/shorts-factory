@@ -488,3 +488,65 @@ export async function updateRecreatedSceneImageSelection(imageId, selectedIndex)
         getRequest.onerror = () => reject(getRequest.error);
     });
 }
+
+/**
+ * Update scene orders for multiple scenes in a single transaction
+ * @param {Array} sceneUpdates - Array of {id, scene_order} objects
+ * @returns {Promise<boolean>} Success status
+ */
+export async function updateMultipleSceneOrders(sceneUpdates) {
+    const tx = await database.transaction([STORES.SCENES], 'readwrite');
+    const store = tx.objectStore(STORES.SCENES);
+
+    return new Promise((resolve, reject) => {
+        let completed = 0;
+        const errors = [];
+
+        if (sceneUpdates.length === 0) {
+            resolve(true);
+            return;
+        }
+
+        sceneUpdates.forEach(({ id, scene_order }) => {
+            const getRequest = store.get(id);
+            
+            getRequest.onsuccess = () => {
+                const scene = getRequest.result;
+                if (!scene) {
+                    errors.push(new Error(`Scene with id ${id} not found`));
+                    completed++;
+                    if (completed === sceneUpdates.length) {
+                        errors.length > 0 ? reject(errors[0]) : resolve(true);
+                    }
+                    return;
+                }
+                
+                scene.scene_order = scene_order;
+                const putRequest = store.put(scene);
+                
+                putRequest.onsuccess = () => {
+                    completed++;
+                    if (completed === sceneUpdates.length) {
+                        errors.length > 0 ? reject(errors[0]) : resolve(true);
+                    }
+                };
+                
+                putRequest.onerror = () => {
+                    errors.push(putRequest.error);
+                    completed++;
+                    if (completed === sceneUpdates.length) {
+                        reject(errors[0]);
+                    }
+                };
+            };
+            
+            getRequest.onerror = () => {
+                errors.push(getRequest.error);
+                completed++;
+                if (completed === sceneUpdates.length) {
+                    reject(errors[0]);
+                }
+            };
+        });
+    });
+}

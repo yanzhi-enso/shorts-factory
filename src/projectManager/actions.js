@@ -38,6 +38,9 @@ import {
     addSceneClip 
 } from '../storage/clip.js';
 import { 
+    updateMultipleSceneOrders 
+} from '../storage/scene.js';
+import { 
     validateProjectExists, isStageAdvancement
 } from 'utils/client/projectValidation';
 import { 
@@ -1019,6 +1022,42 @@ export const createProjectActions = (dispatch, projectState) => {
         }
     };
 
+    /**
+     * Update scene orders for multiple scenes in a single transaction
+     * @param {Array} reorderedScenes - Array of scenes in new order
+     * @returns {Promise<Object>} Result object with success status
+     */
+    const updateSceneOrders = async (reorderedScenes) => {
+        try {
+            // Recalculate scene orders with gaps (100, 200, 300...)
+            const sceneUpdates = reorderedScenes.map((scene, index) => ({
+                id: scene.id,
+                scene_order: (index + 1) * 100
+            }));
+
+            // Update database in transaction first
+            await updateMultipleSceneOrders(sceneUpdates);
+
+            // Update the sceneOrder property in the local scenes array
+            const updatedScenes = reorderedScenes.map((scene, index) => ({
+                ...scene,
+                sceneOrder: (index + 1) * 100
+            }));
+
+            // Update local state second
+            dispatch({
+                type: PROJECT_ACTIONS.UPDATE_SCENE_ORDERS_SUCCESS,
+                payload: { reorderedScenes: updatedScenes }
+            });
+
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to update scene orders';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     // Return all action functions
     return {
         createProject,
@@ -1047,6 +1086,7 @@ export const createProjectActions = (dispatch, projectState) => {
         deleteProject,
         addScene,
         removeScene,
-        updateScene: updateSceneAction
+        updateScene: updateSceneAction,
+        updateSceneOrders
     };
 };
