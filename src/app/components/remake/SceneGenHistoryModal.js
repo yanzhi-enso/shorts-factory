@@ -240,7 +240,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => 
                                                 selectedRecord={selectedRecord}
                                                 onEditFromHistory={handleEditClick}
                                                 className={styles.imageEditButton}
-                                                title="Edit this generation"
+                                                title='Edit this generation'
                                             />
                                         </div>
                                     </div>
@@ -310,14 +310,61 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => 
                                             <label className={styles.metadataLabel}>
                                                 Generation Sources:
                                             </label>
-                                            {/* [TODO] json display, need to polish */}
-                                            <pre className={styles.jsonDisplay}>
-                                                {JSON.stringify(
-                                                    selectedRecord.generationSources,
-                                                    null,
-                                                    2
+                                            <div className={styles.generationSourcesContainer}>
+                                                {/* Prompt Row */}
+                                                {selectedRecord.generationSources.prompt && (
+                                                    <div className={styles.promptRow}>
+                                                        <div className={styles.promptLabel}>
+                                                            Prompt:
+                                                        </div>
+                                                        <div className={styles.promptText}>
+                                                            {
+                                                                selectedRecord.generationSources
+                                                                    .prompt
+                                                            }
+                                                        </div>
+                                                    </div>
                                                 )}
-                                            </pre>
+
+                                                {/* Source Images Carousel */}
+                                                {selectedRecord.generationSources.srcImages
+                                                    ?.length > 0 && (
+                                                    <div className={styles.sourceImagesRow}>
+                                                        <div className={styles.sourceImagesLabel}>
+                                                            Source Images:
+                                                        </div>
+                                                        <div
+                                                            className={styles.sourceImagesCarousel}
+                                                        >
+                                                            {selectedRecord.generationSources.srcImages.map(
+                                                                (srcImg, index) => (
+                                                                    <div
+                                                                        key={index}
+                                                                        className={
+                                                                            styles.sourceImageThumb
+                                                                        }
+                                                                    >
+                                                                        <Image
+                                                                            src={
+                                                                                srcImg.url ||
+                                                                                `data:image/jpeg;base64,${srcImg.base64}`
+                                                                            }
+                                                                            alt={`Source image ${
+                                                                                index + 1
+                                                                            }`}
+                                                                            width={60}
+                                                                            height={90}
+                                                                            className={
+                                                                                styles.sourceImage
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

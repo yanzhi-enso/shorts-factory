@@ -325,6 +325,100 @@
   word-break: break-word;
 }
 
+/* Generation Sources Container */
+.generationSourcesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Prompt Row */
+.promptRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.promptLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.promptText {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+  max-height: 100px;
+  overflow-y: auto;
+  word-wrap: break-word;
+}
+
+/* Source Images Row */
+.sourceImagesRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sourceImagesLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.sourceImagesCarousel {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scroll-behavior: smooth;
+}
+
+.sourceImagesCarousel::-webkit-scrollbar {
+  height: 4px;
+}
+
+.sourceImagesCarousel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.sourceImagesCarousel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.sourceImagesCarousel::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.sourceImageThumb {
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.sourceImageThumb:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.sourceImage {
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+}
+
 /* Placeholder Content */
 .placeholderContent {
   display: flex;
