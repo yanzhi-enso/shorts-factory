@@ -176,17 +176,18 @@ export const createProjectActions = (dispatch, projectState) => {
         }
 
         try {
+            // [deprecated] - try to load project from GCS, no in use
             // Validate project exists
-            const validation = await validateProjectExists(projectId);
-            
-            if (!validation.isValid) {
-                dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: validation.error });
-                return { 
-                    success: false, 
-                    error: validation.error,
-                    shouldRedirect: true 
-                };
-            }
+            // const validation = await validateProjectExists(projectId);
+
+            // if (!validation.isValid) {
+            //     dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: validation.error });
+            //     return {
+            //         success: false,
+            //         error: validation.error,
+            //         shouldRedirect: true
+            //     };
+            // }
 
             // Load project from IndexedDB
             const project = await getProject(projectId);
@@ -194,18 +195,21 @@ export const createProjectActions = (dispatch, projectState) => {
             // load the scene image and redirect user to scenes tab no matter what
             // stage the url is suggesting
             if (!project) {
-                dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: 'Project not found in local storage' });
-                return { 
-                    success: false, 
+                dispatch({
+                    type: PROJECT_ACTIONS.SET_ERROR,
+                    payload: 'Project not found in local storage',
+                });
+                return {
+                    success: false,
                     error: 'Project not found in local storage',
-                    shouldRedirect: true 
+                    shouldRedirect: true,
                 };
             }
 
             // Load scenes and scene images
             const scenes = await getScenesByProject(projectId);
             const sceneImagesData = await getProjectSceneImages(projectId);
-            
+
             // Organize scene images by scene ID
             const sceneImagesMap = {};
             Object.values(sceneImagesData).forEach(({ scene, images }) => {
@@ -217,27 +221,26 @@ export const createProjectActions = (dispatch, projectState) => {
 
             // Load element images for the project
             const rawElementImages = await getElementImages(projectId);
-            
+
             // Transform element images to camelCase and handle multi-image structure
             const elementImages = rawElementImages.map(transformElementImageToJS);
 
-            dispatch({ 
-                type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS, 
+            dispatch({
+                type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS,
                 payload: {
                     project,
                     scenes: enrichedScenes,
-                    elementImages
-                }
+                    elementImages,
+                },
             });
 
-            return { 
-                success: true, 
+            return {
+                success: true,
                 shouldRedirect: false,
                 project,
                 scenes: enrichedScenes,
-                elementImages
+                elementImages,
             };
-
         } catch (err) {
             const errorMessage = 'Failed to initialize project';
             dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
