@@ -62,12 +62,13 @@ const VideoRow = ({
             if (update.status === 'queued') {
                 setIsGeneratingVideo(true);
                 setError(null);
-            } else if (update.status === 'succeed' && update.videoUrl) {
+            } else if (update.status === 'succeed') {
+                const { videoUrl, prompt, imageUrl } = update;
                 setIsGeneratingVideo(false);
                 // Add generated clip to ProjectManager with prompt in generation sources
-                addGeneratedClip(sceneId, update.videoUrl, {
-                    prompt: prompt,
-                    // Add other generation sources if available
+                addGeneratedClip(sceneId, videoUrl, {
+                    prompt,
+                    imageUrl,
                 });
             }
         },

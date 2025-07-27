@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import styles from "./VideoHistoryModal.module.css";
+import styles from './VideoHistoryModal.module.css';
+import { useProjectManager } from 'projectManager/useProjectManager';
 
 const VideoHistoryModal = ({
     isOpen,
@@ -14,6 +15,7 @@ const VideoHistoryModal = ({
 }) => {
     // Local state for modal interactions
     const [selectedRecordId, setSelectedRecordId] = useState(selectedSceneClipId);
+    const { removeSceneClip } = useProjectManager();
 
     // Update local state when props change
     useEffect(() => {
@@ -32,6 +34,17 @@ const VideoHistoryModal = ({
 
     const handleRecordSelect = (clipId) => {
         setSelectedRecordId(clipId);
+    };
+
+    const handleDelete = async () => {
+        try {
+            // Call the delete function passed from props
+            await removeSceneClip(selectedRecordId);
+            onClose();
+        } catch (error) {
+            console.error('Delete failed:', error);
+            alert('Failed to delete video');
+        }
     };
 
     const handleSave = async () => {
@@ -137,10 +150,10 @@ const VideoHistoryModal = ({
                                         )}
 
                                         {/* Source Image Section (Right) */}
-                                        {selectedRecord.generationSources?.img_url && (
+                                        {selectedRecord.generationSources?.imgUrl && (
                                             <div className={styles.imageSection}>
                                                 <Image
-                                                    src={selectedRecord.generationSources.img_url}
+                                                    src={selectedRecord.generationSources.imgUrl}
                                                     alt='Source image'
                                                     width={120}
                                                     height={180}
@@ -164,8 +177,12 @@ const VideoHistoryModal = ({
 
                     {/* Action Panel */}
                     <div className={styles.actionPanel}>
-                        <button className={styles.cancelButton} onClick={handleCancel}>
-                            Cancel
+                        <button
+                            className={styles.deleteButton}
+                            onClick={handleDelete}
+                            disabled={!selectedRecord}
+                        >
+                            Delete
                         </button>
                         <button
                             className={styles.saveButton}
@@ -173,6 +190,9 @@ const VideoHistoryModal = ({
                             disabled={!selectedRecord}
                         >
                             Save
+                        </button>
+                        <button className={styles.cancelButton} onClick={handleCancel}>
+                            Cancel
                         </button>
                     </div>
                 </div>

@@ -90,6 +90,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
     }, []);
 
     // Single useEffect controller for queue processing - eliminates race conditions
+    // processNextReuest is where we actually handle the request
     useEffect(() => {
         if (
             !processingRef.current &&
@@ -133,12 +134,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
                 console.log(
                     `Video generation started successfully for ${nextRequest.sceneId}, task ID: ${result.data.task_id}`
                 );
-                startPolling(
-                    result.data.task_id,
-                    nextRequest.sceneId,
-                    nextRequest.onUpdate,
-                    nextRequest.onError
-                );
+                pollVideoStatus(result.data.task_id, nextRequest);
 
                 setRequestQueue((prev) => {
                     const newQueue = prev.slice(1);
@@ -199,14 +195,9 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
         }
     }, [startResumeTimer, onError]);
 
-    // Start polling for video completion
-    const startPolling = useCallback((taskId, sceneId, onUpdate, onError) => {
-        console.log(`🔄 Starting polling for task ${taskId} (scene: ${sceneId})`);
-        pollVideoStatus(taskId, sceneId, onUpdate, onError);
-    }, []);
-
     // Poll video status
-    const pollVideoStatus = useCallback(async (taskId, sceneId, onUpdate, onError) => {
+    const pollVideoStatus = useCallback(async (taskId, request) => {
+        const { sceneId, onUpdate, onError, prompt, imageUrl } = request;
         const maxAttempts = 20; // 5 minutes with 15-second intervals
         let attempts = 0;
 
@@ -232,7 +223,12 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
 
                     // Use per-request callback - this should always be available in modern usage
                     if (onUpdate) {
-                        onUpdate({ status: 'succeed', videoUrl, taskId });
+                        onUpdate({
+                            status: 'succeed',
+                            videoUrl,
+                            taskId,
+                            input: { imageUrl, prompt },
+                        });
                     }
 
                     // Remove from active polling and resume queue if halted

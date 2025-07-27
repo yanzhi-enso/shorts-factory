@@ -288,6 +288,22 @@
   color: #333;
 }
 
+.deleteButton {
+    padding: 8px 16px;
+    border: 1px solid #f44336;
+    background: #f44336;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.deleteButton:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+}
+
 .saveButton {
   padding: 8px 16px;
   border: 1px solid #007bff;
