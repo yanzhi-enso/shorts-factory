@@ -39,8 +39,11 @@ const VideoHistoryModal = ({
     const handleDelete = async () => {
         try {
             // Call the delete function passed from props
-            await removeSceneClip(selectedRecordId);
-            onClose();
+            const res = await removeSceneClip(selectedRecordId);
+            if (!res.success) {
+                alert('Failed to delete video clip');
+                return;
+            }
         } catch (error) {
             console.error('Delete failed:', error);
             alert('Failed to delete video');

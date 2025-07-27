@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
 import VideoHistoryModal from './VideoHistoryModal';
@@ -9,16 +9,17 @@ import VideoControlPanel from './VideoControlPanel';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { analyzeImageForVideo } from 'services/backend';
 
-const VideoRow = ({
-    scene,
-    sceneIndex,
-    storyConfig,
-    videoManager,
-    onInputImageClick,
-}) => {
+const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageClick }) => {
     const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
-    const { id: sceneId, selectedGeneratedImage, generatedImages, selectedSceneClip, sceneClips, selectedSceneClipId } = scene;
-    
+    const {
+        id: sceneId,
+        selectedGeneratedImage,
+        generatedImages,
+        selectedSceneClip,
+        sceneClips,
+        selectedSceneClipId,
+    } = scene;
+
     // Dynamic display name based on array position
     const sceneDisplayName = `Scene-${sceneIndex + 1}`;
 
@@ -28,6 +29,17 @@ const VideoRow = ({
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [error, setError] = useState(null);
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
+
+    useEffect(() => {
+        // backfill scene clips if it's null but the clips array is not empty
+        if (sceneClips.length > 0 && (!selectedSceneClipId || !selectedSceneClip)) {
+            // Select the first clip by default
+            const firstClip = sceneClips[0];
+            if (firstClip) {
+                updateSelectedGeneratedClip(firstClip.id);
+            }
+        }
+    }, [sceneId, sceneClips, selectedSceneClipId, selectedSceneClip]);
 
     const handlePromptChange = (newPrompt) => {
         setPrompt(newPrompt);

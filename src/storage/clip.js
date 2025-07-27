@@ -4,6 +4,7 @@
  */
 
 import { database, STORES } from './db.js';
+import { deleteGCSAssets } from 'services/backend.js';
 
 // ==================== SCENE_CLIPS TABLE OPERATIONS ====================
 
@@ -49,4 +50,51 @@ export async function addSceneClip(sceneId, gcsUrl, generationSources) {
         };
         request.onerror = () => reject(request.error);
     });
+}
+
+/**
+ * Delete a scene clip and its GCS asset
+ */
+export async function deleteSceneClip(clipId) {
+    try {
+        // Step 1: Get clip data and delete from database in a single transaction
+        const tx = await database.transaction([STORES.SCENE_CLIPS], 'readwrite');
+        const store = tx.objectStore(STORES.SCENE_CLIPS);
+
+        const clip = await new Promise((resolve, reject) => {
+            const getRequest = store.get(clipId);
+            getRequest.onsuccess = () => {
+                const clip = getRequest.result;
+                if (!clip) {
+                    resolve(null); // Clip doesn't exist
+                    return;
+                }
+
+                // Delete from database immediately after getting the data
+                const deleteRequest = store.delete(clipId);
+                deleteRequest.onsuccess = () => resolve(clip);
+                deleteRequest.onerror = () => reject(deleteRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+
+        // Step 2: If clip didn't exist, return success
+        if (!clip) {
+            return true;
+        }
+
+        // Step 3: Transaction is now complete, delete from GCS outside transaction
+        if (clip.gcs_url) {
+            try {
+                await deleteGCSAssets([clip.gcs_url]);
+            } catch (error) {
+                // Log GCS cleanup failure but don't fail the main operation
+                console.warn('GCS cleanup failed for clip:', clip.gcs_url, error);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        throw new Error(`Failed to delete scene clip: ${error.message}`);
+    }
 }
