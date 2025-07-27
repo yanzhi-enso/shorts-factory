@@ -1,0 +1,652 @@
+/* SceneInpaintingModal.module.css */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 90vw;
+    max-width: 1400px;
+    height: 85vh;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.header {
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    margin: 0;
+    color: #333;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeButton:hover {
+    color: #333;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.mainContent {
+    flex: 1;
+    overflow: hidden;
+    padding: 20px;
+}
+
+/* Three Column Layout */
+.threeColumnLayout {
+    position: relative;
+    display: grid;
+    grid-template-columns: 280px fit-content(900px) 320px;
+    grid-template-rows: auto;
+    gap: 24px;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Left Column - Image Preview */
+.leftColumn {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.imagePreviewSection {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.imagePreviewContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.previewImage {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+}
+
+.imageInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.orientationBadge {
+    padding: 4px 12px;
+    background: #007bff;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.dimensionsBadge {
+    padding: 4px 8px;
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.noImageContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+    height: 100%;
+}
+
+.placeholderIcon {
+    font-size: 4rem;
+    opacity: 0.5;
+}
+
+.placeholderText {
+    color: #666;
+    font-size: 1rem;
+    text-align: center;
+    margin: 0;
+}
+
+/* Center Column - Canvas */
+.centerColumn {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+    padding: 0 0;
+    height: 100%;
+}
+
+/* Right Column - Controls */
+.rightColumn {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.controlsPanel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+}
+
+.sectionLabel {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Canvas Section */
+.canvasSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.canvasPortraitContainer {
+    position: relative;
+    width: 512px;
+    height: 768px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    margin-bottom: 16px;
+}
+
+.canvasLandscapeContainer {
+    position: relative;
+    width: 896px;
+    height: 504px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    margin-bottom: 16px;
+}
+
+/* Responsive canvas sizing for smaller screens */
+@media (max-height: 1050px) {
+    .canvasPortraitContainer {
+        width: 384px;
+        height: 576px;
+    }
+
+    .canvasLandscapeContainer {
+        width: 576px;
+        height: 384px;
+    }
+}
+
+.backgroundImage {
+    z-index: 1;
+    width: 100%;
+    border-radius: 6px;
+    object-fit: fill;
+}
+
+.maskCanvas {
+    z-index: 2;
+    border-radius: 6px;
+    height: 100%;
+    width: 100%;
+    object-fit: fill;
+    cursor: none;
+    pointer-events: auto;
+    z-index: 3;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Custom Cursor */
+.customCursor {
+    position: absolute;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10;
+    background: rgba(0, 123, 255, 0.1);
+    box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.3);
+}
+
+/* Canvas Empty State */
+.canvasEmptyState {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.emptyStateIcon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.emptyStateText {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+/* Canvas Actions */
+.canvasActions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.clearMaskButton {
+    padding: 8px 16px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-weight: 500;
+}
+
+.clearMaskButton:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.clearMaskButton:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Brush Size Section */
+.brushSection {
+    display: flex;
+    flex-direction: column;
+}
+
+.brushSizeRadios {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.brushSizeRadio {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.brushSizeRadio:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+
+.brushSizeRadio input[type="radio"] {
+    margin: 0;
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.brushSizeRadio input[type="radio"]:checked + .radioContent {
+    color: #007bff;
+}
+
+.brushSizeRadio:has(input[type="radio"]:checked) {
+    border-color: #007bff;
+    background: #f8f9ff;
+    box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.2);
+}
+
+.radioContent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.brushPreview {
+    border-radius: 50%;
+    background: #007bff;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.brushSizeRadio:has(input[type="radio"]:checked) .brushPreview {
+    opacity: 1;
+}
+
+.brushLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+.brushSizeRadio input[type="radio"]:disabled + .radioContent {
+    opacity: 0.5;
+}
+
+.brushSizeRadio:has(input[type="radio"]:disabled) {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Prompt Section */
+.promptSection {
+    margin-bottom: 24px;
+}
+
+.promptTextarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    color: black;
+    background-color: white;
+}
+
+.promptTextarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.promptTextarea:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Clear Mask Section */
+.clearMaskSection {
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.clearMaskButton {
+    padding: 10px 20px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-weight: 500;
+    width: 100%;
+}
+
+.clearMaskButton:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.clearMaskButton:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Generate Section */
+.generateSection {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.generateButton {
+    padding: 12px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    min-width: 120px;
+    width: 100%;
+}
+
+.generateButton:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.generateButton:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Error Message */
+.errorMessage {
+    padding: 12px 16px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    color: #721c24;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-top: 8px;
+}
+
+/* Action Panel */
+.actionPanel {
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.cancelButton {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    background: white;
+    color: #666;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+    border-color: #999;
+    color: #333;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .modal {
+        width: 95vw;
+        height: 90vh;
+    }
+    
+    .header {
+        padding: 16px;
+    }
+    
+    .title {
+        font-size: 1.1rem;
+    }
+    
+    .mainContent {
+        padding: 16px;
+    }
+
+    .threeColumnLayout {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .leftColumn {
+        width: 100%;
+        min-width: auto;
+        order: 0;
+    }
+    
+    .centerColumn {
+        order: 1;
+    }
+    
+    .rightColumn {
+        width: 100%;
+        min-width: auto;
+        order: 2;
+    }
+    
+    .controlsPanel {
+        gap: 16px;
+    }
+    
+    .sectionLabel {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    
+    .promptTextarea {
+        padding: 10px;
+        font-size: 13px;
+        min-height: 80px;
+    }
+    
+    .generateButton {
+        padding: 10px 20px;
+        font-size: 14px;
+        width: 100%;
+    }
+    
+    .canvasPortraitContainer {
+        width: 100%;
+        max-width: 300px;
+        height: 450px;
+    }
+
+    .canvasLandscapeContainer {
+        width: 100%;
+        max-width: 400px;
+        height: 300px;
+    }
+    
+    .canvasActions {
+        margin-top: 12px;
+    }
+    
+    .clearMaskButton {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .brushSizeRadios {
+        gap: 8px;
+    }
+    
+    .brushSizeRadio {
+        padding: 8px;
+    }
+    
+    .brushLabel {
+        font-size: 13px;
+    }
+    
+    .emptyStateIcon {
+        font-size: 36px;
+    }
+    
+    .emptyStateText {
+        font-size: 14px;
+    }
+
+    .previewImage {
+        max-width: 200px;
+    }
+    
+    .actionPanel {
+        padding: 16px;
+        flex-direction: column;
+    }
+    
+    .cancelButton {
+        width: 100%;
+    }
+}
+
+/* Larger desktop screens */
+@media (min-width: 1400px) {
+    .threeColumnLayout {
+        grid-template-columns: 320px fit-content(1000px) 350px;
+    }
+}

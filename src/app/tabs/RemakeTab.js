@@ -13,6 +13,7 @@ import ElementGenModal from 'app/components/remake/ElementGenModal';
 import AddSceneButton from 'app/components/remake/AddSceneButton/AddSceneButton';
 import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
 import SceneGenHistoryModal from 'app/components/remake/SceneGenHistoryModal';
+import SceneInpaintingModal from 'app/components/remake/SceneInpaintingModal';
 
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
@@ -26,6 +27,12 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
         isOpen: false,
         scene: null,
         onEditFromHistory: null,
+    });
+
+    // Inpainting modal state
+    const [sceneInpaintingModal, setSceneInpaintingModal] = useState({
+        isOpen: false,
+        inpaintingData: null,
     });
 
     // Get selected scenes from ProjectManager
@@ -62,8 +69,10 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 const selectedImageData = scene.generatedImages.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
-                const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
-                
+                const currentImageUrl =
+                    selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] ||
+                    selectedImageData.gcsUrls[0];
+
                 return {
                     sceneDisplayName: `Scene-${index + 1}`, // Dynamic display name
                     imageUrl: currentImageUrl,
@@ -109,7 +118,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     // Modal handlers
     const handleReferenceImageClick = (scene) => {
-        console.log("handleReferenceImageClick is triggered")
+        console.log('handleReferenceImageClick is triggered');
         setReferenceModalState({
             isOpen: true,
             scene: scene,
@@ -138,6 +147,22 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
         });
     };
 
+    // Inpainting modal handlers
+    const handleInpaintClick = (inpaintingData) => {
+        console.log('trigger inpainting modal to open:');
+        setSceneInpaintingModal({
+            isOpen: true,
+            inpaintingData: inpaintingData,
+        });
+    };
+
+    const handleInpaintingModalClose = () => {
+        setSceneInpaintingModal({
+            isOpen: false,
+            inpaintingData: null,
+        });
+    };
+
     const handleNext = () => {
         // Collect selected images for next step using new structure
         const selectedImages = selectedScenes
@@ -153,8 +178,10 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 const selectedImageData = scene.generatedImages.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
-                const currentImageUrl = selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] || selectedImageData.gcsUrls[0];
-                
+                const currentImageUrl =
+                    selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] ||
+                    selectedImageData.gcsUrls[0];
+
                 return {
                     sceneId: scene.id, // UUID for data consistency
                     sceneDisplayName, // For display purposes
@@ -261,6 +288,14 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                 onClose={handleCloseHistoryModal}
                 scene={sceneHistoryModal.scene}
                 onEditFromHistory={sceneHistoryModal.onEditFromHistory}
+                onInpaintClick={handleInpaintClick}
+            />
+
+            {/* Inpainting Modal */}
+            <SceneInpaintingModal
+                isOpen={sceneInpaintingModal.isOpen}
+                inpaintingData={sceneInpaintingModal.inpaintingData}
+                onClose={handleInpaintingModalClose}
             />
         </div>
     );

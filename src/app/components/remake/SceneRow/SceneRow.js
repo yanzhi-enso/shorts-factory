@@ -12,12 +12,15 @@ import { useElementManager } from '../ElementList/ElementSelectionManager';
 import { ASSET_TYPES } from 'constants/gcs';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
-const SceneRow = ({ scene, sceneIndex, storyConfig, onReferenceImageClick, onOpenHistoryModal }) => {
-    const {
-        handleSceneImageUpload,
-        projectState,
-        updateSelectedGeneratedImage,
-    } = useProjectManager();
+const SceneRow = ({
+    scene,
+    sceneIndex,
+    storyConfig,
+    onReferenceImageClick,
+    onOpenHistoryModal,
+}) => {
+    const { handleSceneImageUpload, projectState, updateSelectedGeneratedImage } =
+        useProjectManager();
 
     // ImageRequestManager integration
     const { startImageGeneration, pendingGenerations } = useImageGenContext();

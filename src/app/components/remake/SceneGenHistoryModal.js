@@ -6,8 +6,9 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './SceneGenHistoryModal.module.css';
 import Image from 'next/image';
 import SceneEditButton from './SceneEditButton';
+import SceneInpaintingButton from './SceneInpaintingButton';
 
-const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => {
+const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInpaintClick }) => {
     const fileInputRef = useRef(null);
 
     // Get project manager functions and state
@@ -145,6 +146,15 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => 
         onClose();
     };
 
+    const handleInpaintClick = (inpaintingData) => {
+        // Call parent's inpainting handler and close this modal
+        if (onInpaintClick) {
+            onInpaintClick(inpaintingData);
+        }
+        // Close this modal to show inpainting modal
+        onClose();
+    };
+
     return (
         <div className={styles.overlay} onClick={handleOverlayClick}>
             <div className={styles.modal}>
@@ -241,6 +251,13 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory }) => 
                                                 onEditFromHistory={handleEditClick}
                                                 className={styles.imageEditButton}
                                                 title='Edit this generation'
+                                            />
+                                            <SceneInpaintingButton
+                                                selectedRecord={selectedRecord}
+                                                onInpaintClick={handleInpaintClick}
+                                                sceneId={scene.id}
+                                                className={styles.imageInpaintButton}
+                                                title='Inpaint this image'
                                             />
                                         </div>
                                     </div>

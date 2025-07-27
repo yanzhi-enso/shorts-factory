@@ -244,7 +244,8 @@ export const ImageGenProvider = ({ children }) => {
             projectId,
             assetType,
             name,
-            description
+            description,
+            sceneId
         ) => {
             try {
                 // Call inpainting API
@@ -271,28 +272,35 @@ export const ImageGenProvider = ({ children }) => {
                     revisedPrompt: result.images[0]?.revisedPrompt,
                 };
 
-                const elementImageResult = await addElementImage(
-                    newImageUrls, // All generated images as variants
-                    generationSources,
-                    name?.trim() || null,
-                    description?.trim() || null
-                );
+                // Handle result based on asset type
+                if (assetType === ASSET_TYPES.ELEMENT_IMAGES) {
+                    // Element image handling with metadata support
+                    const elementImageResult = await addElementImage(
+                        newImageUrls, // All generated images as variants
+                        generationSources,
+                        name?.trim() || null,
+                        description?.trim() || null
+                    );
 
-                // Check if there's pending metadata for this generation
-                // Access current state via ref to avoid stale closure
-                const currentPendingItem = stateRef.current.pendingGenerations.find(
-                    (gen) => gen.id === generationId
-                );
-                if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
-                    try {
-                        await updateElementImage(
-                            elementImageResult.elementImage.id,
-                            currentPendingItem.pendingMetadata
-                        );
-                    } catch (error) {
-                        console.error('Failed to apply pending metadata:', error);
-                        // Continue even if metadata application fails
+                    // Check if there's pending metadata for this generation
+                    // Access current state via ref to avoid stale closure
+                    const currentPendingItem = stateRef.current.pendingGenerations.find(
+                        (gen) => gen.id === generationId
+                    );
+                    if (currentPendingItem?.pendingMetadata && elementImageResult.elementImage) {
+                        try {
+                            await updateElementImage(
+                                elementImageResult.elementImage.id,
+                                currentPendingItem.pendingMetadata
+                            );
+                        } catch (error) {
+                            console.error('Failed to apply pending metadata:', error);
+                            // Continue even if metadata application fails
+                        }
                     }
+                } else if (assetType === ASSET_TYPES.GENERATED_SCENE_IMAGES) {
+                    // Scene image handling - simpler, no metadata support
+                    await addGeneratedImage(sceneId, newImageUrls, generationSources);
                 }
 
                 // Remove from pending state
@@ -310,7 +318,7 @@ export const ImageGenProvider = ({ children }) => {
                 });
             }
         },
-        [addElementImage, updateElementImage]
+        [addElementImage, updateElementImage, addGeneratedImage]
     );
 
     const startInpainting = useCallback(
@@ -322,7 +330,8 @@ export const ImageGenProvider = ({ children }) => {
             size,
             assetType,
             name = null,
-            description = null
+            description = null,
+            sceneId = null
         ) => {
             if (!inputImageUrl || !maskImage || !prompt.trim() || !projectState.curProjId) {
                 throw new Error('Element image, mask, prompt, and project ID are required');
@@ -335,6 +344,7 @@ export const ImageGenProvider = ({ children }) => {
                 id: generationId,
                 type: 'inpainting',
                 assetType,
+                sceneId,
                 prompt: prompt.trim(),
                 referenceImages: [inputImageUrl],
                 numberOfImages,
@@ -359,7 +369,8 @@ export const ImageGenProvider = ({ children }) => {
                 projectState.curProjId,
                 assetType,
                 name,
-                description
+                description,
+                sceneId
             );
 
             // Return immediately with generationId

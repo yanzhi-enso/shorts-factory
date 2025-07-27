@@ -219,16 +219,15 @@
   background: #007bff;
   color: white;
   border: none;
-  padding: 8px 10px;
-  border-radius: 6px;
+  height: 36px;
+  width: 36px;
+  border-radius: 18px;
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  min-width: 36px;
-  height: 36px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
@@ -240,6 +239,36 @@
 }
 
 .imageEditButton:active {
+  transform: translateY(0);
+}
+
+.imageInpaintButton {
+  position: absolute;
+  top: 12px;
+  left: 56px; /* Position to the right of edit button (12px + 36px + 8px gap) */
+  background: #28a745;
+  color: white;
+  border: none;
+  height: 36px;
+  width: 36px;
+  border-radius: 18px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.imageInpaintButton:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.imageInpaintButton:active {
   transform: translateY(0);
 }
 
