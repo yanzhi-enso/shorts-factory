@@ -197,11 +197,11 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
 
     // Poll video status
     const pollVideoStatus = useCallback(async (taskId, request) => {
-        const { sceneId, onUpdate, onError, prompt, imageUrl } = request;
         const maxAttempts = 20; // 5 minutes with 15-second intervals
         let attempts = 0;
 
-        const poll = async () => {
+        const poll = async (taskId, request) => {
+            const { sceneId, onUpdate, onError, prompt, imageUrl } = request;
             try {
                 attempts++;
                 console.log(
@@ -227,7 +227,8 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
                             status: 'succeed',
                             videoUrl,
                             taskId,
-                            input: { imageUrl, prompt },
+                            imageUrl,
+                            prompt,
                         });
                     }
 
@@ -252,7 +253,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
                         result.data?.task_status || 'unknown'
                     }, continuing to poll...`
                 );
-                setTimeout(poll, 15000);
+                setTimeout(() => poll(taskId, request), 15000);
             } catch (error) {
                 console.error(
                     `❌ Error polling video status for scene ${sceneId}, task ${taskId}:`,
@@ -269,7 +270,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
             }
         };
 
-        poll();
+        poll(taskId, request);
     }, []);
 
     // Handle task completion
