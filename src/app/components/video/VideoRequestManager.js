@@ -7,12 +7,10 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 const VideoRequestManager = ({ children, onError, ...props }) => {
     const { projectState } = useProjectManager();
     const [requestQueue, setRequestQueue] = useState([]);
-    const [activePolling, setActivePolling] = useState(new Map()); // taskId -> { sceneId, startTime }
     const [isQueueHalted, setIsQueueHalted] = useState(false);
 
     // Use refs to avoid stale closures in intervals
     const requestQueueRef = useRef([]);
-    const activePollingRef = useRef(new Map());
     const isQueueHaltedRef = useRef(false);
     const processingRef = useRef(false);
 
@@ -22,17 +20,13 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
     }, [requestQueue]);
 
     useEffect(() => {
-        activePollingRef.current = activePolling;
-    }, [activePolling]);
-
-    useEffect(() => {
         isQueueHaltedRef.current = isQueueHalted;
     }, [isQueueHalted]);
 
     // Create request object
-    const createRequest = (sceneId, imageBase64, prompt, onUpdate, onError) => ({
+    const createRequest = (sceneId, imageUrl, prompt, onUpdate, onError) => ({
         sceneId,
-        imageBase64,
+        imageUrl,
         prompt,
         onUpdate,
         onError,
@@ -76,14 +70,10 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
             setRequestQueue(validRequests);
             handleExpiredTasks(expiredScenes);
 
-            // Reset loading states for expired scenes
-            expiredScenes.forEach((sceneId) => {
-                if (props.onSceneStateChange) {
-                    props.onSceneStateChange(sceneId, { isGenerating: false });
-                }
-            });
+            // Note: Loading states for expired scenes will be handled by onError callbacks
+            // if provided in the original requests
         }
-    }, [handleExpiredTasks, props]);
+    }, [handleExpiredTasks]);
 
     // Start resume timer after throttle
     const startResumeTimer = useCallback(() => {
@@ -111,7 +101,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
         }
     }, [isQueueHalted, requestQueue.length]);
 
-    // Process next request in queue
+    // Process next request in queue, note, this is where the request actually gets handled
     const processNextRequest = useCallback(async () => {
         if (
             processingRef.current ||
@@ -136,13 +126,7 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
         console.log(`Processing request for scene: ${nextRequest.sceneId}`);
 
         try {
-            // Extract base64 data from data URL if needed
-            let imageBase64 = nextRequest.imageBase64;
-            if (imageBase64.startsWith('data:image/')) {
-                imageBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-            }
-
-            const result = await generateVideo(imageBase64, nextRequest.prompt);
+            const result = await generateVideo(nextRequest.imageUrl, nextRequest.prompt);
 
             if (result.data?.task_id) {
                 // Success: Start polling and remove from queue
@@ -200,14 +184,6 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
                     return newQueue;
                 });
 
-                // Reset loading state for failed scene and propagate error to user
-                if (props.onSceneStateChange) {
-                    props.onSceneStateChange(nextRequest.sceneId, {
-                        isGenerating: false,
-                        error: error.message,
-                    });
-                }
-
                 // Propagate real errors to user via onError callback
                 if (nextRequest.onError) {
                     nextRequest.onError(error.message);
@@ -221,122 +197,88 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
 
             processingRef.current = false;
         }
-    }, [startResumeTimer, props, onError]);
+    }, [startResumeTimer, onError]);
 
     // Start polling for video completion
     const startPolling = useCallback((taskId, sceneId, onUpdate, onError) => {
         console.log(`🔄 Starting polling for task ${taskId} (scene: ${sceneId})`);
-        setActivePolling((prev) =>
-            new Map(prev).set(taskId, {
-                sceneId,
-                startTime: Date.now(),
-            })
-        );
-
         pollVideoStatus(taskId, sceneId, onUpdate, onError);
     }, []);
 
     // Poll video status
-    const pollVideoStatus = useCallback(
-        async (taskId, sceneId, onUpdate, onError) => {
-            const maxAttempts = 20; // 5 minutes with 15-second intervals
-            let attempts = 0;
+    const pollVideoStatus = useCallback(async (taskId, sceneId, onUpdate, onError) => {
+        const maxAttempts = 20; // 5 minutes with 15-second intervals
+        let attempts = 0;
 
-            const poll = async () => {
-                try {
-                    attempts++;
+        const poll = async () => {
+            try {
+                attempts++;
+                console.log(
+                    `🔄 Polling attempt ${attempts}/${maxAttempts} for task ${taskId} (scene: ${sceneId})`
+                );
+                const result = await getVideoTaskStatus(taskId, projectState.curProjId);
+
+                if (
+                    result.data?.task_status === 'succeed' &&
+                    result.data?.task_result?.videos?.[0]
+                ) {
+                    // Video generation completed successfully
+                    const videoUrl =
+                        result.data.task_result.videos[0].url ||
+                        result.data.task_result.videos[0].resource;
                     console.log(
-                        `🔄 Polling attempt ${attempts}/${maxAttempts} for task ${taskId} (scene: ${sceneId})`
-                    );
-                    const result = await getVideoTaskStatus(taskId, projectState.curProjId);
-
-                    if (
-                        result.data?.task_status === 'succeed' &&
-                        result.data?.task_result?.videos?.[0]
-                    ) {
-                        // Video generation completed successfully
-                        const videoUrl =
-                            result.data.task_result.videos[0].url ||
-                            result.data.task_result.videos[0].resource;
-                        console.log(
-                            `✅ Video generation completed successfully for scene ${sceneId}, URL: ${videoUrl}`
-                        );
-
-                        // Use per-request callback if available
-                        if (onUpdate) {
-                            onUpdate({ status: 'succeed', videoUrl, taskId });
-                        } else {
-                            // Fallback to original prop-based callbacks
-                            if (props.onSceneStateChange) {
-                                props.onSceneStateChange(sceneId, {
-                                    generatedVideo: videoUrl,
-                                    isGenerating: false,
-                                });
-                            }
-                            if (props.onVideoGenerated) {
-                                props.onVideoGenerated(sceneId, videoUrl);
-                            }
-                        }
-
-                        // Remove from active polling and resume queue if halted
-                        onTaskComplete(taskId, sceneId, true);
-                        return;
-                    } else if (result.data?.task_status === 'failed') {
-                        console.error(
-                            `❌ Video generation failed for scene ${sceneId}, task ${taskId}`
-                        );
-                        throw new Error('Video generation failed');
-                    } else if (attempts >= maxAttempts) {
-                        console.error(
-                            `⏰ Video generation timed out for scene ${sceneId}, task ${taskId} after ${maxAttempts} attempts`
-                        );
-                        throw new Error('Video generation timed out');
-                    }
-
-                    // Continue polling
-                    console.log(
-                        `⏳ Video still processing for scene ${sceneId}, status: ${
-                            result.data?.task_status || 'unknown'
-                        }, continuing to poll...`
-                    );
-                    setTimeout(poll, 15000);
-                } catch (error) {
-                    console.error(
-                        `❌ Error polling video status for scene ${sceneId}, task ${taskId}:`,
-                        error
+                        `✅ Video generation completed successfully for scene ${sceneId}, URL: ${videoUrl}`
                     );
 
-                    // Use per-request error callback if available
-                    if (onError) {
-                        onError(error.message);
-                    } else if (props.onSceneStateChange) {
-                        // Fallback
-                        props.onSceneStateChange(sceneId, {
-                            isGenerating: false,
-                            error: error.message,
-                        });
+                    // Use per-request callback - this should always be available in modern usage
+                    if (onUpdate) {
+                        onUpdate({ status: 'succeed', videoUrl, taskId });
                     }
 
                     // Remove from active polling and resume queue if halted
-                    onTaskComplete(taskId, sceneId, false);
+                    onTaskComplete(taskId, sceneId, true);
+                    return;
+                } else if (result.data?.task_status === 'failed') {
+                    console.error(
+                        `❌ Video generation failed for scene ${sceneId}, task ${taskId}`
+                    );
+                    throw new Error('Video generation failed');
+                } else if (attempts >= maxAttempts) {
+                    console.error(
+                        `⏰ Video generation timed out for scene ${sceneId}, task ${taskId} after ${maxAttempts} attempts`
+                    );
+                    throw new Error('Video generation timed out');
                 }
-            };
 
-            poll();
-        },
-        [props.onSceneStateChange, props.onVideoGenerated]
-    );
+                // Continue polling
+                console.log(
+                    `⏳ Video still processing for scene ${sceneId}, status: ${
+                        result.data?.task_status || 'unknown'
+                    }, continuing to poll...`
+                );
+                setTimeout(poll, 15000);
+            } catch (error) {
+                console.error(
+                    `❌ Error polling video status for scene ${sceneId}, task ${taskId}:`,
+                    error
+                );
+
+                // Use per-request error callback - this should always be available in modern usage
+                if (onError) {
+                    onError(error.message);
+                }
+
+                // Remove from active polling and resume queue if halted
+                onTaskComplete(taskId, sceneId, false);
+            }
+        };
+
+        poll();
+    }, []);
 
     // Handle task completion
     const onTaskComplete = useCallback((taskId, sceneId, success) => {
         console.log(`Task ${taskId} completed for scene ${sceneId}, success: ${success}`);
-
-        setActivePolling((prev) => {
-            const newMap = new Map(prev);
-            newMap.delete(taskId);
-            console.log(`Active polling count after completion: ${newMap.size}`);
-            return newMap;
-        });
 
         // If queue was halted due to throttling, resume processing
         if (isQueueHaltedRef.current) {
@@ -350,58 +292,24 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
     }, []);
 
     // Queue a video request
-    const queueRequest = useCallback(
-        (sceneId, imageBase64, prompt, onUpdate, onError) => {
-            console.log(`📥 Queueing single request for scene: ${sceneId}`);
-            const request = createRequest(sceneId, imageBase64, prompt, onUpdate, onError);
+    const queueRequest = useCallback((sceneId, imgUrl, prompt, onUpdate, onError) => {
+        console.log(`📥 Queueing single request for scene: ${sceneId}`);
+        const request = createRequest(sceneId, imgUrl, prompt, onUpdate, onError);
 
-            setRequestQueue((prev) => {
-                const newQueue = [...prev, request];
-                console.log(`Queue updated. New length: ${newQueue.length}`);
-                return newQueue;
-            });
+        setRequestQueue((prev) => {
+            const newQueue = [...prev, request];
+            console.log(`Queue updated. New length: ${newQueue.length}`);
+            return newQueue;
+        });
 
-            // Set loading state for scene
-            if (onUpdate) {
-                onUpdate({ status: 'queued' });
-            } else if (props.onSceneStateChange) {
-                // Fallback
-                props.onSceneStateChange(sceneId, { isGenerating: true });
-            }
+        // Set loading state for scene via callback
+        if (onUpdate) {
+            onUpdate({ status: 'queued' });
+        }
 
-            // useEffect will handle triggering queue processing
-            console.log('Request queued, useEffect will handle processing');
-        },
-        [props.onSceneStateChange]
-    );
-
-    // Queue multiple requests
-    const queueMultipleRequests = useCallback(
-        (requests) => {
-            console.log(`📥 Queueing ${requests.length} requests for batch processing`);
-            const newRequests = requests.map(({ sceneId, imageBase64, prompt }) =>
-                createRequest(sceneId, imageBase64, prompt)
-            );
-
-            setRequestQueue((prev) => {
-                const newQueue = [...prev, ...newRequests];
-                console.log(`Batch queue updated. New length: ${newQueue.length}`);
-                return newQueue;
-            });
-
-            // Set loading states for all scenes
-            if (props.onSceneStateChange) {
-                requests.forEach(({ sceneId }) => {
-                    console.log(`Setting loading state for scene: ${sceneId}`);
-                    props.onSceneStateChange(sceneId, { isGenerating: true });
-                });
-            }
-
-            // useEffect will handle triggering queue processing
-            console.log('Batch requests queued, useEffect will handle processing');
-        },
-        [props]
-    );
+        // useEffect will handle triggering queue processing
+        console.log('Request queued, useEffect will handle processing');
+    }, []);
 
     // Cleanup expired requests every 30 seconds
     useEffect(() => {
@@ -414,13 +322,9 @@ const VideoRequestManager = ({ children, onError, ...props }) => {
         ...props,
         videoManager: {
             queueRequest,
-            queueMultipleRequests,
             isQueueHalted,
             queueLength: requestQueue.length,
-            activePollingCount: activePolling.size,
         },
-        onSceneStateChange: props.onSceneStateChange,
-        onVideoGenerated: props.onVideoGenerated,
     };
 
     return children(enhancedProps);

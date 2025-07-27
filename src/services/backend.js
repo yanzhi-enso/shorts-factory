@@ -22,7 +22,7 @@ class KlingThrottleError extends KlingError {
 export { KlingError, KlingThrottleError };
 
 /* Video Generation Functions */
-export async function generateVideo(imageBase64, prompt, options = {}) {
+export async function generateVideo(imageUrl, prompt, options = {}) {
     try {
         const response = await fetch('/api/services/video', {
             method: 'POST',
@@ -31,7 +31,7 @@ export async function generateVideo(imageBase64, prompt, options = {}) {
             },
             body: JSON.stringify({
                 model_name: 'kling-v2-1',
-                image: imageBase64,
+                image: imageUrl,
                 prompt,
                 ...options,
             }),
