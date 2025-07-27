@@ -13,12 +13,18 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
     const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
     const {
         id: sceneId,
-        selectedGeneratedImage,
+        selectedGeneratedImage: originalSelectedGeneratedImage,
         generatedImages,
         selectedSceneClip,
         sceneClips,
         selectedSceneClipId,
     } = scene;
+
+    const [selectedGeneratedImage, setSelectedGeneratedImage] = useState(null);
+
+    useEffect(() => {
+        setSelectedGeneratedImage(originalSelectedGeneratedImage);
+    }, [originalSelectedGeneratedImage]);
 
     // Dynamic display name based on array position
     const sceneDisplayName = `Scene-${sceneIndex + 1}`;
@@ -76,6 +82,7 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
                 setError(null);
             } else if (update.status === 'succeed') {
                 const { videoUrl, prompt, imageUrl } = update;
+                console.log('received video update:', videoUrl, prompt, imageUrl);
                 setIsGeneratingVideo(false);
                 // Add generated clip to ProjectManager with prompt in generation sources
                 addGeneratedClip(sceneId, videoUrl, {
@@ -85,6 +92,17 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
             }
         },
         [sceneId, prompt, addGeneratedClip]
+    );
+
+    const handleFillinInput = useCallback(
+        (imageUrl, prompt) => {
+            console.log('Filling in input for video generation:', imageUrl, prompt);
+            if (imageUrl && prompt) {
+                setPrompt(prompt);
+                setSelectedGeneratedImage(imageUrl);
+            }
+        },
+        [setPrompt]
     );
 
     const handleVideoError = useCallback((errorMessage) => {
@@ -133,20 +151,19 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
         }
     };
 
-    const inputImage = {
-        imageUrl: selectedGeneratedImage,
-        title: `${sceneDisplayName} Input`,
-    };
-
     return (
         <div className={styles.videoRow}>
             {/* Input Image */}
             <div className={styles.imageSection}>
                 <RemakeImageBlock
-                    imageUrl={inputImage.imageUrl}
-                    title={inputImage.title}
+                    imageUrl={selectedGeneratedImage}
+                    title={sceneDisplayName + ' Input Image'}
                     variant='original'
-                    onClick={() => handleInputImageClick(inputImage.imageUrl, inputImage.title)}
+                    onClick={handleInputImageClick}
+                    showResetButton={originalSelectedGeneratedImage !== selectedGeneratedImage}
+                    onResetImageUrl={() =>
+                        setSelectedGeneratedImage(originalSelectedGeneratedImage)
+                    }
                 />
             </div>
 
@@ -186,6 +203,7 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
                 selectedSceneClipId={selectedSceneClipId}
                 onClose={handleHistoryModalClose}
                 onUpdateSelection={handleUpdateSelection}
+                onFillinInput={handleFillinInput}
             />
         </div>
     );

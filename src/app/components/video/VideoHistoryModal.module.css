@@ -16,7 +16,7 @@
   background: white;
   border-radius: 12px;
   max-width: 900px;
-  max-height: 80vh;
+  max-height: 90vh;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -191,34 +191,25 @@
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  margin-left: 24px;
+  margin-right: 24px;
 }
 
 .promptSection {
   flex: 1;
   min-width: 0; /* Allows text to wrap properly */
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  min-height: 100%;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  color: #555;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
 }
 
 .imageSection {
   flex-shrink: 0; /* Maintains image's natural width */
-}
-
-.promptLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.promptText {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.5;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
 }
 
 .sourceImage {
@@ -302,6 +293,22 @@
 .deleteButton:hover {
   background: #d32f2f;
   border-color: #d32f2f;
+}
+
+.recreateButton {
+  padding: 8px 16px;
+  border: 1px solid #4caf50;
+  background: #4caf50;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.recreateButton:hover {
+  background: #388e3c;
+  border-color: #388e3c;
 }
 
 .saveButton {

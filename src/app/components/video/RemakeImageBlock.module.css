@@ -58,3 +58,31 @@
 .empty:hover .emptyText {
   color: #007bff;
 }
+
+.refreshButton {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  z-index: 10;
+  font-size: 14px;
+}
+
+.refreshButton:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.refreshButton:active {
+  transform: scale(0.95);
+}

@@ -12,6 +12,7 @@ const VideoHistoryModal = ({
     selectedSceneClipId = null,
     onClose,
     onUpdateSelection,
+    onFillinInput,
 }) => {
     // Local state for modal interactions
     const [selectedRecordId, setSelectedRecordId] = useState(selectedSceneClipId);
@@ -47,6 +48,20 @@ const VideoHistoryModal = ({
         } catch (error) {
             console.error('Delete failed:', error);
             alert('Failed to delete video');
+        }
+    };
+
+    const handleRecreate = async () => {
+        if (!selectedRecord) return;
+        try {
+            const { prompt, imageUrl } = selectedRecord.generationSources || {};
+            console.log('Recreating video with input:', prompt, imageUrl);
+
+            onFillinInput(imageUrl, prompt);
+            onClose();
+        } catch (error) {
+            console.error('Recreation failed:', error);
+            alert('Failed to recreate video');
         }
     };
 
@@ -142,26 +157,23 @@ const VideoHistoryModal = ({
 
                                     {/* Row 2 - Split Layout: Prompt + Source Image */}
                                     <div className={styles.splitRow}>
-                                        {/* Prompt Section (Left) */}
-                                        {selectedRecord.generationSources?.prompt && (
-                                            <div className={styles.promptSection}>
-                                                <div className={styles.promptLabel}>Prompt:</div>
-                                                <div className={styles.promptText}>
-                                                    {selectedRecord.generationSources.prompt}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Source Image Section (Right) */}
-                                        {selectedRecord.generationSources?.imgUrl && (
+                                        {/* Source Image Section (Left) */}
+                                        {selectedRecord.generationSources?.imageUrl && (
                                             <div className={styles.imageSection}>
                                                 <Image
-                                                    src={selectedRecord.generationSources.imgUrl}
+                                                    src={selectedRecord.generationSources.imageUrl}
                                                     alt='Source image'
                                                     width={120}
                                                     height={180}
                                                     className={styles.sourceImage}
                                                 />
+                                            </div>
+                                        )}
+
+                                        {/* Prompt Section (Right) */}
+                                        {selectedRecord.generationSources?.prompt && (
+                                            <div className={styles.promptSection}>
+                                                {selectedRecord.generationSources.prompt}
                                             </div>
                                         )}
                                     </div>
@@ -186,6 +198,13 @@ const VideoHistoryModal = ({
                             disabled={!selectedRecord}
                         >
                             Delete
+                        </button>
+                        <button
+                            className={styles.recreateButton}
+                            onClick={handleRecreate}
+                            disabled={!selectedRecord}
+                        >
+                            Recreate
                         </button>
                         <button
                             className={styles.saveButton}
