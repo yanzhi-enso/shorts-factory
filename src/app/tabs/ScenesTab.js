@@ -43,7 +43,9 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
             </div>
 
             <div className={styles.instructionRow}>
-                <p className={styles.projectId}>Pick scenes and their index images for next step.</p>
+                <p className={styles.projectId}>
+                    {scenes.filter(scene => scene.isSelected).length}/{scenes.length} Scenes selected
+                </p>
             </div>
 
             <div className={styles.content}>
