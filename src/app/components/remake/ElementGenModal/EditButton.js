@@ -1,30 +1,14 @@
 import React from 'react';
 import { Tooltip } from 'react-tooltip';
-
-import { useElementGenModalContext } from './ElementGenModalContext';
 import { FaPencilAlt } from 'react-icons/fa';
 
-export default function EditButton({ elementImage, className, title = "Edit" }) {
-    const { openModal } = useElementGenModalContext();
-
+export default function EditButton({ onEdit, className, title = 'Edit' }) {
     const handleEditClick = (e) => {
         e.stopPropagation();
 
-        // Extract generation sources if available
-        const generationSources = elementImage.generationSources;
-
-        // Create prefill data based on elementImage
-        const prefillData = {
-            initialTab: generationSources?.type === 'inpainting' ? 'inpainting' : 'prompt',
-            prompt: generationSources?.prompt || '',
-            srcImages: generationSources?.srcImages || [],
-            maskImage: generationSources?.maskImage || null,
-            size: generationSources?.size,
-            sourceRecordId: elementImage.id,
-        };
-
-        // Open modal with prefill data
-        openModal(prefillData);
+        if (onEdit) {
+            onEdit();
+        }
     };
 
     return (

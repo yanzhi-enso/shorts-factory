@@ -4,12 +4,15 @@ import React, { useState, useEffect } from 'react';
 import styles from './ElementImageDetailsModal.module.css';
 import Image from 'next/image';
 import { useProjectManager } from 'projectManager/useProjectManager';
+import { useElementGenModalContext } from '../ElementGenModal/ElementGenModalContext';
 import EditButton from '../ElementGenModal/EditButton';
 import InpaintingButton from '../ElementGenModal/InpaintingButton';
 import DeleteButton from 'app/components/common/DeleteButton';
+import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
 const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
     const { updateElementImage, updateElementImageIndex, removeElementImage } = useProjectManager();
+    const { openModal } = useElementGenModalContext();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -130,6 +133,47 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
         }
     };
 
+    const handleEdit = () => {
+        // Extract generation sources if available
+        const generationSources = elementImage.generationSources;
+
+        // Create prefill data based on elementImage
+        const prefillData = {
+            initialTab: generationSources?.type === 'inpainting' ? 'inpainting' : 'prompt',
+            prompt: generationSources?.prompt || '',
+            srcImages: generationSources?.srcImages || [],
+            maskImage: generationSources?.maskImage || null,
+            size: generationSources?.size,
+            sourceRecordId: elementImage.id,
+        };
+
+        // Open modal with prefill data
+        openModal(prefillData);
+        // Close current modal
+        onClose();
+    };
+
+    const handleInpainting = () => {
+        // Get current image URL using the current imgIdx
+        const currentImageUrl = elementImage.gcsUrls[imgIdx];
+
+        // Create minimal prefill data for fresh inpainting
+        const prefillData = {
+            initialTab: 'inpainting',
+            srcImages: [{ url: currentImageUrl }],
+            // Intentionally leave prompt and mask empty for fresh start
+            prompt: '',
+            mask: null,
+            size: elementImage.generationSources?.size || IMAGE_SIZE_PORTRAIT, // Extract from generation sources or use default
+            sourceRecordId: elementImage.id, // For reference only
+        };
+
+        // Open modal with minimal prefill data
+        openModal(prefillData);
+        // Close current modal
+        onClose();
+    };
+
     if (!elementImage) {
         return <></>;
     }
@@ -170,13 +214,12 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
                         {/* Overlay buttons */}
                         <div className={styles.imageOverlayButtons}>
                             <EditButton
-                                elementImage={elementImage}
+                                onEdit={handleEdit}
                                 className={`${styles.overlayButton} ${styles.editButton}`}
                                 title='Edit'
                             />
                             <InpaintingButton
-                                elementImage={elementImage}
-                                currentImageIdx={imgIdx}
+                                onInpainting={handleInpainting}
                                 className={`${styles.overlayButton} ${styles.inpaintingButton}`}
                                 title='Inpainting'
                             />
