@@ -6,7 +6,7 @@ import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './AddSceneModal.module.css';
 
 const AddSceneModal = ({ isOpen, onClose, onSuccess }) => {
-    const { addScene, handleReferenceImageUpload } = useProjectManager();
+    const { addScene, handleReferenceImageUpload, projectState } = useProjectManager();
     
     const [title, setTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
@@ -69,9 +69,13 @@ const AddSceneModal = ({ isOpen, onClose, onSuccess }) => {
         setIsCreating(true);
         
         try {
-            // Create the scene first
+            // Get current scenes and find the last one to append after
+            const scenes = projectState.scenes || [];
+            const lastScene = scenes.length > 0 ? scenes[scenes.length - 1] : null;
+            
+            // Create the scene first - append to end by passing lastScene as beforeScene
             const sceneResult = await addScene(
-                null, // insertAfterScene - null means add to beginning
+                lastScene, // insertAfterScene - pass last scene to append to end
                 null, // insertBeforeScene - null means no specific order constraint  
                 { 
                     title: title.trim() || null,

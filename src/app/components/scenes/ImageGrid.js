@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -74,6 +74,32 @@ const ImageGrid = ({ scenes }) => {
         // Optional: any additional logic after scene is created
         // The ProjectManager will handle state updates automatically
     };
+
+    // Keyboard shortcut: Press 'N' to open Add Scene modal
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Only trigger if:
+            // 1. 'N' key is pressed (case insensitive)
+            // 2. Modal is not already open
+            // 3. User is not typing in an input field
+            if (
+                event.key.toLowerCase() === 'n' && 
+                !addModalState.isOpen &&
+                !['INPUT', 'TEXTAREA'].includes(event.target.tagName)
+            ) {
+                event.preventDefault();
+                handleAddScene();
+            }
+        };
+
+        // Add listener to document
+        document.addEventListener('keydown', handleKeyDown);
+
+        // Cleanup
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [addModalState.isOpen]); // Re-run if modal state changes
 
     const handleDragEnd = async (event) => {
         const { active, over } = event;
