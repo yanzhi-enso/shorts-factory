@@ -15,6 +15,7 @@ import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 const SceneRow = ({
     scene,
     sceneIndex,
+    totalScenes,
     storyConfig,
     onReferenceImageClick,
     onOpenHistoryModal,
@@ -172,6 +173,11 @@ const SceneRow = ({
                 isUnfocused ? styles.unfocused : ''
             }`}
         >
+            {/* Scene Number Indicator */}
+            <div className={styles.sceneNumberIndicator}>
+                {sceneIndex + 1}/{totalScenes}
+            </div>
+
             {/* Reference Image */}
             <div className={styles.imageSection}>
                 <ReferenceImageBlock scene={scene} onImageClick={onReferenceImageClick} />

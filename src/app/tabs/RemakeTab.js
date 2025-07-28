@@ -259,6 +259,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                             <SceneRow
                                 scene={scene}
                                 sceneIndex={index}
+                                totalScenes={selectedScenes.length}
                                 storyConfig={storyConfig}
                                 onReferenceImageClick={handleReferenceImageClick}
                                 onOpenHistoryModal={handleOpenHistoryModal}

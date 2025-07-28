@@ -31,6 +31,21 @@
   display: none; /* Chrome/Safari */
 }
 
+.sceneNumberIndicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+}
+
 .imageSection {
   flex-shrink: 0;
   width: 200px;
