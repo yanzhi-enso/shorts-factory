@@ -151,7 +151,7 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
                                 }`}
                                 onClick={() => handleImageSelect(index)}
                             >
-                                <Image
+                                <img
                                     src={imageUrl}
                                     alt={`Variant ${index + 1}`}
                                     width={60}

@@ -89,7 +89,7 @@ const SceneBlock = ({ scene, onImageClick, onAddScene }) => {
             case 'generated_image':
             case 'reference_image':
                 return (
-                    <Image
+                    <img
                         src={displayInfo.content}
                         alt='Scene Image'
                         width={200}

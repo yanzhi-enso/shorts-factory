@@ -52,7 +52,7 @@ const SceneGenBlock = ({
         }
 
         return (
-            <Image
+            <img
                 src={currentImageUrl}
                 alt={`${sceneId} ${imageType}`}
                 width={200}

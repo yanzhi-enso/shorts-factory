@@ -27,14 +27,12 @@ const ElementImageStack = ({ sceneId }) => {
     return (
         <div className={styles.container}>
             {elements.length === 0 ? (
-                <div className={styles.placeholder}>
-                    No elements selected for this scene
-                </div>
+                <div className={styles.placeholder}>No elements selected for this scene</div>
             ) : (
                 <>
                     {elements.map((elementUrl, index) => (
                         <div key={`${elementUrl}-${index}`} className={styles.thumbnail}>
-                            <Image
+                            <img
                                 src={elementUrl}
                                 alt={`Element ${index + 1}`}
                                 width={60}
@@ -45,16 +43,14 @@ const ElementImageStack = ({ sceneId }) => {
                                 className={styles.removeButton}
                                 onClick={() => handleRemove(elementUrl)}
                                 onMouseDown={handleMouseDown}
-                                title="Remove element"
+                                title='Remove element'
                             >
                                 ×
                             </button>
                         </div>
                     ))}
                     {elements.length >= 10 && (
-                        <div className={styles.maxIndicator}>
-                            Max reached (10/10)
-                        </div>
+                        <div className={styles.maxIndicator}>Max reached (10/10)</div>
                     )}
                 </>
             )}

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { FaUpload } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './SceneGenHistoryModal.module.css';
-import Image from 'next/image';
 import SceneEditButton from './SceneEditButton';
 import SceneInpaintingButton from './SceneInpaintingButton';
 
@@ -186,7 +185,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                                         onClick={() => handleRecordSelect(record.id)}
                                     >
                                         <div className={styles.recordThumbnail}>
-                                            <Image
+                                            <img
                                                 src={thumbnailUrl}
                                                 alt={`${imageType} ${index + 1}`}
                                                 width={80}
@@ -239,7 +238,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                                 <div className={styles.imageViewer}>
                                     <div className={styles.mainImageContainer}>
                                         <div className={styles.imageWrapper}>
-                                            <Image
+                                            <img
                                                 src={currentImageUrl}
                                                 alt='Selected image'
                                                 width={400}
@@ -276,7 +275,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                                                         }`}
                                                         onClick={() => handleThumbnailClick(index)}
                                                     >
-                                                        <Image
+                                                        <img
                                                             src={url}
                                                             alt={`Image ${index + 1}`}
                                                             width={60}
@@ -361,7 +360,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                                                                             styles.sourceImageThumb
                                                                         }
                                                                     >
-                                                                        <Image
+                                                                        <img
                                                                             src={
                                                                                 srcImg.url ||
                                                                                 `data:image/jpeg;base64,${srcImg.base64}`
