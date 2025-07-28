@@ -138,7 +138,7 @@ export async function generateImage(prompt, size = null, n = 1, projectId, asset
             throw new Error(data.error || 'Failed to generate image');
         }
 
-        return data.data.images;
+        return data.data;
     } catch (error) {
         console.error('Error generating image:', error);
         throw error;

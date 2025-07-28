@@ -83,20 +83,20 @@ export const ImageGenProvider = ({ children }) => {
             sceneId
         ) => {
             try {
-                let result;
-
+                let images;
                 if (isTextOnly) {
-                    // Text-to-image generation
-                    result = await generateImage(
+                    // Text-to-image generation - returns images array directly
+                    const result = await generateImage(
                         prompt.trim(),
                         size,
                         numberOfImages,
                         projectId,
                         assetType
                     );
+                    images = result.images || []; // Ensure we have an array
                 } else {
-                    // Image extension
-                    result = await extendImage(
+                    // Image extension - returns object with images property
+                    const result = await extendImage(
                         selectedImages,
                         prompt.trim(),
                         size,
@@ -104,10 +104,11 @@ export const ImageGenProvider = ({ children }) => {
                         projectId,
                         assetType
                     );
+                    images = result.images;
                 }
 
                 // Collect all generated image URLs
-                const allImageUrls = result.images.map((imageData) => imageData.imageUrl);
+                const allImageUrls = images.map((imageData) => imageData.imageUrl);
 
                 // Create generation sources using the first image's revised prompt (they should be similar)
                 const generationSources = {
@@ -123,7 +124,7 @@ export const ImageGenProvider = ({ children }) => {
                               }
                           }),
                     size,
-                    revisedPrompt: result.images[0]?.revisedPrompt,
+                    revisedPrompt: images[0]?.revisedPrompt,
                 };
 
                 // Handle result based on asset type
