@@ -14,11 +14,8 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
     const { updateScene, updateGeneratedImageIndex, handleSceneImageUpload } = useProjectManager();
 
     // Get scene data from project state
-    console.log('SceneGenHistoryModal - scene:', scene);
     const recreatedImages = scene?.generatedImages || [];
-    console.log('SceneGenHistoryModal - recreatedImages:', recreatedImages);
     const selectedGeneratedImageId = scene?.selectedGeneratedImageId;
-    console.log('SceneGenHistoryModal - selectedGeneratedImageId:', selectedGeneratedImageId);
 
     // Local state for modal interactions
     const [selectedRecordId, setSelectedRecordId] = useState(selectedGeneratedImageId);
