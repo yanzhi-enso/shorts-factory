@@ -19,6 +19,13 @@
   -ms-overflow-style: none; /* IE/Edge */
 }
 
+.sceneRow.collapsed {
+  min-height: 60px;
+  padding: 12px 16px;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
 .sceneRow.focused {
   border: 3px solid black;
 }
@@ -60,6 +67,68 @@
   display: flex;
   align-items: stretch;
   height: 100%;
+}
+
+/* Collapsed state styles */
+.collapsedContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.sceneLabel {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.sceneTitle {
+  color: #6c757d;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Expand/Collapse button styles */
+.expandButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.expandButton:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #495057;
+}
+
+.expandButton.expandedState {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 15;
+}
+
+/* Chevron icon styles */
+.chevron {
+  transition: transform 0.2s ease;
+  font-size: 14px;
+}
+
+/* Collapsed state: chevron points right (90deg rotation) */
+.sceneRow.collapsed .chevron {
+  transform: rotate(90deg);
+}
+
+/* Expanded state: chevron points down (-90deg rotation) */
+.chevron.expanded {
+  transform: rotate(-90deg);
 }
 
 /* Mobile responsiveness */

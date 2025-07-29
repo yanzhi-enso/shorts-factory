@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { FaBookOpen, FaDownload } from 'react-icons/fa';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { FaBookOpen, FaDownload, FaCompress, FaExpand } from 'react-icons/fa';
 import { FaMagic, FaImages } from 'react-icons/fa';
+import React from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
@@ -15,10 +16,16 @@ import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSe
 import SceneGenHistoryModal from 'app/components/remake/SceneGenHistoryModal';
 import SceneInpaintingModal from 'app/components/remake/SceneInpaintingModal';
 
+// Memoized SceneRow to prevent unnecessary re-renders
+const MemoizedSceneRow = React.memo(SceneRow);
+
 const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const { projectState } = useProjectManager();
 
+    // Centralized collapse state management (optimized)
+    const [sceneCollapseStates, setSceneCollapseStates] = useState({});
     const [isExporting, setIsExporting] = useState(false);
+    const [bulkCollapseState, setBulkCollapseState] = useState('mixed'); // 'expanded', 'collapsed', 'mixed'
     const [referenceModalState, setReferenceModalState] = useState({
         isOpen: false,
         scene: null,
@@ -43,6 +50,51 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     // Get story config from ProjectManager
     const storyConfig = projectState.currentProject?.settings || {};
+
+    // Toggle individual scene collapse state (optimized with useCallback)
+    const toggleSceneCollapse = useCallback((sceneId) => {
+        setSceneCollapseStates(prev => ({
+            ...prev,
+            [sceneId]: !prev[sceneId]
+        }));
+    }, []);
+
+    // Calculate bulk state based on actual scene collapse states
+    useEffect(() => {
+        if (selectedScenes.length === 0) {
+            setBulkCollapseState('mixed');
+            return;
+        }
+
+        const collapsedCount = selectedScenes.filter(scene => 
+            sceneCollapseStates[scene.id] === true
+        ).length;
+
+        if (collapsedCount === 0) {
+            setBulkCollapseState('expanded');
+        } else if (collapsedCount === selectedScenes.length) {
+            setBulkCollapseState('collapsed');
+        } else {
+            setBulkCollapseState('mixed');
+        }
+    }, [sceneCollapseStates, selectedScenes]);
+
+    // Bulk collapse/expand handlers (optimized)
+    const handleCollapseAll = useCallback(() => {
+        const newStates = {};
+        selectedScenes.forEach(scene => {
+            newStates[scene.id] = true;
+        });
+        setSceneCollapseStates(newStates);
+    }, [selectedScenes]);
+
+    const handleExpandAll = useCallback(() => {
+        const newStates = {};
+        selectedScenes.forEach(scene => {
+            newStates[scene.id] = false;
+        });
+        setSceneCollapseStates(newStates);
+    }, [selectedScenes]);
 
     // Empty bulk operation handlers (to be implemented later)
     const handlePromptGenAll = () => {
@@ -227,6 +279,26 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                     >
                         <FaImages /> ImageGen All
                     </button>
+                    {selectedScenes.length > 0 && (
+                        <>
+                            <button
+                                onClick={handleCollapseAll}
+                                className={`${styles.actionButton} ${styles.collapseButton}`}
+                                title='Collapse All Scenes'
+                                disabled={bulkCollapseState === 'collapsed'}
+                            >
+                                <FaCompress /> Collapse All
+                            </button>
+                            <button
+                                onClick={handleExpandAll}
+                                className={`${styles.actionButton} ${styles.expandButton}`}
+                                title='Expand All Scenes'
+                                disabled={bulkCollapseState === 'expanded'}
+                            >
+                                <FaExpand /> Expand All
+                            </button>
+                        </>
+                    )}
                 </div>
                 <div className={styles.rightButtons}>
                     <button
@@ -256,11 +328,13 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                     selectedScenes.map((scene, index) => (
                         <div key={scene.id} className={styles.sceneRow}>
                             {/* Scene Row */}
-                            <SceneRow
+                            <MemoizedSceneRow
                                 scene={scene}
                                 sceneIndex={index}
                                 totalScenes={selectedScenes.length}
                                 storyConfig={storyConfig}
+                                isCollapsed={sceneCollapseStates[scene.id] || false}
+                                onToggleCollapse={() => toggleSceneCollapse(scene.id)}
                                 onReferenceImageClick={handleReferenceImageClick}
                                 onOpenHistoryModal={handleOpenHistoryModal}
                             />

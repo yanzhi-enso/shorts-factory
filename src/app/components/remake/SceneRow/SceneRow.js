@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
+import { FaChevronLeft } from 'react-icons/fa';
 import styles from './SceneRow.module.css';
 import ReferenceImageBlock from 'app/components/common/ReferenceImageBlock';
 import SceneGenBlock from './SceneGenBlock';
@@ -17,6 +18,8 @@ const SceneRow = ({
     sceneIndex,
     totalScenes,
     storyConfig,
+    isCollapsed,
+    onToggleCollapse,
     onReferenceImageClick,
     onOpenHistoryModal,
 }) => {
@@ -167,6 +170,33 @@ const SceneRow = ({
         }
     };
 
+    // Scene title or fallback
+    const displayTitle = scene.title || "Untitled Scene";
+
+    // If collapsed, show compact one-line view
+    if (isCollapsed) {
+        return (
+            <div
+                className={`${styles.sceneRow} ${styles.collapsed} ${isFocused ? styles.focused : ''} ${
+                    isUnfocused ? styles.unfocused : ''
+                }`}
+            >
+                <div className={styles.collapsedContent}>
+                    <span className={styles.sceneLabel}>Scene {sceneIndex + 1}</span>
+                    <span className={styles.sceneTitle}>{displayTitle}</span>
+                </div>
+                <button 
+                    className={styles.expandButton}
+                    onClick={onToggleCollapse}
+                    aria-label="Expand scene"
+                >
+                    <FaChevronLeft className={styles.chevron} />
+                </button>
+            </div>
+        );
+    }
+
+    // Expanded view (original layout)
     return (
         <div
             className={`${styles.sceneRow} ${isFocused ? styles.focused : ''} ${
@@ -177,6 +207,15 @@ const SceneRow = ({
             <div className={styles.sceneNumberIndicator}>
                 {sceneIndex + 1}/{totalScenes}
             </div>
+
+            {/* Collapse Button */}
+            <button 
+                className={`${styles.expandButton} ${styles.expandedState}`}
+                onClick={onToggleCollapse}
+                aria-label="Collapse scene"
+            >
+                <FaChevronLeft className={`${styles.chevron} ${styles.expanded}`} />
+            </button>
 
             {/* Reference Image */}
             <div className={styles.imageSection}>

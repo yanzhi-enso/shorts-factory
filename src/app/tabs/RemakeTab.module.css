@@ -105,6 +105,24 @@
   transform: translateY(-1px);
 }
 
+.collapseButton {
+  background: #fd7e14;
+}
+
+.collapseButton:hover:not(:disabled) {
+  background: #e8690b;
+  transform: translateY(-1px);
+}
+
+.expandButton {
+  background: #20c997;
+}
+
+.expandButton:hover:not(:disabled) {
+  background: #1aa179;
+  transform: translateY(-1px);
+}
+
 .actionButton:disabled,
 .actionButton.disabled {
   background: #6c757d;
