@@ -88,6 +88,7 @@ const VideoRow = ({
     const handleVideoUpdate = useCallback(
         (update) => {
             if (update.status === 'queued') {
+                console.log('Video generation queued for scene:', sceneId);
                 setIsGeneratingVideo(true);
                 setError(null);
             } else if (update.status === 'succeed') {
@@ -101,7 +102,7 @@ const VideoRow = ({
                 });
             }
         },
-        [sceneId, prompt, addGeneratedClip]
+        [sceneId, setIsGeneratingVideo, addGeneratedClip]
     );
 
     const handleFillinInput = useCallback(
