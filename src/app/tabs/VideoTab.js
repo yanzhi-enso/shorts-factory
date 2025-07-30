@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import { FaMagic, FaVideo, FaDownload, FaBookOpen } from 'react-icons/fa';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { FaMagic, FaVideo, FaDownload, FaBookOpen, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
@@ -19,6 +19,10 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
     });
 
     const [isExporting, setIsExporting] = useState(false);
+
+    // Centralized collapse state management
+    const [videoCollapseStates, setVideoCollapseStates] = useState({});
+    const [bulkCollapseState, setBulkCollapseState] = useState('mixed');
 
     const storyConfig = projectState.currentProject?.settings || {};
 
@@ -55,6 +59,51 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
             imageTitle: null,
         });
     };
+
+    // Individual toggle handler for video collapse
+    const toggleVideoCollapse = useCallback((sceneId) => {
+        setVideoCollapseStates(prev => ({
+            ...prev,
+            [sceneId]: !prev[sceneId]
+        }));
+    }, []);
+
+    // Bulk collapse/expand handlers
+    const handleCollapseAll = useCallback(() => {
+        const newStates = {};
+        scenesForVideo.forEach(scene => {
+            newStates[scene.id] = true;
+        });
+        setVideoCollapseStates(newStates);
+    }, [scenesForVideo]);
+
+    const handleExpandAll = useCallback(() => {
+        const newStates = {};
+        scenesForVideo.forEach(scene => {
+            newStates[scene.id] = false;
+        });
+        setVideoCollapseStates(newStates);
+    }, [scenesForVideo]);
+
+    // Real-time bulk state calculation
+    useEffect(() => {
+        if (scenesForVideo.length === 0) {
+            setBulkCollapseState('mixed');
+            return;
+        }
+
+        const collapsedCount = scenesForVideo.filter(scene => 
+            videoCollapseStates[scene.id] === true
+        ).length;
+
+        if (collapsedCount === 0) {
+            setBulkCollapseState('expanded');
+        } else if (collapsedCount === scenesForVideo.length) {
+            setBulkCollapseState('collapsed');
+        } else {
+            setBulkCollapseState('mixed');
+        }
+    }, [videoCollapseStates, scenesForVideo]);
 
     // Placeholder for bulk operation
     const handlePromptGenAll = () => {
@@ -114,6 +163,9 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
         }
     };
 
+    // Memoized VideoRow component to prevent unnecessary re-renders
+    const MemoizedVideoRow = React.memo(VideoRow);
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -128,6 +180,28 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
                     >
                         <FaBookOpen />
                         Story Context
+                    </button>
+                    <button
+                        onClick={handleCollapseAll}
+                        className={`${styles.actionButton} ${styles.collapseButton} ${
+                            bulkCollapseState === 'collapsed' ? styles.disabled : ''
+                        }`}
+                        disabled={bulkCollapseState === 'collapsed'}
+                        title='Collapse All Video Rows'
+                    >
+                        <FaChevronUp />
+                        Collapse All
+                    </button>
+                    <button
+                        onClick={handleExpandAll}
+                        className={`${styles.actionButton} ${styles.expandButton} ${
+                            bulkCollapseState === 'expanded' ? styles.disabled : ''
+                        }`}
+                        disabled={bulkCollapseState === 'expanded'}
+                        title='Expand All Video Rows'
+                    >
+                        <FaChevronDown />
+                        Expand All
                     </button>
                     <button
                         onClick={handlePromptGenAll}
@@ -160,14 +234,17 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
 
             <div className={styles.rowsContainer}>
                 {scenesForVideo.map((scene, index) => (
-                    <VideoRow
+                    <MemoizedVideoRow
                         key={scene.id}
                         scene={scene}
                         sceneIndex={index}
+                        totalScenes={scenesForVideo.length}
                         storyConfig={storyConfig}
                         videoManager={videoManager}
                         onInputImageClick={handleInputImageClick}
                         onGeneratedVideoClick={handleGeneratedVideoClick}
+                        isCollapsed={videoCollapseStates[scene.id] || false}
+                        onToggleCollapse={() => toggleVideoCollapse(scene.id)}
                     />
                 ))}
             </div>

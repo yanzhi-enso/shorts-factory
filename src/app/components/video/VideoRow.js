@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { FaChevronLeft } from 'react-icons/fa';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
 import VideoHistoryModal from './VideoHistoryModal';
@@ -9,7 +10,16 @@ import VideoControlPanel from './VideoControlPanel';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { analyzeImageForVideo } from 'services/backend';
 
-const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageClick }) => {
+const VideoRow = ({
+    scene,
+    sceneIndex,
+    totalScenes,
+    storyConfig,
+    isCollapsed,
+    videoManager,
+    onInputImageClick,
+    onToggleCollapse,
+}) => {
     const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
     const {
         id: sceneId,
@@ -152,59 +162,75 @@ const VideoRow = ({ scene, sceneIndex, storyConfig, videoManager, onInputImageCl
     };
 
     return (
-        <div className={styles.videoRow}>
-            {/* Input Image */}
-            <div className={styles.imageSection}>
-                <RemakeImageBlock
-                    imageUrl={selectedGeneratedImage}
-                    title={sceneDisplayName + ' Input Image'}
-                    variant='original'
-                    onClick={handleInputImageClick}
-                    showResetButton={originalSelectedGeneratedImage !== selectedGeneratedImage}
-                    onResetImageUrl={() =>
-                        setSelectedGeneratedImage(originalSelectedGeneratedImage)
-                    }
-                />
+        <div className={styles.container}>
+            <div className={styles.rowHeader}>
+                <div className={styles.sceneNumberIndicator}>
+                    {sceneIndex + 1}/{totalScenes}
+                </div>
+                <button
+                    onClick={onToggleCollapse}
+                    className={styles.toggleButton}
+                    title={isCollapsed ? 'Expand video row' : 'Collapse video row'}
+                >
+                    <FaChevronLeft
+                        className={isCollapsed ? styles.chevronExpand : styles.chevronCollapse}
+                    />
+                </button>
             </div>
+            <div className={isCollapsed ? styles.collapsed : styles.content}>
+                {/* Input Image */}
+                <div className={styles.imageSection}>
+                    <RemakeImageBlock
+                        imageUrl={selectedGeneratedImage}
+                        title={sceneDisplayName + ' Input Image'}
+                        variant='original'
+                        onClick={handleInputImageClick}
+                        showResetButton={originalSelectedGeneratedImage !== selectedGeneratedImage}
+                        onResetImageUrl={() =>
+                            setSelectedGeneratedImage(originalSelectedGeneratedImage)
+                        }
+                    />
+                </div>
 
-            {/* Control Panel */}
-            <div className={styles.controlSection}>
-                <VideoControlPanel
-                    prompt={prompt}
-                    onPromptChange={handlePromptChange}
-                    onPromptAssistant={handlePromptAssistant}
-                    isPromptAssistantRunning={isPromptAssistantRunning}
-                    referenceImages={[]}
-                    onGenerate={handleGenerate}
-                    isGenerating={isGeneratingVideo}
-                    error={error}
-                />
-            </div>
+                {/* Control Panel */}
+                <div className={styles.controlSection}>
+                    <VideoControlPanel
+                        prompt={prompt}
+                        onPromptChange={handlePromptChange}
+                        onPromptAssistant={handlePromptAssistant}
+                        isPromptAssistantRunning={isPromptAssistantRunning}
+                        referenceImages={[]}
+                        onGenerate={handleGenerate}
+                        isGenerating={isGeneratingVideo}
+                        error={error}
+                    />
+                </div>
 
-            {/* Generated Video */}
-            <div className={styles.videoSection}>
-                <VideoBlock
-                    videoUrl={selectedSceneClip}
-                    title={selectedSceneClip ? `${sceneDisplayName} Generated Video` : ''}
-                    variant='generated'
-                    isEmpty={!selectedSceneClip}
-                    isGenerating={isGeneratingVideo}
+                {/* Generated Video */}
+                <div className={styles.videoSection}>
+                    <VideoBlock
+                        videoUrl={selectedSceneClip}
+                        title={selectedSceneClip ? `${sceneDisplayName} Generated Video` : ''}
+                        variant='generated'
+                        isEmpty={!selectedSceneClip}
+                        isGenerating={isGeneratingVideo}
+                        sceneClips={sceneClips}
+                        selectedSceneClipId={selectedSceneClipId}
+                        onHistoryClick={handleGeneratedVideoClick}
+                    />
+                </div>
+
+                {/* Video History Modal */}
+                <VideoHistoryModal
+                    isOpen={historyModalOpen}
+                    sceneDisplayName={sceneDisplayName}
                     sceneClips={sceneClips}
                     selectedSceneClipId={selectedSceneClipId}
-                    onHistoryClick={handleGeneratedVideoClick}
+                    onClose={handleHistoryModalClose}
+                    onUpdateSelection={handleUpdateSelection}
+                    onFillinInput={handleFillinInput}
                 />
             </div>
-
-            {/* Video History Modal */}
-            <VideoHistoryModal
-                isOpen={historyModalOpen}
-                sceneDisplayName={sceneDisplayName}
-                sceneClips={sceneClips}
-                selectedSceneClipId={selectedSceneClipId}
-                onClose={handleHistoryModalClose}
-                onUpdateSelection={handleUpdateSelection}
-                onFillinInput={handleFillinInput}
-            />
         </div>
     );
 };
