@@ -165,10 +165,16 @@ export const ImageGenProvider = ({ children }) => {
             } catch (error) {
                 console.error('Image generation failed:', error);
 
+                // Check for content moderation error and provide special handling
+                let errorMessage = error.message;
+                if (error.message === 'CONTENT_MODERATION_BLOCKED') {
+                    errorMessage = 'Content moderation check failed, please revise your prompt';
+                }
+
                 // Update pending item with error state
                 dispatch({
                     type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
-                    payload: { id: generationId, error: error.message },
+                    payload: { id: generationId, error: errorMessage },
                 });
             }
         },
@@ -312,10 +318,16 @@ export const ImageGenProvider = ({ children }) => {
             } catch (error) {
                 console.error('Inpainting generation failed:', error);
 
+                // Check for content moderation error and provide special handling
+                let errorMessage = error.message;
+                if (error.message === 'CONTENT_MODERATION_BLOCKED') {
+                    errorMessage = 'Content moderation check failed, please revise your prompt';
+                }
+
                 // Update pending item with error state
                 dispatch({
                     type: IMAGE_GEN_ACTIONS.GENERATION_ERROR,
-                    payload: { id: generationId, error: error.message },
+                    payload: { id: generationId, error: errorMessage },
                 });
             }
         },

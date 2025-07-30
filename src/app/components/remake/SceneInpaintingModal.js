@@ -32,12 +32,31 @@ const SceneInpaintingModal = ({ isOpen, inpaintingData, onClose }) => {
     const selectedImageUrl = inpaintingData?.imageUrl;
     const sceneId = inpaintingData?.sceneId;
 
+    // Auto-hide error message for content moderation
+    useEffect(() => {
+        if (generationError && generationError.includes('Content moderation check failed')) {
+            const timer = setTimeout(() => {
+                setGenerationError(null);
+            }, 4000); // 4 seconds
+            
+            return () => clearTimeout(timer);
+        }
+    }, [generationError]);
+
     // Load and setup image when modal opens or image changes
     useEffect(() => {
         if (isOpen && selectedImageUrl) {
             loadImageToCanvas();
         }
     }, [isOpen, selectedImageUrl]);
+
+    // Reset generation state when modal opens for fresh session
+    useEffect(() => {
+        if (isOpen) {
+            setIsGenerating(false);
+            setGenerationError(null);
+        }
+    }, [isOpen]);
 
     // Clear mask function
     const clearMask = useCallback(() => {

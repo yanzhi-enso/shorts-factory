@@ -36,6 +36,17 @@ const PromptTab = ({ onClose, prefillData }) => {
             sceneId: scene.id
         }));
 
+    // Auto-hide error message for content moderation
+    useEffect(() => {
+        if (generationError && generationError.includes('Content moderation check failed')) {
+            const timer = setTimeout(() => {
+                setGenerationError(null);
+            }, 4000); // 4 seconds
+            
+            return () => clearTimeout(timer);
+        }
+    }, [generationError]);
+
     // Handle prefill data
     useEffect(() => {
         if (prefillData) {
@@ -169,13 +180,7 @@ const PromptTab = ({ onClose, prefillData }) => {
             onClose();
         } catch (error) {
             console.error('Generation failed:', error);
-            if (error.message === 'CONTENT_MODERATION_BLOCKED') {
-                setGenerationError(
-                    'Content was blocked by moderation filters. Please try a different prompt.'
-                );
-            } else {
-                setGenerationError(error.message || 'Failed to generate images. Please try again.');
-            }
+            setGenerationError(error.message || 'Failed to generate images. Please try again.');
             setIsGenerating(false);
         }
     }, [prompt, referenceImageStack, numberOfImages, startImageGeneration, imageSize, onClose]);

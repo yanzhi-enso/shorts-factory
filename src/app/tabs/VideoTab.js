@@ -31,7 +31,9 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
         if (!projectState.scenes || !Array.isArray(projectState.scenes)) {
             return [];
         }
-        return projectState.scenes.filter((scene) => scene.selectedGeneratedImage);
+        return projectState.scenes.filter(
+            (scene) => scene.isSelected && scene.selectedGeneratedImage
+        );
     }, [projectState.scenes]);
 
     const handleInputImageClick = (imageUrl, title) => {

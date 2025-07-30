@@ -32,6 +32,17 @@ const InpaintingTab = ({ onClose, prefillData }) => {
     const maskCanvasRef = useRef(null);
     const [originalImageDimensions, setOriginalImageDimensions] = useState(null);
 
+    // Auto-hide error message for content moderation
+    useEffect(() => {
+        if (generationError && generationError.includes('Content moderation check failed')) {
+            const timer = setTimeout(() => {
+                setGenerationError(null);
+            }, 4000); // 4 seconds
+            
+            return () => clearTimeout(timer);
+        }
+    }, [generationError]);
+
     // Handle prefill data
     useEffect(() => {
         if (prefillData) {
