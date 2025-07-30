@@ -147,6 +147,7 @@ export default function TabManager() {
         await updateProjectSettings({
             storyDescription: configData.storyDescription,
             image_size: configData.imageMode,
+            isAdvMode: configData.isAdvMode,
         });
         setIsStoryModalOpen(false);
     };
@@ -220,6 +221,7 @@ export default function TabManager() {
                 storyDescription={projectState.currentProject?.settings?.storyDescription || ''}
                 imageMode={projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT}
                 originalVideoUrl={projectState.currentProject?.tiktok_url || ''}
+                isAdvMode={projectState.currentProject?.settings?.isAdvMode || false}
                 onSave={handleStoryConfigSave}
                 onSkip={handleStoryConfigSkip}
                 onClose={handleStoryConfigClose}

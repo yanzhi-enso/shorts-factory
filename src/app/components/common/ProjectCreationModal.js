@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import styles from './ProjectCreationModal.module.css';
 import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
+import ToggleSwitch from './ToggleSwitch';
 
 const ProjectCreationModal = ({ isOpen, onClose, onCreateProject }) => {
   const [projectName, setProjectName] = useState('');
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [storyContext, setStoryContext] = useState('');
   const [imageMode, setImageMode] = useState(IMAGE_SIZE_PORTRAIT);
+  const [isAdvMode, setIsAdvMode] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -26,7 +28,8 @@ const ProjectCreationModal = ({ isOpen, onClose, onCreateProject }) => {
         projectName: projectName.trim(),
         tiktokUrl: tiktokUrl.trim() || null,
         storyContext: storyContext.trim() || null,
-        imageMode
+        imageMode,
+        isAdvMode
       });
       
       // Reset form
@@ -34,6 +37,7 @@ const ProjectCreationModal = ({ isOpen, onClose, onCreateProject }) => {
       setTiktokUrl('');
       setStoryContext('');
       setImageMode(IMAGE_SIZE_PORTRAIT);
+      setIsAdvMode(false);
       
       onClose();
     } catch (error) {
@@ -142,6 +146,21 @@ const ProjectCreationModal = ({ isOpen, onClose, onCreateProject }) => {
                 Landscape (1536×1024)
               </label>
             </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              Advanced Mode <span className={styles.optional}>(optional)</span>
+            </label>
+            <p className={styles.helpText}>
+              Enable advanced features and additional configuration options.
+            </p>
+            <ToggleSwitch
+              checked={isAdvMode}
+              onChange={(e) => setIsAdvMode(e.target.checked)}
+              disabled={isCreating}
+              variant="primary"
+            />
           </div>
 
           <div className={styles.buttons}>

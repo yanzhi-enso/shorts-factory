@@ -3,28 +3,32 @@
 import React, { useEffect, useState } from 'react';
 import styles from './StoryConfigModal.module.css';
 import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
+import ToggleSwitch from './ToggleSwitch';
 
 const StoryConfigModal = ({
     isOpen,
     storyDescription = '',
     imageMode = IMAGE_SIZE_PORTRAIT,
     originalVideoUrl = '',
+    isAdvMode = false,
     onSave,
     onSkip,
     onClose
 }) => {
     const [formData, setFormData] = useState({
         storyDescription: storyDescription,
-        imageMode: imageMode
+        imageMode: imageMode,
+        isAdvMode: isAdvMode
     });
 
     // Update form data when props change (for editing existing values)
     useEffect(() => {
         setFormData({
             storyDescription: storyDescription,
-            imageMode: imageMode
+            imageMode: imageMode,
+            isAdvMode: isAdvMode
         });
-    }, [storyDescription, imageMode]);
+    }, [storyDescription, imageMode, isAdvMode]);
 
     useEffect(() => {
         const handleEscape = (e) => {
@@ -135,6 +139,18 @@ const StoryConfigModal = ({
                                 Landscape (1536×1024)
                             </label>
                         </div>
+                    </div>
+
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>⚙️ Advanced Mode</label>
+                        <p className={styles.fieldInfo}>
+                            Enable advanced features and additional configuration options.
+                        </p>
+                        <ToggleSwitch
+                            checked={formData.isAdvMode}
+                            onChange={(e) => handleInputChange('isAdvMode', e.target.checked)}
+                            variant="secondary"
+                        />
                     </div>
                 </div>
 
