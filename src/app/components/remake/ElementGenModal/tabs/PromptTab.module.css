@@ -96,6 +96,37 @@
   color: #333;
 }
 
+/* Image Sub-tabs */
+.imageSubTabs {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 12px;
+}
+
+.imageSubTab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.imageSubTab:hover {
+  background: rgba(0, 123, 255, 0.05);
+  color: #007bff;
+}
+
+.imageSubTab.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background: rgba(0, 123, 255, 0.02);
+}
+
 .elementImageItem {
   position: relative;
   width: 100%;

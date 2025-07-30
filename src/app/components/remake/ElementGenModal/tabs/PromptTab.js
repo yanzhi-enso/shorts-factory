@@ -11,7 +11,7 @@ import { IMAGE_SIZE_LANDSCAPE, IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
 const PromptTab = ({ onClose, prefillData }) => {
     const { projectState } = useProjectManager()
-    const { elementImages } = projectState
+    const { elementImages, scenes } = projectState
     const { startImageGeneration } = useImageGenContext()
 
     // State management
@@ -22,6 +22,19 @@ const PromptTab = ({ onClose, prefillData }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationError, setGenerationError] = useState(null);
     const [validationError, setValidationError] = useState(null);
+    const [activeImageTab, setActiveImageTab] = useState('elements');
+
+    // Prepare scene images data
+    const sceneImages = scenes
+        .filter(scene => scene.selectedGeneratedImage)
+        .map((scene, index) => ({
+            id: `scene-${scene.id}`,
+            gcsUrls: [scene.selectedGeneratedImage],
+            selectedImageIdx: 0,
+            prompt: scene.title || `Scene ${index + 1}`,
+            isSceneImage: true,
+            sceneId: scene.id
+        }));
 
     // Handle prefill data
     useEffect(() => {
@@ -174,10 +187,25 @@ const PromptTab = ({ onClose, prefillData }) => {
                 {/* Left Column - Element Images */}
                 <div className={styles.leftColumn}>
                     <div className={styles.elementImagesColumn}>
-                        <label className={styles.sectionLabel}>Previous Results:</label>
+                        {/* Sub-tabs for image selection */}
+                        <div className={styles.imageSubTabs}>
+                            <button
+                                className={`${styles.imageSubTab} ${activeImageTab === 'elements' ? styles.active : ''}`}
+                                onClick={() => setActiveImageTab('elements')}
+                            >
+                                Elements ({elementImages.length})
+                            </button>
+                            <button
+                                className={`${styles.imageSubTab} ${activeImageTab === 'scenes' ? styles.active : ''}`}
+                                onClick={() => setActiveImageTab('scenes')}
+                            >
+                                Scenes ({sceneImages.length})
+                            </button>
+                        </div>
 
-                        {elementImages.length > 0 ? (
-                            <>
+                        {/* Conditional rendering based on active tab */}
+                        {activeImageTab === 'elements' ? (
+                            elementImages.length > 0 ? (
                                 <div className={styles.verticalImageList}>
                                     {elementImages.map((record) => {
                                         const isDisabled = referenceImageStack.length >= 10;
@@ -207,12 +235,48 @@ const PromptTab = ({ onClose, prefillData }) => {
                                         );
                                     })}
                                 </div>
-                            </>
+                            ) : (
+                                <div className={styles.noImagesMessage}>
+                                    No element images available. Generate some element images first to use as references.
+                                </div>
+                            )
                         ) : (
-                            <div className={styles.noImagesMessage}>
-                                No images available. Generate some images first to use as
-                                references.
-                            </div>
+                            // Scenes tab content
+                            sceneImages.length > 0 ? (
+                                <div className={styles.verticalImageList}>
+                                    {sceneImages.map((record) => {
+                                        const isDisabled = referenceImageStack.length >= 10;
+                                        return (
+                                            <div
+                                                key={record.id}
+                                                className={`${styles.elementImageItem} ${
+                                                    isDisabled ? styles.disabled : ''
+                                                }`}
+                                                onClick={() =>
+                                                    !isDisabled && handleAddToStack(record)
+                                                }
+                                                style={{
+                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                }}
+                                            >
+                                                <img
+                                                    src={
+                                                        record.gcsUrls?.[
+                                                            record.selectedImageIdx || 0
+                                                        ]
+                                                    }
+                                                    alt={record.prompt || 'Scene image'}
+                                                    className={styles.elementImage}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className={styles.noImagesMessage}>
+                                    No scene images available. Generate some scenes first to use as references.
+                                </div>
+                            )
                         )}
                     </div>
                 </div>
