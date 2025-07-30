@@ -31,7 +31,7 @@ const ScenesTab = ({ onBackToStart, onNext, onError, onSettingsClick }) => {
                         title='Story Configuration'
                     >
                         <FaBookOpen />
-                        Story Context
+                        Story Setting
                     </button>
                 </div>
                 <button

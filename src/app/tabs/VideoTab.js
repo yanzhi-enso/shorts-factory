@@ -179,7 +179,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
                         title='Story Configuration'
                     >
                         <FaBookOpen />
-                        Story Context
+                        Story Setting
                     </button>
                     <button
                         onClick={handleCollapseAll}

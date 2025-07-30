@@ -24,7 +24,7 @@ const StartTab = ({ onProcessComplete, onError }) => {
     loadProjects();
   }, [getAllProjects]);
 
-  const handleCreateProject = async ({ projectName, tiktokUrl, storyContext, imageMode }) => {
+  const handleCreateProject = async ({ projectName, tiktokUrl, storyContext, imageMode, isAdvMode }) => {
     try {
       // Call backend API with video URL (empty string if no URL provided)
       const response = await fetch('/api/start', {
@@ -43,7 +43,10 @@ const StartTab = ({ onProcessComplete, onError }) => {
       const result = await createProject(tiktokUrl || null, {
         name: projectName,
         storyDescription: storyContext,
-        settings: { image_size: imageMode }
+        settings: { 
+          image_size: imageMode,
+          isAdvMode: isAdvMode
+        }
       });
       
       if (result.success) {
