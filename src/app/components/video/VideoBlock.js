@@ -85,23 +85,14 @@ const VideoBlock = ({
             {renderContent()}
 
             {/* History button - bottom centered, appears on hover */}
-            {sceneClips.length > 1 && onHistoryClick && (
-                <button
-                    className={styles.historyButton}
-                    onClick={onHistoryClick}
-                    disabled={sceneClips.length < 2}
-                >
-                    History
-                </button>
-            )}
+            <button className={styles.historyButton} onClick={onHistoryClick}>
+                History
+            </button>
 
-            {/* Show history indicator if there are multiple clips */}
-            {sceneClips.length > 1 && (
-                <div className={styles.historyIndicator}>
-                    {sceneClips.findIndex((clip) => clip.id === selectedSceneClipId) + 1}/
-                    {sceneClips.length}
-                </div>
-            )}
+            <div className={styles.historyIndicator}>
+                {sceneClips.findIndex((clip) => clip.id === selectedSceneClipId) + 1}/
+                {sceneClips.length}
+            </div>
         </div>
     );
 };
