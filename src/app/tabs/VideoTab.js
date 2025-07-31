@@ -10,7 +10,14 @@ import VideoRow from 'app/components/video/VideoRow';
 import VideoRequestManager from 'app/components/video/VideoRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
 
-const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClick }) => {
+const VideoTabContent = ({
+    onBackToRemake,
+    onError,
+    videoManager,
+    onSettingsClick,
+    onExportStart,
+    onExportEnd,
+}) => {
     const { projectState } = useProjectManager();
     const [modalState, setModalState] = useState({
         isOpen: false,
@@ -64,16 +71,16 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
 
     // Individual toggle handler for video collapse
     const toggleVideoCollapse = useCallback((sceneId) => {
-        setVideoCollapseStates(prev => ({
+        setVideoCollapseStates((prev) => ({
             ...prev,
-            [sceneId]: !prev[sceneId]
+            [sceneId]: !prev[sceneId],
         }));
     }, []);
 
     // Bulk collapse/expand handlers
     const handleCollapseAll = useCallback(() => {
         const newStates = {};
-        scenesForVideo.forEach(scene => {
+        scenesForVideo.forEach((scene) => {
             newStates[scene.id] = true;
         });
         setVideoCollapseStates(newStates);
@@ -81,7 +88,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
 
     const handleExpandAll = useCallback(() => {
         const newStates = {};
-        scenesForVideo.forEach(scene => {
+        scenesForVideo.forEach((scene) => {
             newStates[scene.id] = false;
         });
         setVideoCollapseStates(newStates);
@@ -94,8 +101,8 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
             return;
         }
 
-        const collapsedCount = scenesForVideo.filter(scene => 
-            videoCollapseStates[scene.id] === true
+        const collapsedCount = scenesForVideo.filter(
+            (scene) => videoCollapseStates[scene.id] === true
         ).length;
 
         if (collapsedCount === 0) {
@@ -122,7 +129,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
     const handleExport = async () => {
         if (isExporting) return;
 
-        // Get scenes with generated videos directly from project state
+        // Filter scenes that have a selected scene clip using enriched fields
         const videosToExport = scenesForVideo.filter((scene) => scene.selectedSceneClip);
 
         if (videosToExport.length === 0) {
@@ -131,14 +138,16 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
         }
 
         setIsExporting(true);
+        if (onExportStart) onExportStart('videos');
 
         try {
             const zip = new JSZip();
 
+            // Add each selected video to the zip
             for (let i = 0; i < videosToExport.length; i++) {
                 const scene = videosToExport[i];
                 const sceneDisplayName = `Scene-${i + 1}`;
-                
+
                 try {
                     const response = await fetch(scene.selectedSceneClip);
                     if (!response.ok) {
@@ -147,13 +156,14 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
                         );
                     }
                     const videoBlob = await response.blob();
-                    zip.file(`${sceneDisplayName}_video.mp4`, videoBlob);
+                    zip.file(`scene-${i + 1}.mp4`, videoBlob);
                 } catch (error) {
-                    console.error(error);
+                    console.error(`Error processing video for ${sceneDisplayName}:`, error);
                     // Continue with other videos even if one fails
                 }
             }
 
+            // Generate and download the zip file
             const content = await zip.generateAsync({ type: 'blob' });
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
             saveAs(content, `video_export_${timestamp}.zip`);
@@ -162,11 +172,9 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
             if (onError) onError('Failed to export videos. Please try again.');
         } finally {
             setIsExporting(false);
+            if (onExportEnd) onExportEnd();
         }
     };
-
-    // Memoized VideoRow component to prevent unnecessary re-renders
-    const MemoizedVideoRow = React.memo(VideoRow);
 
     return (
         <div className={styles.container}>
@@ -236,7 +244,7 @@ const VideoTabContent = ({ onBackToRemake, onError, videoManager, onSettingsClic
 
             <div className={styles.rowsContainer}>
                 {scenesForVideo.map((scene, index) => (
-                    <MemoizedVideoRow
+                    <VideoRow
                         key={scene.id}
                         scene={scene}
                         sceneIndex={index}

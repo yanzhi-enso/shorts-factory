@@ -19,7 +19,14 @@ import SceneInpaintingModal from 'app/components/remake/SceneInpaintingModal';
 // Memoized SceneRow to prevent unnecessary re-renders
 const MemoizedSceneRow = React.memo(SceneRow);
 
-const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
+const RemakeTab = ({
+    onBackToScenes,
+    onNext,
+    onError,
+    onSettingsClick,
+    onExportStart,
+    onExportEnd,
+}) => {
     const { projectState } = useProjectManager();
 
     // Centralized collapse state management (optimized)
@@ -53,9 +60,9 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     // Toggle individual scene collapse state (optimized with useCallback)
     const toggleSceneCollapse = useCallback((sceneId) => {
-        setSceneCollapseStates(prev => ({
+        setSceneCollapseStates((prev) => ({
             ...prev,
-            [sceneId]: !prev[sceneId]
+            [sceneId]: !prev[sceneId],
         }));
     }, []);
 
@@ -66,8 +73,8 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             return;
         }
 
-        const collapsedCount = selectedScenes.filter(scene => 
-            sceneCollapseStates[scene.id] === true
+        const collapsedCount = selectedScenes.filter(
+            (scene) => sceneCollapseStates[scene.id] === true
         ).length;
 
         if (collapsedCount === 0) {
@@ -82,7 +89,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     // Bulk collapse/expand handlers (optimized)
     const handleCollapseAll = useCallback(() => {
         const newStates = {};
-        selectedScenes.forEach(scene => {
+        selectedScenes.forEach((scene) => {
             newStates[scene.id] = true;
         });
         setSceneCollapseStates(newStates);
@@ -90,7 +97,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
 
     const handleExpandAll = useCallback(() => {
         const newStates = {};
-        selectedScenes.forEach(scene => {
+        selectedScenes.forEach((scene) => {
             newStates[scene.id] = false;
         });
         setSceneCollapseStates(newStates);
@@ -108,51 +115,37 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     const handleExport = async () => {
         if (isExporting) return;
 
-        // Collect all selected generated images from ProjectManager scenes using new structure
-        const selectedImages = selectedScenes
-            .filter((scene) => {
-                // Check if scene has a selected generated image
-                const selectedImageData = scene.generatedImages?.find(
-                    (img) => img.id === scene.selectedGeneratedImageId
-                );
-                return selectedImageData && selectedImageData.gcsUrls?.length > 0;
-            })
-            .map((scene, index) => {
-                const selectedImageData = scene.generatedImages.find(
-                    (img) => img.id === scene.selectedGeneratedImageId
-                );
-                const currentImageUrl =
-                    selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] ||
-                    selectedImageData.gcsUrls[0];
+        // Filter scenes that have a selected generated image using enriched fields
+        const imagesToExport = selectedScenes.filter((scene) => scene.selectedGeneratedImage);
 
-                return {
-                    sceneDisplayName: `Scene-${index + 1}`, // Dynamic display name
-                    imageUrl: currentImageUrl,
-                    imageType: selectedImageData.generationSources ? 'generated' : 'uploaded',
-                };
-            });
-
-        if (selectedImages.length === 0) {
+        if (imagesToExport.length === 0) {
             alert('No images to export. Please generate or upload some images first.');
             return;
         }
 
         setIsExporting(true);
+        if (onExportStart) onExportStart('images');
 
         try {
             const zip = new JSZip();
 
             // Add each selected image to the zip
-            for (const { sceneDisplayName, imageUrl, imageType } of selectedImages) {
-                try {
-                    // Extract base64 data from data URL
-                    const base64Data = imageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+            for (let i = 0; i < imagesToExport.length; i++) {
+                const scene = imagesToExport[i];
+                const sceneDisplayName = `Scene-${i + 1}`;
 
-                    // Add image to zip with scene-based filename
-                    const filePrefix = imageType === 'uploaded' ? 'uploaded' : 'generated';
-                    zip.file(`${sceneDisplayName}_${filePrefix}.png`, base64Data, { base64: true });
+                try {
+                    const response = await fetch(scene.selectedGeneratedImage);
+                    if (!response.ok) {
+                        throw new Error(
+                            `Failed to fetch image for ${sceneDisplayName}: ${response.statusText}`
+                        );
+                    }
+                    const imageBlob = await response.blob();
+                    zip.file(`scene-${i + 1}.png`, imageBlob);
                 } catch (error) {
                     console.error(`Error processing image for ${sceneDisplayName}:`, error);
+                    // Continue with other images even if one fails
                 }
             }
 
@@ -165,6 +158,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
             if (onError) onError('Failed to export images. Please try again.');
         } finally {
             setIsExporting(false);
+            if (onExportEnd) onExportEnd();
         }
     };
 
@@ -216,23 +210,16 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
     };
 
     const handleNext = () => {
-        // Collect selected images for next step using new structure
+        // Collect selected images for next step using enriched fields
         const selectedImages = selectedScenes
-            .filter((scene) => {
-                // Check if scene has a selected generated image
+            .filter((scene) => scene.selectedGeneratedImage)
+            .map((scene, index) => {
+                const sceneDisplayName = `Scene-${index + 1}`; // Dynamic display name
+
+                // Get prompt from the selected generated image data
                 const selectedImageData = scene.generatedImages?.find(
                     (img) => img.id === scene.selectedGeneratedImageId
                 );
-                return selectedImageData && selectedImageData.gcsUrls?.length > 0;
-            })
-            .map((scene, index) => {
-                const sceneDisplayName = `Scene-${index + 1}`; // Dynamic display name
-                const selectedImageData = scene.generatedImages.find(
-                    (img) => img.id === scene.selectedGeneratedImageId
-                );
-                const currentImageUrl =
-                    selectedImageData.gcsUrls[selectedImageData.selectedImageIdx] ||
-                    selectedImageData.gcsUrls[0];
 
                 return {
                     sceneId: scene.id, // UUID for data consistency
@@ -241,7 +228,7 @@ const RemakeTab = ({ onBackToScenes, onNext, onError, onSettingsClick }) => {
                         selectedImageData?.generationSources?.revisedPrompt ||
                         selectedImageData?.generationSources?.prompt ||
                         '',
-                    image: currentImageUrl,
+                    image: scene.selectedGeneratedImage, // Use enriched field
                 };
             });
 

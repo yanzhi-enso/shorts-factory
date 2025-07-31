@@ -9,6 +9,7 @@ import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
 import StoryConfigModal from './components/common/StoryConfigModal';
+import ExportLoadingModal from './components/common/ExportLoadingModal';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
@@ -25,6 +26,10 @@ export default function TabManager() {
     const [error, setError] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+    const [exportState, setExportState] = useState({
+        isExporting: false,
+        exportType: null
+    });
 
     const updateUrl = (tab, pid = null) => {
         const params = new URLSearchParams();
@@ -164,6 +169,21 @@ export default function TabManager() {
         setIsStoryModalOpen(true);
     };
 
+    // Export handlers
+    const handleExportStart = (exportType) => {
+        setExportState({
+            isExporting: true,
+            exportType: exportType
+        });
+    };
+
+    const handleExportEnd = () => {
+        setExportState({
+            isExporting: false,
+            exportType: null
+        });
+    };
+
     // Don't render until initialized to avoid hydration issues
     if (!isInitialized) {
         return (
@@ -202,6 +222,8 @@ export default function TabManager() {
                         onNext={handleNextFromRemake}
                         onError={handleError}
                         onSettingsClick={handleSettingsClick}
+                        onExportStart={handleExportStart}
+                        onExportEnd={handleExportEnd}
                     />
                 )}
 
@@ -210,6 +232,8 @@ export default function TabManager() {
                         onBackToRemake={handleBackToRemake}
                         onError={handleError}
                         onSettingsClick={handleSettingsClick}
+                        onExportStart={handleExportStart}
+                        onExportEnd={handleExportEnd}
                     />
                 )}
             </div>
@@ -225,6 +249,11 @@ export default function TabManager() {
                 onSave={handleStoryConfigSave}
                 onSkip={handleStoryConfigSkip}
                 onClose={handleStoryConfigClose}
+            />
+
+            <ExportLoadingModal
+                isOpen={exportState.isExporting}
+                exportType={exportState.exportType}
             />
         </>
     );
