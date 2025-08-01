@@ -209,10 +209,10 @@ const SceneRow = ({
             </div>
 
             {/* Collapse Button */}
-            <button 
+            <button
                 className={`${styles.expandButton} ${styles.expandedState}`}
                 onClick={onToggleCollapse}
-                aria-label="Collapse scene"
+                aria-label='Collapse scene'
             >
                 <FaChevronLeft className={`${styles.chevron} ${styles.expanded}`} />
             </button>
@@ -239,7 +239,7 @@ const SceneRow = ({
             </div>
 
             {/* Generated Image */}
-            <div className={styles.imageSection}>
+            <div className={`${styles.imageSection} ${styles.genImage}`}>
                 <SceneGenBlock
                     scene={scene}
                     sceneDisplayName={sceneDisplayName}
