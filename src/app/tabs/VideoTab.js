@@ -5,7 +5,7 @@ import { FaMagic, FaVideo, FaDownload, FaBookOpen, FaChevronDown, FaChevronUp } 
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
-import FullSizeImageModal from 'app/components/common/FullSizeImageModal';
+import FullscreenImageModal from 'app/components/common/FullscreenImageModal';
 import VideoRow from 'app/components/video/VideoRow';
 import VideoRequestManager from 'app/components/video/VideoRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
@@ -259,10 +259,9 @@ const VideoTabContent = ({
                 ))}
             </div>
 
-            <FullSizeImageModal
+            <FullscreenImageModal
                 isOpen={modalState.isOpen}
                 imageUrl={modalState.imageUrl}
-                imageTitle={modalState.imageTitle}
                 onClose={closeModal}
             />
         </div>

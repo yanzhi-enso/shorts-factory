@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { FaUpload } from 'react-icons/fa';
+import { FaUpload, FaExpand } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './SceneGenHistoryModal.module.css';
 import SceneEditButton from './SceneEditButton';
 import SceneInpaintingButton from './SceneInpaintingButton';
+import FullscreenImageModal from 'app/components/common/FullscreenImageModal';
 
 const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInpaintClick }) => {
     const fileInputRef = useRef(null);
@@ -21,6 +22,7 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
     const [selectedRecordId, setSelectedRecordId] = useState(selectedGeneratedImageId);
     const [localSelectedImageIdx, setLocalSelectedImageIdx] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
+    const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
     // Update local state when props change
     useEffect(() => {
@@ -248,6 +250,13 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                                                 className={styles.imageEditButton}
                                                 title='Edit this generation'
                                             />
+                                            <button
+                                                onClick={() => setIsFullscreenOpen(true)}
+                                                className={styles.imageFullscreenButton}
+                                                title='Fullscreen'
+                                            >
+                                                <FaExpand />
+                                            </button>
                                             <SceneInpaintingButton
                                                 selectedRecord={selectedRecord}
                                                 onInpaintClick={handleInpaintClick}
@@ -417,6 +426,12 @@ const SceneGenHistoryModal = ({ isOpen, scene, onClose, onEditFromHistory, onInp
                     style={{ display: 'none' }}
                 />
             </div>
+
+            <FullscreenImageModal
+                isOpen={isFullscreenOpen}
+                imageUrl={currentImageUrl}
+                onClose={() => setIsFullscreenOpen(false)}
+            />
         </div>
     );
 };

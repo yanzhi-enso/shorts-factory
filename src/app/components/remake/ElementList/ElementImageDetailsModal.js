@@ -7,6 +7,8 @@ import { useElementGenModalContext } from '../ElementGenModal/ElementGenModalCon
 import EditButton from '../ElementGenModal/EditButton';
 import InpaintingButton from '../ElementGenModal/InpaintingButton';
 import DeleteButton from 'app/components/common/DeleteButton';
+import FullscreenImageModal from 'app/components/common/FullscreenImageModal';
+import { FaExpand } from 'react-icons/fa';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
 const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
@@ -19,6 +21,7 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState(null);
     const [localSelectedImageIdx, setLocalSelectedImageIdx] = useState(0);
+    const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
     // Initialize form fields when modal opens or element image changes
     useEffect(() => {
@@ -229,6 +232,13 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
                                             className={`${styles.overlayButton} ${styles.editButton}`}
                                             title='Edit'
                                         />
+                                        <button
+                                            onClick={() => setIsFullscreenOpen(true)}
+                                            className={`${styles.overlayButton} ${styles.fullscreenButton}`}
+                                            title='Fullscreen'
+                                        >
+                                            <FaExpand />
+                                        </button>
                                         <InpaintingButton
                                             onInpainting={handleInpainting}
                                             className={`${styles.overlayButton} ${styles.inpaintingButton}`}
@@ -298,6 +308,12 @@ const ElementImageDetailsModal = ({ isOpen, elementImage, onClose }) => {
                     </div>
                 )}
             </div>
+
+            <FullscreenImageModal
+                isOpen={isFullscreenOpen}
+                imageUrl={currentImageUrl}
+                onClose={() => setIsFullscreenOpen(false)}
+            />
         </div>
     );
 };
