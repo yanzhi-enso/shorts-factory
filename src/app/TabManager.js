@@ -192,7 +192,7 @@ export default function TabManager() {
     }
 
     // Get current stage from project state for tab status computation
-    const currentStage = projectState.currentProject?.stage || 'scenes';
+    const currentStage = projectState.currentProject?.stage || 'start';
 
     return (
         <>
