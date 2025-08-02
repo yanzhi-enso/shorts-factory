@@ -115,16 +115,16 @@ const VideoTabContent = ({
     }, [videoCollapseStates, scenesForVideo]);
 
     // Placeholder for bulk operation
-    const handlePromptGenAll = () => {
-        console.log('PromptGen All button clicked - no action implemented.');
-        if (onError) onError('PromptGen All is not yet implemented.');
-    };
+    // const handlePromptGenAll = () => {
+    //     console.log('PromptGen All button clicked - no action implemented.');
+    //     if (onError) onError('PromptGen All is not yet implemented.');
+    // };
 
     // Placeholder for bulk operation
-    const handleVideoGenAll = () => {
-        console.log('VideoGen All button clicked - no action implemented.');
-        if (onError) onError('VideoGen All is not yet implemented.');
-    };
+    // const handleVideoGenAll = () => {
+    //     console.log('VideoGen All button clicked - no action implemented.');
+    //     if (onError) onError('VideoGen All is not yet implemented.');
+    // };
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -213,7 +213,7 @@ const VideoTabContent = ({
                         <FaChevronDown />
                         Expand All
                     </button>
-                    <button
+                    {/* <button
                         onClick={handlePromptGenAll}
                         className={`${styles.actionButton} ${styles.promptButton}`}
                         title='Generate Prompts for All Scenes'
@@ -226,7 +226,7 @@ const VideoTabContent = ({
                         title='Generate Videos for All Scenes'
                     >
                         <FaVideo /> VideoGen All
-                    </button>
+                    </button> */}
                 </div>
                 <div className={styles.rightButtons}>
                     <button

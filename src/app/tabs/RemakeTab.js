@@ -104,13 +104,13 @@ const RemakeTab = ({
     }, [selectedScenes]);
 
     // Empty bulk operation handlers (to be implemented later)
-    const handlePromptGenAll = () => {
-        console.log('Bulk prompt generation not implemented yet');
-    };
+    // const handlePromptGenAll = () => {
+    //     console.log('Bulk prompt generation not implemented yet');
+    // };
 
-    const handleImageGenAll = () => {
-        console.log('Bulk image generation not implemented yet');
-    };
+    // const handleImageGenAll = () => {
+    //     console.log('Bulk image generation not implemented yet');
+    // };
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -252,7 +252,7 @@ const RemakeTab = ({
                         <FaBookOpen />
                         Story Setting
                     </button>
-                    <button
+                    {/* <button
                         onClick={handlePromptGenAll}
                         className={`${styles.actionButton} ${styles.promptButton}`}
                         title='Generate Prompts for All Scenes'
@@ -265,7 +265,7 @@ const RemakeTab = ({
                         title='Generate Images for All Scenes'
                     >
                         <FaImages /> ImageGen All
-                    </button>
+                    </button> */}
                     {selectedScenes.length > 0 && (
                         <>
                             <button
