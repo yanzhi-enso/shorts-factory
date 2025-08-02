@@ -53,6 +53,21 @@ export const transformElementImageToJS = (dbImage) => ({
 });
 
 /**
+ * Transform project settings from snake_case DB format to camelCase JS format
+ * ProjectSettings contain project-level configuration and preferences
+ * 
+ * Fields extracted:
+ * - storyDescription: User-provided story context and narrative description
+ * - image_size: Image aspect ratio preference (portrait/landscape/square)
+ * - isAdvMode: Advanced mode toggle for enhanced functionality and features
+ */
+export const transformProjectSettingsToJS = (dbSettings) => ({
+    storyDescription: dbSettings.story_description || '',
+    imageSize: dbSettings.image_size || 'portrait',
+    isAdvMode: dbSettings.is_adv_mode || false
+});
+
+/**
  * Transform scene clip from snake_case DB format to camelCase JS format
  */
 export const transformSceneClipToJS = (dbClip) => ({
@@ -95,6 +110,18 @@ export const organizeSceneImagesBySceneId = (scenes, sceneImages) => {
  * Private helper to enrich raw scenes with embedded scene images, generated images, scene clips, and resolved selected URLs
  * Transforms snake_case DB properties to camelCase for internal JavaScript use
  * 
+ * PROJECT SETTINGS STRUCTURE DOCUMENTATION
+ * 
+ * ProjectSettings contain project-level configuration that affects the entire project and all its scenes:
+ * {
+ *   storyDescription: string,      // User-provided story context and narrative description
+ *   imageSize: string,             // Image aspect ratio preference (portrait/landscape/square)
+ *   isAdvMode: boolean             // Advanced mode toggle for enhanced functionality and features
+ * }
+ * 
+ * The ProjectSettings are stored in the project record's settings field and transformed via transformProjectSettingsToJS().
+ * These settings influence generation behavior, UI features, and processing options across all project components.
+ * 
  * ENRICHED SCENE STRUCTURE DOCUMENTATION
  * 
  * The ProjectManager transforms raw database scenes into enriched scenes for easier consumption by UI components.
@@ -105,6 +132,7 @@ export const organizeSceneImagesBySceneId = (scenes, sceneImages) => {
  * - sceneImages: Separate array of all scene images across all scenes
  * - recreatedSceneImages: Separate array of all generated images across all scenes
  * - elementImages: Separate array of all element images for the project (project-level resources)
+ * - project.settings: Project-level ProjectSettings (storyDescription, imageSize, isAdvMode)
  * 
  * Enriched Structure (provided by ProjectManager):
  * {
