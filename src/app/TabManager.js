@@ -8,7 +8,7 @@ import StartTab from './tabs/StartTab';
 import ScenesTab from './tabs/ScenesTab';
 import RemakeTab from './tabs/RemakeTab';
 import VideoTab from './tabs/VideoTab';
-import StoryConfigModal from './components/common/StoryConfigModal';
+import StorySettingsModal from './components/common/StorySettingsModal';
 import ExportLoadingModal from './components/common/ExportLoadingModal';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
@@ -19,16 +19,17 @@ const PROJECT_ID_PARAM = 'pid';
 export default function TabManager() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { initializeFromUrl, projectState, updateProjectSettings, updateStage } = useProjectManager();
+    const { initializeFromUrl, projectState, updateProjectSettings, updateStage } =
+        useProjectManager();
 
     const [activeTab, setActiveTab] = useState(TABS.START);
-    
+
     const [error, setError] = useState(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
     const [exportState, setExportState] = useState({
         isExporting: false,
-        exportType: null
+        exportType: null,
     });
 
     const updateUrl = (tab, pid = null) => {
@@ -48,32 +49,29 @@ export default function TabManager() {
             const stage = searchParams.get(STAGE_PARAM);
             const pid = searchParams.get(PROJECT_ID_PARAM);
 
-            const isParsableStages = (
-                stage === TABS.SCENES ||
-                stage === TABS.REMAKE ||
-                stage === TABS.VIDEO
-            )
+            const isParsableStages =
+                stage === TABS.SCENES || stage === TABS.REMAKE || stage === TABS.VIDEO;
 
             if (isParsableStages && pid) {
                 // Use ProjectManager to initialize project from URL
                 const result = await initializeFromUrl(stage, pid);
-                
+
                 if (result.success) {
-                    console.log("Initialized from URL:", stage, pid);
+                    console.log('Initialized from URL:', stage, pid);
                     setActiveTab(stage);
                     setError(null);
                 } else {
-                    console.error("Failed to initialize from URL");
+                    console.error('Failed to initialize from URL');
                     setError(result.error);
                     updateUrl(TABS.START);
                 }
-            } else if ( isParsableStages && !pid) {
-                console.warn("no project id provided, go back to start tab");
+            } else if (isParsableStages && !pid) {
+                console.warn('no project id provided, go back to start tab');
                 // Invalid scenes/remake URL without project ID
                 setError('Invalid project URL');
                 updateUrl(TABS.START);
             } else {
-                console.log("no valid stage provided, go back to start tab");
+                console.log('no valid stage provided, go back to start tab');
                 // Default to start tab
                 setActiveTab(TABS.START);
             }
@@ -88,13 +86,13 @@ export default function TabManager() {
     const handleTabClick = async (tab) => {
         // Auto-advance stage if navigating to a more advanced tab
         const currentStage = projectState.currentProject?.stage || 'scenes';
-        
+
         if (tab !== TABS.START && tab !== currentStage) {
             await updateStage(tab);
         }
-        
+
         setActiveTab(tab);
-        
+
         // Update URL based on tab
         if (tab === TABS.START) {
             updateUrl(TABS.START);
@@ -148,7 +146,7 @@ export default function TabManager() {
     };
 
     // Story Config Modal handlers
-    const handleStoryConfigSave = async (configData) => {
+    const handleStorySettingsSave = async (configData) => {
         await updateProjectSettings({
             storyDescription: configData.storyDescription,
             image_size: configData.imageMode,
@@ -173,22 +171,20 @@ export default function TabManager() {
     const handleExportStart = (exportType) => {
         setExportState({
             isExporting: true,
-            exportType: exportType
+            exportType: exportType,
         });
     };
 
     const handleExportEnd = () => {
         setExportState({
             isExporting: false,
-            exportType: null
+            exportType: null,
         });
     };
 
     // Don't render until initialized to avoid hydration issues
     if (!isInitialized) {
-        return (
-            <div className={styles.loading}>Loading...</div>
-        );
+        return <div className={styles.loading}>Loading...</div>;
     }
 
     // Get current stage from project state for tab status computation
@@ -196,8 +192,8 @@ export default function TabManager() {
 
     return (
         <>
-            <TabNavigation 
-                activeTab={activeTab} 
+            <TabNavigation
+                activeTab={activeTab}
                 currentStage={currentStage}
                 onTabClick={handleTabClick}
             />
@@ -240,13 +236,13 @@ export default function TabManager() {
 
             {error && <p className={styles.error}>{error}</p>}
 
-            <StoryConfigModal
+            <StorySettingsModal
                 isOpen={isStoryModalOpen}
                 storyDescription={projectState.currentProject?.settings?.storyDescription || ''}
                 imageMode={projectState.currentProject?.settings?.image_size || IMAGE_SIZE_PORTRAIT}
                 originalVideoUrl={projectState.currentProject?.tiktok_url || ''}
                 isAdvMode={projectState.currentProject?.settings?.isAdvMode || false}
-                onSave={handleStoryConfigSave}
+                onSave={handleStorySettingsSave}
                 onSkip={handleStoryConfigSkip}
                 onClose={handleStoryConfigClose}
             />

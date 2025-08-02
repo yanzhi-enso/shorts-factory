@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import styles from './StoryConfigModal.module.css';
+import styles from './StorySettingsModal.module.css';
 import { IMAGE_SIZE_PORTRAIT, IMAGE_SIZE_LANDSCAPE } from 'constants/image';
 import ToggleSwitch from './ToggleSwitch';
 
-const StoryConfigModal = ({
+const StorySettingsModal = ({
     isOpen,
     storyDescription = '',
     imageMode = IMAGE_SIZE_PORTRAIT,
@@ -13,12 +13,12 @@ const StoryConfigModal = ({
     isAdvMode = false,
     onSave,
     onSkip,
-    onClose
+    onClose,
 }) => {
     const [formData, setFormData] = useState({
         storyDescription: storyDescription,
         imageMode: imageMode,
-        isAdvMode: isAdvMode
+        isAdvMode: isAdvMode,
     });
 
     // Update form data when props change (for editing existing values)
@@ -26,7 +26,7 @@ const StoryConfigModal = ({
         setFormData({
             storyDescription: storyDescription,
             imageMode: imageMode,
-            isAdvMode: isAdvMode
+            isAdvMode: isAdvMode,
         });
     }, [storyDescription, imageMode, isAdvMode]);
 
@@ -57,9 +57,9 @@ const StoryConfigModal = ({
     };
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [field]: value
+            [field]: value,
         }));
     };
 
@@ -89,11 +89,11 @@ const StoryConfigModal = ({
                             The original TikTok video URL used to create this project.
                         </p>
                         <input
-                            type="text"
+                            type='text'
                             className={styles.readonlyInput}
                             value={originalVideoUrl}
                             readOnly
-                            placeholder="No video URL available"
+                            placeholder='No video URL available'
                         />
                     </div>
 
@@ -122,7 +122,7 @@ const StoryConfigModal = ({
                         <div className={styles.radioGroup}>
                             <label className={styles.radioLabel}>
                                 <input
-                                    type="radio"
+                                    type='radio'
                                     value={IMAGE_SIZE_PORTRAIT}
                                     checked={formData.imageMode === IMAGE_SIZE_PORTRAIT}
                                     onChange={(e) => handleInputChange('imageMode', e.target.value)}
@@ -131,7 +131,7 @@ const StoryConfigModal = ({
                             </label>
                             <label className={styles.radioLabel}>
                                 <input
-                                    type="radio"
+                                    type='radio'
                                     value={IMAGE_SIZE_LANDSCAPE}
                                     checked={formData.imageMode === IMAGE_SIZE_LANDSCAPE}
                                     onChange={(e) => handleInputChange('imageMode', e.target.value)}
@@ -149,7 +149,7 @@ const StoryConfigModal = ({
                         <ToggleSwitch
                             checked={formData.isAdvMode}
                             onChange={(e) => handleInputChange('isAdvMode', e.target.checked)}
-                            variant="secondary"
+                            variant='secondary'
                         />
                     </div>
                 </div>
@@ -167,4 +167,4 @@ const StoryConfigModal = ({
     );
 };
 
-export default StoryConfigModal;
+export default StorySettingsModal;
