@@ -26,6 +26,9 @@ const SceneRow = ({
     const { handleSceneImageUpload, projectState, updateSelectedGeneratedImage } =
         useProjectManager();
 
+    // Access isAdvMode setting from project state
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode ?? true; // default to true for backward compatibility
+
     // ImageRequestManager integration
     const { startImageGeneration, pendingGenerations } = useImageGenContext();
 
@@ -224,12 +227,15 @@ const SceneRow = ({
 
             {/* Control Panel */}
             <div className={styles.controlSection}>
+                {/* Only pass prompt assistant props when advanced mode is enabled */}
                 <SceneControlPanel
                     sceneId={sceneId}
                     prompt={prompt}
                     onPromptChange={handlePromptChange}
-                    onPromptAssistant={handlePromptAssistant}
-                    isPromptAssistantRunning={isPromptAssistantRunning}
+                    {...(isAdvMode && {
+                        onPromptAssistant: handlePromptAssistant,
+                        isPromptAssistantRunning: isPromptAssistantRunning
+                    })}
                     referenceImages={[]} // Will be populated later
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating}

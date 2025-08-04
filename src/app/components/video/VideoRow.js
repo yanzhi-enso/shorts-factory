@@ -20,7 +20,10 @@ const VideoRow = ({
     onInputImageClick,
     onToggleCollapse,
 }) => {
-    const { addGeneratedClip, updateSelectedGeneratedClip } = useProjectManager();
+    const { addGeneratedClip, updateSelectedGeneratedClip, projectState } = useProjectManager();
+    
+    // Access isAdvMode setting from project state
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode ?? true; // default to true for backward compatibility
     const {
         id: sceneId,
         selectedGeneratedImage: originalSelectedGeneratedImage,
@@ -195,11 +198,14 @@ const VideoRow = ({
 
                 {/* Control Panel */}
                 <div className={styles.controlSection}>
+                    {/* Only pass prompt assistant props when advanced mode is enabled */}
                     <VideoControlPanel
                         prompt={prompt}
                         onPromptChange={handlePromptChange}
-                        onPromptAssistant={handlePromptAssistant}
-                        isPromptAssistantRunning={isPromptAssistantRunning}
+                        {...(isAdvMode && {
+                            onPromptAssistant: handlePromptAssistant,
+                            isPromptAssistantRunning: isPromptAssistantRunning
+                        })}
                         referenceImages={[]}
                         onGenerate={handleGenerate}
                         isGenerating={isGeneratingVideo}
