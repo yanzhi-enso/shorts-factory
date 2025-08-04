@@ -87,23 +87,25 @@ const ProjectCreationModal = ({ isOpen, onClose, onCreateProject }) => {
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="tiktokUrl" className={styles.label}>
-              TikTok URL <span className={styles.optional}>(optional)</span>
-            </label>
-            <input
-              id="tiktokUrl"
-              type="url"
-              value={tiktokUrl}
-              onChange={(e) => setTiktokUrl(e.target.value)}
-              placeholder="https://www.tiktok.com/..."
-              className={styles.input}
-              disabled={isCreating}
-            />
-            <p className={styles.helpText}>
-              If you want to recreate a video based on existing content, input the TikTok video link
-            </p>
-          </div>
+          {isAdvMode && (
+            <div className={styles.formGroup}>
+              <label htmlFor="tiktokUrl" className={styles.label}>
+                TikTok URL <span className={styles.optional}>(optional)</span>
+              </label>
+              <input
+                id="tiktokUrl"
+                type="url"
+                value={tiktokUrl}
+                onChange={(e) => setTiktokUrl(e.target.value)}
+                placeholder="https://www.tiktok.com/..."
+                className={styles.input}
+                disabled={isCreating}
+              />
+              <p className={styles.helpText}>
+                If you want to recreate a video based on existing content, input the TikTok video link
+              </p>
+            </div>
+          )}
 
           <div className={styles.formGroup}>
             <label htmlFor="storyContext" className={styles.label}>
