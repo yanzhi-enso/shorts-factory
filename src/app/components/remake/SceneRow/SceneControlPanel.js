@@ -12,6 +12,7 @@ const SceneControlPanel = ({
     onPromptChange,
     onPromptAssistant,
     isPromptAssistantRunning = false,
+    showPromptAssistant = false,
     referenceImages = [],
     onGenerate,
     isGenerating = false,
@@ -78,7 +79,7 @@ const SceneControlPanel = ({
             {/* Widget Bar */}
             <div className={styles.widgetBar}>
                 {/* GPT Polish Button - Only render when onPromptAssistant prop is provided */}
-                {onPromptAssistant ? (
+                {showPromptAssistant ? (
                     <button
                         className={`${styles.gptPolishButton} ${
                             isPromptAssistantRunning ? styles.polishing : ''

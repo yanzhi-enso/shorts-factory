@@ -8,6 +8,7 @@ const VideoControlPanel = ({
     onPromptChange,
     onPromptAssistant,
     isPromptAssistantRunning = false,
+    showPromptAssistant = false,
     referenceImages = [],
     onGenerate,
     isGenerating = false,
@@ -47,13 +48,16 @@ const VideoControlPanel = ({
             {/* Widget Bar */}
             <div className={styles.widgetBar}>
                 {/* GPT Polish Button - Only render when onPromptAssistant prop is provided */}
-                {onPromptAssistant ? (
+                {showPromptAssistant ? (
                     <button
                         className={`${styles.gptPolishButton} ${
                             isPromptAssistantRunning ? styles.polishing : ''
                         }`}
-                        onClick={handlePromptAssistantClick}
-                        disabled={isPromptAssistantRunning}
+                        onClick={() => {
+                            console.log('Prompt Assistant clicked');
+                            handlePromptAssistantClick();
+                        }}
+                        // disabled={isPromptAssistantRunning}
                     >
                         {isPromptAssistantRunning ? 'Processing...' : 'Prompt Assistant'}
                     </button>

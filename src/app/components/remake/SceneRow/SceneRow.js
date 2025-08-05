@@ -27,7 +27,7 @@ const SceneRow = ({
         useProjectManager();
 
     // Access isAdvMode setting from project state
-    const isAdvMode = projectState.currentProject?.settings?.isAdvMode ?? true; // default to true for backward compatibility
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode;
 
     // ImageRequestManager integration
     const { startImageGeneration, pendingGenerations } = useImageGenContext();
@@ -71,13 +71,24 @@ const SceneRow = ({
     };
 
     const handlePromptAssistant = async () => {
-        if (!originalImage.imageUrl || isPromptAssistantRunning) return;
+        if (isPromptAssistantRunning) return;
 
         setIsPromptAssistantRunning(true);
 
+        let imageUrls = [];
+
+        if (originalImage.imageUrl) {
+            imageUrls.push(originalImage.imageUrl);
+        }
+
+        if (selectedElements[sceneId]?.length > 0) {
+            // Get selected elements for this scene
+            imageUrls = imageUrls.concat(selectedElements[sceneId]);
+        }
+
         try {
             const result = await analyzeImage(
-                originalImage.imageUrl,
+                imageUrls,
                 storyConfig?.storyDescription || null,
                 storyConfig?.changeRequest || null,
                 prompt || null
@@ -174,24 +185,24 @@ const SceneRow = ({
     };
 
     // Scene title or fallback
-    const displayTitle = scene.title || "Untitled Scene";
+    const displayTitle = scene.title || 'Untitled Scene';
 
     // If collapsed, show compact one-line view
     if (isCollapsed) {
         return (
             <div
-                className={`${styles.sceneRow} ${styles.collapsed} ${isFocused ? styles.focused : ''} ${
-                    isUnfocused ? styles.unfocused : ''
-                }`}
+                className={`${styles.sceneRow} ${styles.collapsed} ${
+                    isFocused ? styles.focused : ''
+                } ${isUnfocused ? styles.unfocused : ''}`}
             >
                 <div className={styles.collapsedContent}>
                     <span className={styles.sceneLabel}>Scene {sceneIndex + 1}</span>
                     <span className={styles.sceneTitle}>{displayTitle}</span>
                 </div>
-                <button 
+                <button
                     className={styles.expandButton}
                     onClick={onToggleCollapse}
-                    aria-label="Expand scene"
+                    aria-label='Expand scene'
                 >
                     <FaChevronLeft className={styles.chevron} />
                 </button>
@@ -232,10 +243,9 @@ const SceneRow = ({
                     sceneId={sceneId}
                     prompt={prompt}
                     onPromptChange={handlePromptChange}
-                    {...(isAdvMode && {
-                        onPromptAssistant: handlePromptAssistant,
-                        isPromptAssistantRunning: isPromptAssistantRunning
-                    })}
+                    showPromptAssistant={isAdvMode}
+                    onPromptAssistant={handlePromptAssistant}
+                    isPromptAssistantRunning={isPromptAssistantRunning}
                     referenceImages={[]} // Will be populated later
                     onGenerate={handleGenerate}
                     isGenerating={isGenerating}

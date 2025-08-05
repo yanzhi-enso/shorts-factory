@@ -23,7 +23,7 @@ const VideoRow = ({
     const { addGeneratedClip, updateSelectedGeneratedClip, projectState } = useProjectManager();
     
     // Access isAdvMode setting from project state
-    const isAdvMode = projectState.currentProject?.settings?.isAdvMode ?? true; // default to true for backward compatibility
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode;
     const {
         id: sceneId,
         selectedGeneratedImage: originalSelectedGeneratedImage,
@@ -65,6 +65,7 @@ const VideoRow = ({
     };
 
     const handlePromptAssistant = useCallback(async () => {
+        console.log('prompt assistant clicked with selected image');
         if (!selectedGeneratedImage || isPromptAssistantRunning) return;
 
         setIsPromptAssistantRunning(true);
@@ -202,12 +203,11 @@ const VideoRow = ({
                     <VideoControlPanel
                         prompt={prompt}
                         onPromptChange={handlePromptChange}
-                        {...(isAdvMode && {
-                            onPromptAssistant: handlePromptAssistant,
-                            isPromptAssistantRunning: isPromptAssistantRunning
-                        })}
                         referenceImages={[]}
                         onGenerate={handleGenerate}
+                        showPromptAssistant={isAdvMode}
+                        onPromptAssistant={handlePromptAssistant}
+                        isPromptAssistantRunning={isPromptAssistantRunning}
                         isGenerating={isGeneratingVideo}
                         error={error}
                     />
