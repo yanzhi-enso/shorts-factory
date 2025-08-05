@@ -328,9 +328,9 @@ const RemakeTab = ({
 
                             {/* Add Scene Button */}
                             <AddSceneButton
-                                insertAfterScene={scene[index]}
+                                insertAfterScene={scene}
                                 insertBeforeScene={
-                                    index + 1 < scene.length ? scene[index + 1] : null
+                                    index + 1 < selectedScenes.length ? selectedScenes[index + 1] : null
                                 }
                             />
                         </div>
