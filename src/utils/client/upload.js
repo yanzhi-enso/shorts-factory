@@ -1,4 +1,5 @@
 import { getSignedUrl } from '../../services/backend';
+import { validateAndResizeImage } from '../common/image';
 
 // File validation constants
 export const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
@@ -82,13 +83,39 @@ export const uploadImage = async (file, imageType, projectId) => {
             }
         }
 
-        // 3. Get signed URL from backend
+        // 3. Normalize and resize image if needed
+        let finalFile = processedFile;
+        try {
+            const normalizedResult = await validateAndResizeImage(processedFile);
+            
+            // Create a new File object from the normalized blob
+            finalFile = new File([normalizedResult.blob], processedFile.name, {
+                type: 'image/png',
+                lastModified: Date.now()
+            });
+            
+            console.log('Image normalized:', {
+                original: { 
+                    size: processedFile.size, 
+                    dimensions: normalizedResult.originalDimensions 
+                },
+                final: { 
+                    size: finalFile.size, 
+                    dimensions: normalizedResult.dimensions 
+                },
+                wasResized: normalizedResult.needsResize
+            });
+        } catch (normalizationError) {
+            return { success: false, error: `Image normalization failed: ${normalizationError.message}` };
+        }
+
+        // 4. Get signed URL from backend
         const { signed_url, public_url, image_id } = await getSignedUrl(projectId, imageType);
 
-        // 4. Upload file to GCS using signed URL
+        // 5. Upload normalized file to GCS using signed URL
         const uploadResponse = await fetch(signed_url, {
             method: 'PUT',
-            body: processedFile,
+            body: finalFile,
             headers: {
                 'Content-Type': 'image/png'
             }

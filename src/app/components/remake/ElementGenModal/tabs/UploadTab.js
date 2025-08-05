@@ -9,7 +9,7 @@ import styles from './UploadTab.module.css';
 const UploadTab = ({ 
     onImageGenerated, 
     onClose,
-    onSwitchToMetadata 
+    // onSwitchToMetadata,
 }) => {
     const { projectState, handleElementImageUpload } = useProjectManager();
     
@@ -77,12 +77,7 @@ const UploadTab = ({
 
             resetUploadState();
 
-            // Switch to metadata mode with upload context
-            onSwitchToMetadata({
-                operationType: 'upload',
-                pendingGenerationId: null,
-                elementImageId: result.elementImage.id
-            });
+            onClose()
 
         } catch (error) {
             console.error('Image upload failed:', error);
@@ -96,7 +91,6 @@ const UploadTab = ({
         handleElementImageUpload,
         onImageGenerated,
         resetUploadState,
-        onSwitchToMetadata
     ]);
 
     // Drag and drop handlers

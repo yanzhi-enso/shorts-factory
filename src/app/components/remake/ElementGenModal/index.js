@@ -90,15 +90,14 @@ const ElementGenModal = ({
                         prefillData={prefillData}
                     />
                 );
-            // case 'upload':
-            //     return (
-            //         <UploadTab 
-            //             onImageGenerated={onImageGenerated}
-            //             onClose={closeModal}
-            //             onSwitchToMetadata={switchToMetadataMode}
-            //             prefillData={prefillData}
-            //         />
-            //     );
+            case 'upload':
+                return (
+                    <UploadTab 
+                        onImageGenerated={onImageGenerated}
+                        onClose={closeModal}
+                        onSwitchToMetadata={switchToMetadataMode}
+                    />
+                );
             default:
                 return null;
         }
@@ -143,12 +142,12 @@ const ElementGenModal = ({
                             >
                                 Inpainting
                             </button>
-                            {/* <button
+                            <button
                                 className={`${styles.tabButton} ${activeTab === 'upload' ? styles.active : ''}`}
                                 onClick={() => handleTabClick('upload')}
                             >
                                 Upload
-                            </button> */}
+                            </button>
                         </div>
 
                         <div className={styles.content}>
