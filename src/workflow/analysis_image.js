@@ -33,12 +33,15 @@ export async function analysisImageForImagePrompt(
     }
 
     if (sceneDescription) {
-        userInput.addTextWithImage('## Scene Description:\n' + sceneDescription);
+        userInput.addText('## Scene Description:\n' + sceneDescription);
     }
 
     for (const index in imageUrls) {
-        userInput.addTextWithImage(`Image ${parseInt(index) + 1}: ${imageUrls[index]}`);
+        userInput.addTextWithImage(
+            `Image ${parseInt(index) + 1}`, imageUrls[index]);
     }
+
+    console.log("user input:", userInput)
 
     // Now you can use promptContent in your analysis
     const response = await openaiClient.analyzeImageWithOpenAI(
