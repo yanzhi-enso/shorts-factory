@@ -93,7 +93,7 @@ const UploadTab = ({
         resetUploadState,
     ]);
 
-    // Drag and drop handlers
+    // Drag and drop handlers with improved event handling
     const handleDragEnter = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -103,12 +103,23 @@ const UploadTab = ({
     const handleDragLeave = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragOver(false);
+        
+        // Only set dragOver to false if we're actually leaving the container
+        // Check if the related target is outside the container
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            setIsDragOver(false);
+        }
     }, []);
 
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
+        // Ensure drag over state is maintained
+        setIsDragOver(true);
     }, []);
 
     const handleDrop = useCallback((e) => {
@@ -117,8 +128,8 @@ const UploadTab = ({
         setIsDragOver(false);
 
         const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) {
-            handleFileSelect(files[0]); // Only take first file
+        if (files.length > 0 && files[0].type.startsWith('image/')) {
+            handleFileSelect(files[0]); // Only take first file if it's an image
         }
     }, [handleFileSelect]);
 
@@ -126,6 +137,7 @@ const UploadTab = ({
     const handleFileInputClick = useCallback(() => {
         fileInputRef.current?.click();
     }, []);
+
 
     // File input change handler
     const handleFileInputChange = useCallback((e) => {
@@ -178,12 +190,25 @@ const UploadTab = ({
                             </button>
                         </div>
                         
-                        <div className={styles.previewImageContainer}>
+                        <div 
+                            className={`${styles.previewImageContainer} ${isDragOver ? styles.dragOver : ''}`}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onClick={handleFileInputClick}
+                        >
                             <img
                                 src={previewUrl}
                                 alt="Preview"
                                 className={styles.previewImage}
                             />
+                            {isDragOver && (
+                                <div className={styles.dragOverlay}>
+                                    <FaUpload className={styles.dragOverIcon} />
+                                    <p className={styles.dragOverText}>Drop new image here</p>
+                                </div>
+                            )}
                         </div>
                         
                         <div className={styles.fileInfo}>
