@@ -202,6 +202,18 @@ export function projectReducer(state, action) {
                 },
             };
 
+        case PROJECT_ACTIONS.UPDATE_PROJECT_SETTINGS_SUCCESS:
+            return {
+                ...state,
+                currentProject: {
+                    ...state.currentProject,
+                    settings: {
+                        ...state.currentProject?.settings,
+                        ...action.payload.settings,
+                    },
+                },
+            };
+
         case PROJECT_ACTIONS.ADD_SCENE_SUCCESS:
             // Insert scene in correct position based on sceneOrder
             const newScene = action.payload.scene;

@@ -459,11 +459,8 @@ export const createProjectActions = (dispatch, projectState) => {
 
             // Update in local state second
             dispatch({
-                type: PROJECT_ACTIONS.LOAD_PROJECT_SUCCESS,
-                payload: {
-                    project: updatedProject,
-                    scenes: projectState.scenes,
-                },
+                type: PROJECT_ACTIONS.UPDATE_PROJECT_SETTINGS_SUCCESS,
+                payload: { settings: updatedProject.settings },
             });
 
             return { success: true };
