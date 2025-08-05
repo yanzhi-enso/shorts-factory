@@ -333,7 +333,7 @@ export async function deleteGCSAssets(gcsUrls) {
 
 /* Image Analysis Functions */
 export async function analyzeImage(
-    imageUrl,
+    imageUrls,
     storyContext = null,
     globalChangeRequest = null,
     sceneDescription = null
@@ -345,7 +345,7 @@ export async function analyzeImage(
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                imageUrl,
+                imageUrls,
                 storyContext,
                 globalChangeRequest,
                 sceneDescription,

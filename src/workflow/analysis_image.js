@@ -14,7 +14,7 @@ const promptPath = path.resolve(__dirname, 'prompts/img2text.txt');
 const videoPromptPath = path.resolve(__dirname, 'prompts/img2video.txt');
 
 export async function analysisImageForImagePrompt(
-    imageUrl,
+    imageUrls,
     storyContext,
     globalChangeRequest,
     sceneDescription
@@ -33,14 +33,16 @@ export async function analysisImageForImagePrompt(
     }
 
     if (sceneDescription) {
-        userInput.addTextWithImage('## Scene Description:\n' + sceneDescription, imageUrl);
-    } else {
-        userInput.addTextWithImage('This is the image', imageUrl);
+        userInput.addTextWithImage('## Scene Description:\n' + sceneDescription);
+    }
+
+    for (const index in imageUrls) {
+        userInput.addTextWithImage(`Image ${parseInt(index) + 1}: ${imageUrls[index]}`);
     }
 
     // Now you can use promptContent in your analysis
     const response = await openaiClient.analyzeImageWithOpenAI(
-        REASONING_MODELS.O4_MINI,
+        REASONING_MODELS.O3,
         systemPrompt,
         userInput
     );

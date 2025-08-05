@@ -6,21 +6,16 @@ export async function POST(request) {
         const body = await request.json();
 
         // Extract camelCase parameters from HTTP payload
-        const {
-            imageUrl, storyContext, globalChangeRequest, sceneDescription
-        } = body;
+        const { imageUrls, storyContext, globalChangeRequest, sceneDescription } = body;
 
         // Validate required parameter
-        if (!imageUrl) {
-            return NextResponse.json(
-                { error: 'imageUrl is required' },
-                { status: 400 }
-            );
+        if (!imageUrls) {
+            return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
         }
 
         // Call the analysis function
         const result = await analysisImageForImagePrompt(
-            imageUrl,
+            imageUrls,
             storyContext,
             globalChangeRequest,
             sceneDescription
