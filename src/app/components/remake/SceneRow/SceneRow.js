@@ -55,7 +55,7 @@ const SceneRow = ({
     // Internal states
     const [prompt, setPrompt] = useState('');
     const [isPromptAssistantRunning, setIsPromptAssistantRunning] = useState(false);
-    const [imageCount, setImageCount] = useState(4);
+    const [imageCount, setImageCount] = useState(2);
 
     // Derive isGenerating from pendingGenerations to sync UI with actual generation state
     const isGenerating = useMemo(() => {
@@ -162,7 +162,7 @@ const SceneRow = ({
         setPrompt(editData.prompt || '');
 
         // Update image count
-        setImageCount(editData.imageCount || 4); // default to 4 images
+        setImageCount(editData.imageCount || 2); // default to 4 images
 
         // Update selected elements if srcImages exist
         if (editData.srcImages && editData.srcImages.length > 0) {

@@ -18,7 +18,7 @@ const PromptTab = ({ onClose, prefillData }) => {
     const [referenceImageStack, setReferenceImageStack] = useState([]);
     const [prompt, setPrompt] = useState('');
     const [imageSize, setImageSize] = useState(IMAGE_SIZE_PORTRAIT);
-    const [numberOfImages, setNumberOfImages] = useState(4);
+    const [numberOfImages, setNumberOfImages] = useState(2);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationError, setGenerationError] = useState(null);
     const [validationError, setValidationError] = useState(null);
