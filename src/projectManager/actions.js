@@ -369,6 +369,28 @@ export const createProjectActions = (dispatch, projectState) => {
     };
 
     /**
+     * Clear the reference image for a scene
+     */
+    const clearReferenceImage = async (sceneId) => {
+        try {
+            // Update in persistent storage first - set selected_image_id to null
+            await updateScene(sceneId, { selected_image_id: null });
+
+            // Update in local state second - set selectedImage URL to null
+            dispatch({
+                type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION,
+                payload: { sceneId, imageUrl: null },
+            });
+
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to clear reference image';
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    /**
      * Add a new generated image to a scene and set it as selected
      * GeneratedImages only support gcs_urls (array format)
      */
@@ -1134,6 +1156,7 @@ export const createProjectActions = (dispatch, projectState) => {
         clearError,
         updateSceneSelection,
         updateSelectedImage,
+        clearReferenceImage,
         addGeneratedImage,
         updateSelectedGeneratedImage,
         updateGeneratedImageIndex,
