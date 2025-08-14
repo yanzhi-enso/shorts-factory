@@ -25,7 +25,7 @@ const getTabLabel = (tab) => {
   }
 };
 
-const TabNavigation = ({ activeTab, currentStage, onTabClick }) => {
+const TabNavigation = ({ activeTab, currentStage, userInfo, onTabClick }) => {
   const handleTabClick = (tab) => {
     const status = getTabStatus(tab, activeTab, currentStage);
     if (status === 'unlocked' && tab !== activeTab) {
@@ -49,6 +49,11 @@ const TabNavigation = ({ activeTab, currentStage, onTabClick }) => {
           </div>
         );
       })}
+      <div className={styles.userInfoContainer}>
+        <div className={styles.userInfo}>
+          {userInfo?.name}
+        </div>
+      </div>
     </div>
   );
 };

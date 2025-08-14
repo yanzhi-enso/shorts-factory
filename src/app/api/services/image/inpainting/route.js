@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { inpaintingImage } from 'workflow/image_gen.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
+import {
+    reportImageGeneration,
+    IMAGE_GEN_METHOD_INPAINTING,
+} from 'utils/backend/reportContentGeneration';
+import { extractUserId } from 'utils/backend/userinfo';
 
 export async function POST(request) {
     try {
@@ -64,6 +69,17 @@ export async function POST(request) {
             project_id,
             asset_type
         );
+
+        // Asynchronously report the image generation
+        const userId = await extractUserId();
+        reportImageGeneration(
+            userId,
+            project_id,
+            IMAGE_GEN_METHOD_INPAINTING,
+            body,
+            images.map(img => img.imageUrl)
+        );
+
         return NextResponse.json({
             images,
             format: 'png',

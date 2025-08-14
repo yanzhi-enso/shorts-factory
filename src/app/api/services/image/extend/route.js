@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { extendImage } from 'workflow/image_gen.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
+import {
+    reportImageGeneration,
+    IMAGE_GEN_METHOD_EXTEND,
+} from 'utils/backend/reportContentGeneration';
+import { extractUserId } from 'utils/backend/userinfo';
 
 export async function POST(request) {
     try {
@@ -82,6 +87,16 @@ export async function POST(request) {
 
         // Call the extend function with srcImages format
         const extendedImages = await extendImage(images, prompt, size, n, project_id, asset_type);
+
+        // Asynchronously report the image generation
+        const userId = await extractUserId();
+        reportImageGeneration(
+            userId,
+            project_id,
+            IMAGE_GEN_METHOD_EXTEND,
+            body,
+            extendedImages.map(img => img.imageUrl)
+        );
 
         return NextResponse.json({
             images: extendedImages,

@@ -16,7 +16,7 @@ import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 const STAGE_PARAM = 'stage';
 const PROJECT_ID_PARAM = 'pid';
 
-export default function TabManager() {
+export default function TabManager({userInfo}) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { initializeFromUrl, projectState, updateProjectSettings, updateStage } =
@@ -194,6 +194,7 @@ export default function TabManager() {
         <>
             <TabNavigation
                 activeTab={activeTab}
+                userInfo={userInfo}
                 currentStage={currentStage}
                 onTabClick={handleTabClick}
             />

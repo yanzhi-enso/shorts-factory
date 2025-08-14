@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { generateImage } from 'workflow/image_gen.js';
 import { GCS_CONFIG } from 'constants/gcs.js';
+import {
+    reportImageGeneration,
+    IMAGE_GEN_METHOD_TEXT,
+} from 'utils/backend/reportContentGeneration';
+import { extractUserId } from 'utils/backend/userinfo';
 
 export async function POST(request) {
     try {
@@ -46,6 +51,16 @@ export async function POST(request) {
 
         // Call the generation function
         const images = await generateImage(prompt, size, n, project_id, asset_type);
+
+        // Asynchronously report the image generation
+        const userId = await extractUserId();
+        reportImageGeneration(
+            userId,
+            project_id,
+            IMAGE_GEN_METHOD_TEXT,
+            body,
+            images.map(img => img.imageUrl)
+        );
 
         // Return response with GCS URLs instead of base64 (clean format)
         return NextResponse.json({

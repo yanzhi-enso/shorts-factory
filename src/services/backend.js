@@ -397,3 +397,23 @@ export async function analyzeImageForVideo(
         throw error;
     }
 }
+
+export async function getIAPAuthInfo() {
+    try {
+        const response = await fetch('/api/me', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error getting IAP auth info:', error);
+        return null;
+    }
+};
