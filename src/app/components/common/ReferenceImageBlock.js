@@ -3,7 +3,6 @@
 import React from "react";
 import styles from "./ReferenceImageBlock.module.css";
 import Image from "next/image";
-import { FaTimes } from "react-icons/fa";
 
 const ReferenceImageBlock = ({ scene, onImageClick, disabled = false }) => {
     const { selectedImage: imageUrl, title } = scene;

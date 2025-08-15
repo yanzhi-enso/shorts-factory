@@ -94,45 +94,6 @@
   max-width: 100%;
 }
 
-.resetButton {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  z-index: 10;
-}
-
-.resetButton:hover {
-  background: rgba(220, 53, 69, 0.9);
-  transform: scale(1.1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.resetButton:active {
-  transform: scale(0.95);
-}
-
-.resetButton:focus {
-  outline: 2px solid white;
-  outline-offset: 2px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .imageBlock {
