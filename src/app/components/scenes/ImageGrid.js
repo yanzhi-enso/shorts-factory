@@ -153,6 +153,7 @@ const ImageGrid = ({ scenes }) => {
                 isOpen={editModalState.isOpen}
                 onClose={closeEditModal}
                 scene={editModalState.scene}
+                onSuccess={closeEditModal}
             />
 
             {/* Add Scene Modal */}

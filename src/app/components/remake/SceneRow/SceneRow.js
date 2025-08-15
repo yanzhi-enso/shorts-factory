@@ -23,7 +23,7 @@ const SceneRow = ({
     onReferenceImageClick,
     onOpenHistoryModal,
 }) => {
-    const { handleSceneImageUpload, projectState, updateSelectedGeneratedImage, clearReferenceImage } =
+    const { handleSceneImageUpload, projectState, updateSelectedGeneratedImage } =
         useProjectManager();
 
     // Access isAdvMode setting from project state
@@ -184,20 +184,6 @@ const SceneRow = ({
         }
     };
 
-    // Handler for resetting the reference image
-    const handleResetReferenceImage = async (sceneId) => {
-        try {
-            const result = await clearReferenceImage(sceneId);
-            if (!result.success) {
-                console.error('Failed to clear reference image:', result.error);
-                alert(`Failed to clear reference image: ${result.error}`);
-            }
-        } catch (error) {
-            console.error('Error clearing reference image:', error);
-            alert(`Error clearing reference image: ${error.message}`);
-        }
-    };
-
     // Scene title or fallback
     const displayTitle = scene.title || 'Untitled Scene';
 
@@ -250,7 +236,6 @@ const SceneRow = ({
                 <ReferenceImageBlock 
                     scene={scene} 
                     onImageClick={onReferenceImageClick} 
-                    onImageReset={handleResetReferenceImage}
                 />
             </div>
 

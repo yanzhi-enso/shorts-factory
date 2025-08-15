@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { FaUpload } from 'react-icons/fa';
+import { FaUpload, FaTimes } from 'react-icons/fa';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import styles from './ReferenceImageSelectionModal.module.css';
 
@@ -15,22 +15,22 @@ const ReferenceImageSelectionModal = ({
   const { 
     updateScene, 
     handleReferenceImageUpload,
-    removeScene
+    removeScene,
+    updateSelectedImage,
+    deleteSceneImage
   } = useProjectManager();
   
-  const [selectedImageIndex, setSelectedImageIndex] = useState(-1);
+  // local selected image id
+  const [selectedImageId, setSelectedImageId] = useState(null);
   const [title, setTitle] = useState('');
   const fileInputRef = useRef(null);
 
   // Initialize state when modal opens
   React.useEffect(() => {
-    console.log("isOpen or scene changed:", isOpen, scene)
     if (isOpen && scene) {
-      // Find current selected image index
-      const currentIndex = scene.sceneImages?.findIndex(
-        imageObj => imageObj.gcsUrl === scene.selectedImage
-      ) ?? -1;
-      setSelectedImageIndex(currentIndex);
+      // Find current selected image id and scene title
+      console.log("targeting selected imageId:", scene.selectedImageId)
+      setSelectedImageId(scene.selectedImageId)
       setTitle(scene.title || '');
     }
   }, [isOpen, scene]);
@@ -43,8 +43,13 @@ const ReferenceImageSelectionModal = ({
     }
   };
 
-  const handleImageSelect = (index) => {
-    setSelectedImageIndex(index);
+  const handleImageSelect = (imageId) => {
+    // If the same image is clicked, deselect it
+    if (selectedImageId === imageId) {
+      setSelectedImageId(null);
+    } else {
+      setSelectedImageId(imageId);
+    }
   };
 
   const handleUploadClick = () => {
@@ -80,25 +85,22 @@ const ReferenceImageSelectionModal = ({
 
   const handleSave = async () => {
     try {
-      // Build updates object
-      const updates = {};
-      
-      // Add title if changed
-      if (title !== scene.title) {
-        updates.title = title;
-      }
-
-      // Add selected image if changed
-      if (selectedImageIndex >= 0) {
-        const selectedImage = scene.sceneImages[selectedImageIndex];
-        if (selectedImage && selectedImage.gcsUrl !== scene.selectedImage) {
-          updates.selected_image_id = selectedImage.id;
+      // Handle image selection changes
+      if (selectedImageId != scene.selectedImageId) {
+        // update selected scene reference image
+        // this update use specific function rather than the general
+        // updateScene
+        const selectedImage = scene.sceneImages.find(img => img.id === selectedImageId)
+        const result = await updateSelectedImage(scene.id, selectedImage)
+        if (!result.success) {
+          alert(`Failed to save changes: ${result.error}`);
+          return;
         }
       }
 
-      // Only update if there are changes
-      if (Object.keys(updates).length > 0) {
-        const result = await updateScene(scene.id, updates);
+      // Add title if changed
+      if (title !== scene.title) {
+        const result = await updateScene(scene.id, {title});
         if (!result.success) {
           alert(`Failed to save changes: ${result.error}`);
           return;
@@ -131,6 +133,24 @@ const ReferenceImageSelectionModal = ({
     }
   };
 
+  const handleDeleteImage = async (imageId, e) => {
+    // Prevent event bubbling to avoid triggering image selection
+    e.stopPropagation();
+    
+    try {
+      const result = await deleteSceneImage(imageId);
+      if (result.success) {
+        console.log('Image deleted successfully');
+        if (onSuccess) onSuccess();
+      } else {
+        alert(`Failed to delete image: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Delete image error:', error);
+      alert(`Failed to delete image: ${error.message}`);
+    }
+  };
+
   return (
     <div className={styles.backdrop} onClick={handleBackdropClick}>
       <div className={styles.modal}>
@@ -158,9 +178,9 @@ const ReferenceImageSelectionModal = ({
             {/* Existing Scene Images */}
             {scene.sceneImages?.map((imageObj, index) => (
               <div 
-                key={imageObj.id || index} 
-                className={`${styles.imageContainer} ${selectedImageIndex === index ? styles.selected : ''}`}
-                onClick={() => handleImageSelect(index)}
+                key={imageObj.id } 
+                className={`${styles.imageContainer} ${selectedImageId === imageObj.id ? styles.selected : ''}`}
+                onClick={() => handleImageSelect(imageObj.id)}
               >
                 <Image
                   src={imageObj.gcsUrl}
@@ -169,7 +189,15 @@ const ReferenceImageSelectionModal = ({
                   height={225}
                   className={styles.image}
                 />
-                {selectedImageIndex === index && (
+                {/* Delete button */}
+                <button
+                  className={styles.deleteImageButton}
+                  onClick={(e) => handleDeleteImage(imageObj.id, e)}
+                  title="Delete this image"
+                >
+                  <FaTimes />
+                </button>
+                {selectedImageId === imageObj.id && (
                   <div className={styles.selectedIndicator}>✓</div>
                 )}
               </div>

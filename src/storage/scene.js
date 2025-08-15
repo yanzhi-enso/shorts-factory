@@ -407,6 +407,88 @@ export async function getProjectSceneImages(projectId) {
     return sceneImages;
 }
 
+/**
+ * Delete a scene image and update scene selection if necessary
+ * @param {string} imageId - The scene image ID to delete
+ * @returns {Promise<{success: boolean, wasSelected: boolean, sceneId: string}>} Result object
+ */
+export async function deleteSceneImage(imageId) {
+    try {
+        // Step 1: Get the scene image to validate it exists and get GCS URL
+        const tx1 = await database.transaction([STORES.SCENE_IMAGES, STORES.SCENES], 'readonly');
+        const sceneImagesStore = tx1.objectStore(STORES.SCENE_IMAGES);
+        const scenesStore = tx1.objectStore(STORES.SCENES);
+        
+        const sceneImage = await new Promise((resolve, reject) => {
+            const request = sceneImagesStore.get(imageId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (!sceneImage) {
+            throw new Error('Scene image not found');
+        }
+
+        // Step 2: Get the scene to check if this image is currently selected
+        const scene = await new Promise((resolve, reject) => {
+            const request = scenesStore.get(sceneImage.scene_id);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (!scene) {
+            throw new Error('Scene not found');
+        }
+
+        const isSelectedImage = scene.selected_image_id === imageId;
+
+        // Step 3: Delete from GCS storage if URL exists
+        if (sceneImage.gcs_url) {
+            try {
+                await deleteGCSAssets([sceneImage.gcs_url]);
+                console.log(`Successfully deleted GCS file for scene image ${imageId}`);
+            } catch (error) {
+                // Strict error handling - if GCS deletion fails, halt the process
+                console.error(`GCS deletion failed for scene image ${imageId}:`, error);
+                throw new Error(`Failed to delete GCS file: ${error.message}`);
+            }
+        }
+
+        // Step 4: Delete from IndexedDB and update scene selection if necessary
+        const tx2 = await database.transaction([STORES.SCENE_IMAGES, STORES.SCENES], 'readwrite');
+        const sceneImagesStore2 = tx2.objectStore(STORES.SCENE_IMAGES);
+        const scenesStore2 = tx2.objectStore(STORES.SCENES);
+
+        // Delete the scene image
+        await new Promise((resolve, reject) => {
+            const deleteRequest = sceneImagesStore2.delete(imageId);
+            deleteRequest.onsuccess = () => resolve();
+            deleteRequest.onerror = () => reject(deleteRequest.error);
+        });
+
+        // If this was the selected image, clear the scene's selection
+        if (isSelectedImage) {
+            scene.selected_image_id = null;
+            await new Promise((resolve, reject) => {
+                const putRequest = scenesStore2.put(scene);
+                putRequest.onsuccess = () => resolve();
+                putRequest.onerror = () => reject(putRequest.error);
+            });
+        }
+
+        console.log(`Successfully deleted scene image ${imageId}`);
+        return {
+            success: true,
+            wasSelected: isSelectedImage,
+            sceneId: sceneImage.scene_id
+        };
+        
+    } catch (error) {
+        console.error('Error during scene image deletion:', error);
+        throw new Error(`Failed to delete scene image: ${error.message}`);
+    }
+}
+
 // ==================== RECREATED_SCENE_IMAGES TABLE OPERATIONS ====================
 
 /**

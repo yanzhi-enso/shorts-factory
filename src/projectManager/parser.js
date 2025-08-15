@@ -185,7 +185,7 @@ export const enrichScenes = async (rawScenes, sceneImagesMap) => {
     
     for (const scene of rawScenes) {
         const rawSceneImages = sceneImagesMap[scene.id] || [];
-        const selectedImageId = scene.selected_image_id || rawSceneImages[0]?.id || null;
+        const selectedImageId = scene.selected_image_id || null;
         const selectedImage = selectedImageId 
             ? rawSceneImages.find(img => img.id === selectedImageId)?.gcs_url || null
             : null;

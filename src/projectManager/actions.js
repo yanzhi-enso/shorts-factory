@@ -25,7 +25,8 @@ import {
     updateRecreatedSceneImageSelection, 
     createScene,
     deleteScene,
-    createSceneImages
+    createSceneImages,
+    deleteSceneImage
 } from '../storage/scene.js';
 import { 
     getElementImages,
@@ -50,6 +51,7 @@ import {
     transformElementImageToJS,
     transformGeneratedImageToJS,
     transformSceneClipToJS,
+    transformSceneImageToJS,
 } from './parser';
 
 /**
@@ -352,39 +354,19 @@ export const createProjectActions = (dispatch, projectState) => {
             // Update in persistent storage first (still uses selected_image_id)
             // Note: in db, selected image is stored as selected_image_id
             // selectedImage is just a convenience for UI
-            await updateScene(sceneId, { selected_image_id: image.id });
+            // image == null will reset the selectedImage field
+            await updateScene(sceneId, { selected_image_id: image?.id });
 
             // Update in local state second (uses selectedImage URL)
             dispatch({
                 type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION,
-                payload: { sceneId, imageUrl: image.gcsUrl },
+                // imageUrl == null will reset the reference image
+                payload: { sceneId, imageUrl: image?.gcsUrl, imageId: image?.id },
             });
 
             return { success: true };
         } catch (err) {
             const errorMessage = err.message || 'Failed to update selected image';
-            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
-            return { success: false, error: errorMessage };
-        }
-    };
-
-    /**
-     * Clear the reference image for a scene
-     */
-    const clearReferenceImage = async (sceneId) => {
-        try {
-            // Update in persistent storage first - set selected_image_id to null
-            await updateScene(sceneId, { selected_image_id: null });
-
-            // Update in local state second - set selectedImage URL to null
-            dispatch({
-                type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION,
-                payload: { sceneId, imageUrl: null },
-            });
-
-            return { success: true };
-        } catch (err) {
-            const errorMessage = err.message || 'Failed to clear reference image';
             dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
             return { success: false, error: errorMessage };
         }
@@ -770,12 +752,16 @@ export const createProjectActions = (dispatch, projectState) => {
                 selected_image_id: sceneImage.id,
             });
 
-            // 4. Update UI state
+            // 4. Update UI state - add the scene image to the array and set as selected
+            // Transform scene image to camelCase for state using existing transform function
+            const transformedSceneImage = transformSceneImageToJS(sceneImage);
+
             dispatch({
-                type: PROJECT_ACTIONS.UPDATE_SCENE_IMAGE_SELECTION,
+                type: PROJECT_ACTIONS.ADD_REFERENCE_IMAGE_SUCCESS,
                 payload: {
                     sceneId,
                     imageUrl: uploadResult.public_url,
+                    sceneImage: transformedSceneImage,
                 },
             });
 
@@ -1146,6 +1132,46 @@ export const createProjectActions = (dispatch, projectState) => {
         }
     };
 
+    /**
+     * Delete a scene image and update scene selection if necessary
+     * @param {string} imageId - The scene image ID to delete
+     * @returns {Promise<Object>} Result object with success status
+     */
+    const deleteSceneImageAction = async (imageId) => {
+        try {
+            // Show confirmation dialog
+            const confirmed = confirm('Are you sure you want to delete this image?');
+            if (!confirmed) {
+                return { success: false, error: 'User cancelled deletion' };
+            }
+
+            // Delete from persistent storage first (includes GCS cleanup)
+            const result = await deleteSceneImage(imageId);
+            console.log("deletion result:", result)
+
+            if (!result.success) {
+                throw new Error('Failed to delete scene image from storage');
+            }
+
+            // Update local state second
+            dispatch({
+                type: PROJECT_ACTIONS.DELETE_SCENE_IMAGE_SUCCESS,
+                payload: {
+                    sceneId: result.sceneId,
+                    imageId: imageId,
+                    wasSelected: result.wasSelected,
+                },
+            });
+
+            return { success: true };
+        } catch (err) {
+            const errorMessage = err.message || 'Failed to delete scene image';
+            console.error('Error deleting scene image:', errorMessage);
+            dispatch({ type: PROJECT_ACTIONS.SET_ERROR, payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
     // Return all action functions
     return {
         createProject,
@@ -1156,7 +1182,6 @@ export const createProjectActions = (dispatch, projectState) => {
         clearError,
         updateSceneSelection,
         updateSelectedImage,
-        clearReferenceImage,
         addGeneratedImage,
         updateSelectedGeneratedImage,
         updateGeneratedImageIndex,
@@ -1178,5 +1203,6 @@ export const createProjectActions = (dispatch, projectState) => {
         removeScene,
         updateScene: updateSceneAction,
         updateSceneOrders,
+        deleteSceneImage: deleteSceneImageAction,
     };
 };

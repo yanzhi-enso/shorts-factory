@@ -5,20 +5,13 @@ import styles from "./ReferenceImageBlock.module.css";
 import Image from "next/image";
 import { FaTimes } from "react-icons/fa";
 
-const ReferenceImageBlock = ({ scene, onImageClick, onImageReset, disabled = false }) => {
+const ReferenceImageBlock = ({ scene, onImageClick, disabled = false }) => {
     const { selectedImage: imageUrl, title } = scene;
 
     const handleClick = () => {
         if (!disabled && onImageClick) {
             console.log("try to call onImageCick")
             onImageClick(scene);
-        }
-    };
-
-    const handleResetClick = (e) => {
-        e.stopPropagation(); // Prevent triggering the main click handler
-        if (!disabled && onImageReset) {
-            onImageReset(scene.id);
         }
     };
 
@@ -59,16 +52,6 @@ const ReferenceImageBlock = ({ scene, onImageClick, onImageReset, disabled = fal
                 onClick={handleClick}
             >
                 {renderContent()}
-                {imageUrl && !disabled && (
-                    <button
-                        className={styles.resetButton}
-                        onClick={handleResetClick}
-                        aria-label="Clear reference image"
-                        title="Clear reference image"
-                    >
-                        <FaTimes />
-                    </button>
-                )}
             </div>
         </div>
     );

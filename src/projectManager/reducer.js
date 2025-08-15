@@ -78,7 +78,11 @@ export function projectReducer(state, action) {
                 ...state,
                 scenes: state.scenes.map((scene) =>
                     scene.id === action.payload.sceneId
-                        ? { ...scene, selectedImage: action.payload.imageUrl }
+                        ? { 
+                            ...scene, 
+                            selectedImageId: action.payload.imageId,
+                            selectedImage: action.payload.imageUrl 
+                        }
                         : scene
                 ),
             };
@@ -309,6 +313,54 @@ export function projectReducer(state, action) {
                     }
 
                     return { ...scene, ...updates };
+                }),
+            };
+
+        case PROJECT_ACTIONS.DELETE_SCENE_IMAGE_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.map((scene) => {
+                    if (scene.id !== action.payload.sceneId) {
+                        return scene;
+                    }
+
+                    // Remove the image from the scene's sceneImages array
+                    const updatedSceneImages = scene.sceneImages.filter(
+                        (image) => image.id !== action.payload.imageId
+                    );
+
+                    // If this was the selected image, clear selection
+                    const updates = {
+                        sceneImages: updatedSceneImages,
+                    };
+
+                    if (action.payload.wasSelected) {
+                        updates.selectedImage = null;
+                        updates.selectedImageId = null;
+                    }
+
+                    return { ...scene, ...updates };
+                }),
+            };
+
+        case PROJECT_ACTIONS.ADD_REFERENCE_IMAGE_SUCCESS:
+            return {
+                ...state,
+                scenes: state.scenes.map((scene) => {
+                    if (scene.id !== action.payload.sceneId) {
+                        return scene;
+                    }
+
+                    // Add the new scene image to the sceneImages array
+                    const newSceneImage = action.payload.sceneImage;
+                    const updatedSceneImages = [...scene.sceneImages, newSceneImage];
+
+                    return {
+                        ...scene,
+                        sceneImages: updatedSceneImages,
+                        selectedImage: action.payload.imageUrl,
+                        selectedImageId: action.payload.sceneImage.id,
+                    };
                 }),
             };
 
