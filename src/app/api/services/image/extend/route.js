@@ -89,7 +89,7 @@ export async function POST(request) {
         const extendedImages = await extendImage(images, prompt, size, n, project_id, asset_type);
 
         // Asynchronously report the image generation
-        const userId = await extractUserId();
+        const userId = extractUserId(request);
         reportImageGeneration(
             userId,
             project_id,

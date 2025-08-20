@@ -71,7 +71,7 @@ export async function POST(request) {
         );
 
         // Asynchronously report the image generation
-        const userId = await extractUserId();
+        const userId = extractUserId(request);
         reportImageGeneration(
             userId,
             project_id,

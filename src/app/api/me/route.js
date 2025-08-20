@@ -2,22 +2,19 @@ import { NextResponse } from 'next/server';
 import { extractUserId } from 'utils/backend/userinfo'
 
 // extract google iap header
-export async function GET(req) {
+export async function GET(request) {
     try {
-        const userEmail = extractUserId(req)
+        const userEmail = extractUserId(request);
 
         if (!userEmail) {
-            return NextResponse.json(
-                { error: 'No user information found' },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: 'No user information found' }, { status: 401 });
         }
 
         // Return user info
         return NextResponse.json({
             email: userEmail,
             name: userEmail.split('@')[0], // Extract name from email
-            domain: userEmail.split('@')[1]
+            domain: userEmail.split('@')[1],
         });
     } catch (error) {
         return NextResponse.json(
