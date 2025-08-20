@@ -55,6 +55,9 @@ const SceneInpaintingModal = ({ isOpen, inpaintingData, onClose }) => {
         if (isOpen) {
             setIsGenerating(false);
             setGenerationError(null);
+            setPrompt('');
+            setHasDrawnMask(false);
+            setIsDrawing(false);
         }
     }, [isOpen]);
 

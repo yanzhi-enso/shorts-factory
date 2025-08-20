@@ -416,6 +416,7 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     color: black;
     background-color: white;
+    user-select: text;   
 }
 
 .promptTextarea:focus {
@@ -428,6 +429,10 @@
     background-color: #f8f9fa;
     color: #6c757d;
     cursor: not-allowed;
+}
+
+.promptTextarea::selection {
+    background-color: rgba(0, 123, 255, 0.3);
 }
 
 /* Clear Mask Section */
