@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { FaBookOpen, FaDownload, FaCompress, FaExpand } from 'react-icons/fa';
-import { FaMagic, FaImages } from 'react-icons/fa';
-import React from 'react';
+import { FaBookOpen, FaDownload, FaCompress, FaExpand, FaPencilAlt } from 'react-icons/fa';
+import { FaImages } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './RemakeTab.module.css';
@@ -15,9 +14,6 @@ import AddSceneButton from 'app/components/remake/AddSceneButton/AddSceneButton'
 import ReferenceImageSelectionModal from 'app/components/common/ReferenceImageSelectionModal';
 import SceneGenHistoryModal from 'app/components/remake/SceneGenHistoryModal';
 import SceneInpaintingModal from 'app/components/remake/SceneInpaintingModal';
-
-// Memoized SceneRow to prevent unnecessary re-renders
-const MemoizedSceneRow = React.memo(SceneRow);
 
 const RemakeTab = ({
     onBackToScenes,
@@ -49,6 +45,9 @@ const RemakeTab = ({
         inpaintingData: null,
     });
 
+    // Refs array to store references to each SceneRow
+    const sceneRowRefs = useRef([]);
+
     // Get selected scenes from ProjectManager
     const selectedScenes = useMemo(
         () => (projectState.scenes || []).filter((scene) => scene.isSelected),
@@ -57,6 +56,11 @@ const RemakeTab = ({
 
     // Get story config from ProjectManager
     const storyConfig = projectState.currentProject?.settings || {};
+
+    // Ensure refs array is properly sized when scenes change
+    useEffect(() => {
+        sceneRowRefs.current = sceneRowRefs.current.slice(0, selectedScenes.length);
+    }, [selectedScenes.length]);
 
     // Toggle individual scene collapse state (optimized with useCallback)
     const toggleSceneCollapse = useCallback((sceneId) => {
@@ -103,14 +107,37 @@ const RemakeTab = ({
         setSceneCollapseStates(newStates);
     }, [selectedScenes]);
 
-    // Empty bulk operation handlers (to be implemented later)
-    // const handlePromptGenAll = () => {
-    //     console.log('Bulk prompt generation not implemented yet');
-    // };
+    const handleImageGenAll = useCallback(() => {
+        console.log('Starting bulk image generation for all scenes...');
 
-    // const handleImageGenAll = () => {
-    //     console.log('Bulk image generation not implemented yet');
-    // };
+        // Iterate through all scene refs and call their handleGenerate method
+        sceneRowRefs.current.forEach((sceneRef, index) => {
+            if (sceneRef && sceneRef.handleGenerate) {
+                try {
+                    sceneRef.handleGenerate();
+                    console.log(`Triggered generation for scene ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error triggering generation for scene ${index + 1}:`, error);
+                }
+            }
+        });
+    }, []);
+
+    const handleEditAll = useCallback(() => {
+        console.log('Starting bulk edit for all scenes with selected images...');
+
+        // Iterate through all scene refs and call their handleEditFromSelectedImage method
+        sceneRowRefs.current.forEach((sceneRef, index) => {
+            if (sceneRef && sceneRef.handleEditFromSelectedImage) {
+                try {
+                    sceneRef.handleEditFromSelectedImage();
+                    console.log(`Triggered edit for scene ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error triggering edit for scene ${index + 1}:`, error);
+                }
+            }
+        });
+    }, []);
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -252,20 +279,20 @@ const RemakeTab = ({
                         <FaBookOpen />
                         Story Setting
                     </button>
-                    {/* <button
-                        onClick={handlePromptGenAll}
-                        className={`${styles.actionButton} ${styles.promptButton}`}
-                        title='Generate Prompts for All Scenes'
-                    >
-                        <FaMagic /> PromptGen All
-                    </button>
                     <button
                         onClick={handleImageGenAll}
                         className={`${styles.actionButton} ${styles.imageGenButton}`}
                         title='Generate Images for All Scenes'
                     >
                         <FaImages /> ImageGen All
-                    </button> */}
+                    </button>
+                    <button
+                        onClick={handleEditAll}
+                        className={`${styles.actionButton} ${styles.editAllButton}`}
+                        title='Edit All Selected Images'
+                    >
+                        <FaPencilAlt /> Edit All
+                    </button>
                     {selectedScenes.length > 0 && (
                         <>
                             <button
@@ -315,7 +342,8 @@ const RemakeTab = ({
                     selectedScenes.map((scene, index) => (
                         <div key={scene.id} className={styles.sceneRow}>
                             {/* Scene Row */}
-                            <MemoizedSceneRow
+                            <SceneRow
+                                ref={(el) => (sceneRowRefs.current[index] = el)}
                                 scene={scene}
                                 sceneIndex={index}
                                 totalScenes={selectedScenes.length}
@@ -330,7 +358,9 @@ const RemakeTab = ({
                             <AddSceneButton
                                 insertAfterScene={scene}
                                 insertBeforeScene={
-                                    index + 1 < selectedScenes.length ? selectedScenes[index + 1] : null
+                                    index + 1 < selectedScenes.length
+                                        ? selectedScenes[index + 1]
+                                        : null
                                 }
                             />
                         </div>

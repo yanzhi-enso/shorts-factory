@@ -96,6 +96,15 @@
   transform: translateY(-1px);
 }
 
+.editAllButton {
+  background: #17a2b8;
+}
+
+.editAllButton:hover {
+  background: #138496;
+  transform: translateY(-1px);
+}
+
 .exportButton {
   background: #6f42c1;
 }

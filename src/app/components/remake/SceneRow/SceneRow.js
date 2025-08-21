@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { FaChevronLeft } from 'react-icons/fa';
 import styles from './SceneRow.module.css';
 import ReferenceImageBlock from 'app/components/common/ReferenceImageBlock';
@@ -13,7 +13,7 @@ import { useElementManager } from '../ElementList/ElementSelectionManager';
 import { ASSET_TYPES } from 'constants/gcs';
 import { IMAGE_SIZE_PORTRAIT } from 'constants/image';
 
-const SceneRow = ({
+const SceneRow = forwardRef(({
     scene,
     sceneIndex,
     totalScenes,
@@ -22,7 +22,7 @@ const SceneRow = ({
     onToggleCollapse,
     onReferenceImageClick,
     onOpenHistoryModal,
-}) => {
+}, ref) => {
     const { handleSceneImageUpload, projectState, updateSelectedGeneratedImage } =
         useProjectManager();
 
@@ -139,6 +139,29 @@ const SceneRow = ({
             alert(`Error generating image for ${sceneId}: ${error.message}`);
         }
     };
+
+    // Handle edit from selected image (for bulk edit functionality)
+    const handleEditFromSelectedImage = () => {
+        const selectedGeneratedImageId = scene?.selectedGeneratedImageId;
+        const selectedImageData = scene?.generatedImages?.find(
+            (img) => img.id === selectedGeneratedImageId
+        );
+        
+        if (selectedImageData && selectedImageData.generationSources) {
+            const editData = {
+                prompt: selectedImageData.generationSources.prompt || '',
+                srcImages: selectedImageData.generationSources.srcImages || [],
+                imageCount: selectedImageData.gcsUrls?.length || 1
+            };
+            handleEditFromHistory(editData);
+        }
+    };
+
+    // Expose both handleGenerate and handleEditFromSelectedImage functions to parent via ref
+    useImperativeHandle(ref, () => ({
+        handleGenerate,
+        handleEditFromSelectedImage
+    }));
 
     const handleImageUploadInternal = async (imageFile) => {
         // Call ProjectManager's image upload handler
@@ -267,6 +290,6 @@ const SceneRow = ({
             </div>
         </div>
     );
-};
+});
 
 export default SceneRow;
