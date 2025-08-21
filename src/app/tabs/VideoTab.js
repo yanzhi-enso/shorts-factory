@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { FaMagic, FaVideo, FaDownload, FaBookOpen, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { FaMagic, FaVideo, FaDownload, FaBookOpen, FaChevronDown, FaChevronUp, FaPencilAlt } from 'react-icons/fa';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
@@ -19,6 +19,12 @@ const VideoTabContent = ({
     onExportEnd,
 }) => {
     const { projectState } = useProjectManager();
+    
+    // Access isAdvMode setting from project state
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode;
+    
+    // Refs array to store references to each VideoRow
+    const videoRowRefs = useRef([]);
     const [modalState, setModalState] = useState({
         isOpen: false,
         imageUrl: null,
@@ -42,6 +48,11 @@ const VideoTabContent = ({
             (scene) => scene.isSelected && scene.selectedGeneratedImage
         );
     }, [projectState.scenes]);
+
+    // Ensure refs array is properly sized when scenes change
+    useEffect(() => {
+        videoRowRefs.current = videoRowRefs.current.slice(0, scenesForVideo.length);
+    }, [scenesForVideo.length]);
 
     const handleInputImageClick = (imageUrl, title) => {
         setModalState({
@@ -114,17 +125,37 @@ const VideoTabContent = ({
         }
     }, [videoCollapseStates, scenesForVideo]);
 
-    // Placeholder for bulk operation
-    // const handlePromptGenAll = () => {
-    //     console.log('PromptGen All button clicked - no action implemented.');
-    //     if (onError) onError('PromptGen All is not yet implemented.');
-    // };
+    const handleEdit = useCallback(() => {
+        console.log('Starting bulk edit for all scenes with selected video clips...');
 
-    // Placeholder for bulk operation
-    // const handleVideoGenAll = () => {
-    //     console.log('VideoGen All button clicked - no action implemented.');
-    //     if (onError) onError('VideoGen All is not yet implemented.');
-    // };
+        // Iterate through all video refs and call their handleEditFromSelectedClip method
+        videoRowRefs.current.forEach((videoRef, index) => {
+            if (videoRef && videoRef.handleEditFromSelectedClip) {
+                try {
+                    videoRef.handleEditFromSelectedClip();
+                    console.log(`Triggered edit for scene ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error triggering edit for scene ${index + 1}:`, error);
+                }
+            }
+        });
+    }, []);
+
+    const handleVideoGenAll = useCallback(() => {
+        console.log('Starting bulk video generation for all scenes...');
+
+        // Iterate through all video refs and call their handleGenerate method
+        videoRowRefs.current.forEach((videoRef, index) => {
+            if (videoRef && videoRef.handleGenerate) {
+                try {
+                    videoRef.handleGenerate();
+                    console.log(`Triggered video generation for scene ${index + 1}`);
+                } catch (error) {
+                    console.error(`Error triggering video generation for scene ${index + 1}:`, error);
+                }
+            }
+        });
+    }, []);
 
     const handleExport = async () => {
         if (isExporting) return;
@@ -213,20 +244,24 @@ const VideoTabContent = ({
                         <FaChevronDown />
                         Expand All
                     </button>
-                    {/* <button
-                        onClick={handlePromptGenAll}
-                        className={`${styles.actionButton} ${styles.promptButton}`}
-                        title='Generate Prompts for All Scenes'
-                    >
-                        <FaMagic /> PromptGen All
-                    </button>
-                    <button
-                        onClick={handleVideoGenAll}
-                        className={`${styles.actionButton} ${styles.videoGenButton}`}
-                        title='Generate Videos for All Scenes'
-                    >
-                        <FaVideo /> VideoGen All
-                    </button> */}
+                    {isAdvMode && (
+                        <>
+                            <button
+                                onClick={handleEdit}
+                                className={`${styles.actionButton} ${styles.editAllButton}`}
+                                title='Edit All Selected Video Clips'
+                            >
+                                <FaPencilAlt /> Edit All
+                            </button>
+                            <button
+                                onClick={handleVideoGenAll}
+                                className={`${styles.actionButton} ${styles.videoGenButton}`}
+                                title='Generate Videos for All Scenes'
+                            >
+                                <FaVideo /> VideoGen All
+                            </button>
+                        </>
+                    )}
                 </div>
                 <div className={styles.rightButtons}>
                     <button
@@ -245,6 +280,7 @@ const VideoTabContent = ({
             <div className={styles.rowsContainer}>
                 {scenesForVideo.map((scene, index) => (
                     <VideoRow
+                        ref={(el) => (videoRowRefs.current[index] = el)}
                         key={scene.id}
                         scene={scene}
                         sceneIndex={index}

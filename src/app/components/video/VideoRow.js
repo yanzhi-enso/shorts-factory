@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FaChevronLeft } from 'react-icons/fa';
 import styles from './VideoRow.module.css';
 import VideoBlock from './VideoBlock';
@@ -10,7 +10,7 @@ import VideoControlPanel from './VideoControlPanel';
 import { useProjectManager } from 'projectManager/useProjectManager';
 import { analyzeImageForVideo } from 'services/backend';
 
-const VideoRow = ({
+const VideoRow = forwardRef(({
     scene,
     sceneIndex,
     totalScenes,
@@ -19,7 +19,7 @@ const VideoRow = ({
     videoManager,
     onInputImageClick,
     onToggleCollapse,
-}) => {
+}, ref) => {
     const { addGeneratedClip, updateSelectedGeneratedClip, projectState } = useProjectManager();
     
     // Access isAdvMode setting from project state
@@ -166,6 +166,22 @@ const VideoRow = ({
         }
     };
 
+    // Handle edit from selected clip (for bulk edit functionality)
+    const handleEditFromSelectedClip = () => {
+        const selectedClipData = sceneClips?.find(clip => clip.id === selectedSceneClipId);
+        
+        if (selectedClipData && selectedClipData.generationSources) {
+            const { prompt, imageUrl } = selectedClipData.generationSources;
+            handleFillinInput(imageUrl, prompt);
+        }
+    };
+
+    // Expose both handleEditFromSelectedClip and handleGenerate functions to parent via ref
+    useImperativeHandle(ref, () => ({
+        handleEditFromSelectedClip,
+        handleGenerate
+    }));
+
     return (
         <div className={styles.container}>
             <div className={styles.rowHeader}>
@@ -240,6 +256,6 @@ const VideoRow = ({
             </div>
         </div>
     );
-};
+});
 
 export default VideoRow;
