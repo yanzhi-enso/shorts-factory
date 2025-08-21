@@ -25,6 +25,9 @@ const RemakeTab = ({
 }) => {
     const { projectState } = useProjectManager();
 
+    // Access isAdvMode setting from project state
+    const isAdvMode = projectState.currentProject?.settings?.isAdvMode;
+
     // Centralized collapse state management (optimized)
     const [sceneCollapseStates, setSceneCollapseStates] = useState({});
     const [isExporting, setIsExporting] = useState(false);
@@ -279,20 +282,24 @@ const RemakeTab = ({
                         <FaBookOpen />
                         Story Setting
                     </button>
-                    <button
-                        onClick={handleImageGenAll}
-                        className={`${styles.actionButton} ${styles.imageGenButton}`}
-                        title='Generate Images for All Scenes'
-                    >
-                        <FaImages /> ImageGen All
-                    </button>
-                    <button
-                        onClick={handleEditAll}
-                        className={`${styles.actionButton} ${styles.editAllButton}`}
-                        title='Edit All Selected Images'
-                    >
-                        <FaPencilAlt /> Edit All
-                    </button>
+                    {isAdvMode && (
+                        <>
+                            <button
+                                onClick={handleImageGenAll}
+                                className={`${styles.actionButton} ${styles.imageGenButton}`}
+                                title='Generate Images for All Scenes'
+                            >
+                                <FaImages /> ImageGen All
+                            </button>
+                            <button
+                                onClick={handleEditAll}
+                                className={`${styles.actionButton} ${styles.editAllButton}`}
+                                title='Edit All Selected Images'
+                            >
+                                <FaPencilAlt /> Edit All
+                            </button>
+                        </>
+                    )}
                     {selectedScenes.length > 0 && (
                         <>
                             <button
