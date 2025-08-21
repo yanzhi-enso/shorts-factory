@@ -167,12 +167,19 @@ const VideoRow = forwardRef(({
     };
 
     // Handle edit from selected clip (for bulk edit functionality)
-    const handleEditFromSelectedClip = () => {
+    const handleEditFromSelectedClip = (shouldRecoverImage = true) => {
         const selectedClipData = sceneClips?.find(clip => clip.id === selectedSceneClipId);
         
         if (selectedClipData && selectedClipData.generationSources) {
             const { prompt, imageUrl } = selectedClipData.generationSources;
-            handleFillinInput(imageUrl, prompt);
+            
+            if (shouldRecoverImage) {
+                // Recover both image and prompt (original behavior)
+                handleFillinInput(imageUrl, prompt);
+            } else {
+                // Recover only prompt, not the image
+                setPrompt(prompt);
+            }
         }
     };
 

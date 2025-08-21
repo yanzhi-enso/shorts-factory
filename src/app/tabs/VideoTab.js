@@ -6,6 +6,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import styles from './VideoTab.module.css';
 import FullscreenImageModal from 'app/components/common/FullscreenImageModal';
+import EditAllRecoveryDialog from 'app/components/common/EditAllRecoveryDialog';
 import VideoRow from 'app/components/video/VideoRow';
 import VideoRequestManager from 'app/components/video/VideoRequestManager';
 import { useProjectManager } from 'projectManager/useProjectManager';
@@ -31,6 +32,7 @@ const VideoTabContent = ({
         imageTitle: null,
     });
 
+    const [recoveryDialogOpen, setRecoveryDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
     // Centralized collapse state management
@@ -126,14 +128,27 @@ const VideoTabContent = ({
     }, [videoCollapseStates, scenesForVideo]);
 
     const handleEdit = useCallback(() => {
-        console.log('Starting bulk edit for all scenes with selected video clips...');
+        // Show custom recovery dialog
+        setRecoveryDialogOpen(true);
+    }, []);
+
+    const handleRecoveryDialogClose = useCallback((shouldRecoverImage) => {
+        setRecoveryDialogOpen(false);
+        
+        // If user cancelled (shouldRecoverImage is null), don't proceed
+        if (shouldRecoverImage === null) {
+            console.log('Bulk edit cancelled by user');
+            return;
+        }
+        
+        console.log('Starting bulk edit with image recovery:', shouldRecoverImage);
 
         // Iterate through all video refs and call their handleEditFromSelectedClip method
         videoRowRefs.current.forEach((videoRef, index) => {
             if (videoRef && videoRef.handleEditFromSelectedClip) {
                 try {
-                    videoRef.handleEditFromSelectedClip();
-                    console.log(`Triggered edit for scene ${index + 1}`);
+                    videoRef.handleEditFromSelectedClip(shouldRecoverImage);
+                    console.log(`Triggered edit for scene ${index + 1} with image recovery: ${shouldRecoverImage}`);
                 } catch (error) {
                     console.error(`Error triggering edit for scene ${index + 1}:`, error);
                 }
@@ -299,6 +314,11 @@ const VideoTabContent = ({
                 isOpen={modalState.isOpen}
                 imageUrl={modalState.imageUrl}
                 onClose={closeModal}
+            />
+
+            <EditAllRecoveryDialog
+                isOpen={recoveryDialogOpen}
+                onClose={handleRecoveryDialogClose}
             />
         </div>
     );
